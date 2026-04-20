@@ -107,60 +107,7 @@
             font-weight: 700;
         }
 
-        /* ---------- Breaking label ---------- */
-        .breaking-label {
-            text-align: center;
-            margin: 0 0 28px;
-            font-weight: 700;
-            font-size: 14px;
-            letter-spacing: 0.5em;
-            color: var(--pink);
-            text-transform: uppercase;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 18px;
-        }
-        .breaking-label::before,
-        .breaking-label::after {
-            content: "";
-            display: inline-block;
-            width: 22px;
-            height: 25px;
-            background: url("assets/logo-icon.svg") no-repeat center / contain;
-        }
-
-        /* ---------- Breaking Stories (top 5, chronological) ---------- */
-        .breaking-stories {
-            text-align: center;
-            padding: 0 0 56px;
-        }
-        .story-breaking {
-            margin: 0 0 36px;
-        }
-        .story-breaking:last-child { margin-bottom: 0; }
-        .story-breaking h2 {
-            font-size: 26px;
-            font-weight: 700;
-            line-height: 1.15;
-            margin: 0 0 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.01em;
-        }
-        .story-breaking:first-child h2 {
-            font-size: 34px;
-            line-height: 1.05;
-            margin-bottom: 14px;
-        }
-        .story-breaking h2 a {
-            color: var(--near-black);
-            text-decoration: none;
-            border-bottom: 2px solid var(--near-black);
-            padding-bottom: 2px;
-        }
-        .story-breaking h2 a:hover { color: var(--pink); border-bottom-color: var(--pink); }
-
-        /* ---------- Recent Stories (next 15, chronological, 2-col) ---------- */
+        /* ---------- Recent Stories (chronological, 2-col per side) ---------- */
         .recent-label {
             text-align: center;
             margin: 0 0 24px;
@@ -329,7 +276,6 @@
             flex-wrap: wrap;
             gap: 8px;
         }
-        .story-breaking .meta { justify-content: center; }
         .meta .source { font-style: italic; }
         .meta .date   { color: var(--soft-text); }
 
@@ -340,15 +286,6 @@
             line-height: 1.5;
             font-size: 12px;
             margin: 6px 0 8px;
-        }
-        .story-breaking .blurb {
-            font-size: 14px;
-            max-width: 620px;
-            margin: 10px auto 14px;
-            line-height: 1.5;
-        }
-        .story-breaking:first-child .blurb {
-            font-size: 15px;
         }
         .story-recent .blurb {
             font-size: 12px;
@@ -366,7 +303,6 @@
             margin-top: 6px;
             justify-content: inherit;
         }
-        .story-breaking .keyword-pills { justify-content: center; }
         .keyword-pill {
             font-size: 9px;
             font-style: italic;
@@ -525,8 +461,6 @@
     </header>
 
     <div id="status" class="status">Loading feed&hellip;</div>
-
-    <div id="breaking-container"></div>
 
 </div>
 
@@ -696,37 +630,11 @@
             // --- Build buckets (scraper already sorted by date desc) ---
             const seriousAll = articles.filter(isSerious);
 
-            // Breaking: one item from each category (paper, preprint, news,
-            // forums, social). Pick the HIGHEST-SCORED in each category;
-            // tiebreak on most-recent. Ordered by editorial weight so papers
-            // lead and social goes last. Up to 5 items.
-            const CATEGORY_ORDER = ["paper", "preprint", "news", "forums", "social"];
-            const bestByCategory = (list) => {
-                const byCat = {};
-                for (const a of list) {
-                    const cat = a.source_category;
-                    if (!byCat[cat]) byCat[cat] = [];
-                    byCat[cat].push(a);
-                }
-                const picks = {};
-                for (const cat of Object.keys(byCat)) {
-                    byCat[cat].sort((a, b) => {
-                        const ds = (b.score || 0) - (a.score || 0);
-                        if (ds !== 0) return ds;
-                        return (b.date_iso || "").localeCompare(a.date_iso || "");
-                    });
-                    picks[cat] = byCat[cat][0];
-                }
-                return CATEGORY_ORDER.map(c => picks[c]).filter(Boolean);
-            };
-            const breaking     = bestByCategory(articles).slice(0, 5);
-            const breakingSet  = new Set(breaking.map(a => a.link));
-
             // Recent pools: direct-QB vs adjacent, each capped at 3 per source
             const qbioPool    = capPerSource(
-                seriousAll.filter(a => !breakingSet.has(a.link) && isDirect(a)), 3);
+                seriousAll.filter(isDirect), 3);
             const generalPool = capPerSource(
-                seriousAll.filter(a => !breakingSet.has(a.link) && !isDirect(a)), 3);
+                seriousAll.filter(a => !isDirect(a)), 3);
 
             // Each side gets up to 40 items; the CSS max-height clips
             // visually so both sides end at the same horizontal line.
@@ -737,7 +645,6 @@
             const recentGeneralSet = new Set(recentGeneral.map(a => a.link));
 
             const shownSerious = new Set([
-                ...breakingSet,
                 ...recentQbioSet,
                 ...recentGeneralSet,
             ]);
@@ -755,12 +662,6 @@
             // --- Render helpers ---
             const blurbHtml = (a) => a.blurb ? `<div class="blurb">${a.blurb}</div>` : "";
 
-            const renderBreaking = (a) => `
-                <div class="story-breaking">
-                    <h2><a href="${a.link}" target="_blank" title="${stripHtml(a.summary)}">${a.title}</a></h2>
-                    ${blurbHtml(a)}
-                    ${metaHtml(a)}
-                </div>`;
             const renderRecent = (a) => `
                 <div class="story-recent">
                     <h3><a href="${a.link}" target="_blank" title="${stripHtml(a.summary)}">${a.title}</a></h3>
@@ -776,12 +677,6 @@
                         ${metaHtml(a)}
                     </div>`;
             };
-
-            // --- Breaking section ---
-            document.getElementById("breaking-container").innerHTML = `
-                <div class="breaking-label">Breaking</div>
-                <div class="breaking-stories">${breaking.map(renderBreaking).join("")}</div>
-            `;
 
             // --- Recent section (split layout) ---
             if (recentGeneral.length || recentQbio.length) {
