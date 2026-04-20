@@ -5,6 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QBIO Report — Keywords</title>
     <link rel="stylesheet" href="assets/shared.css">
+    <style>
+        /* Weight badge on keyword tags */
+        .kw-weight {
+            display: inline-block;
+            font-size: 10px;
+            background: var(--pink);
+            color: var(--near-black);
+            padding: 1px 6px 2px;
+            border-radius: 2px;
+            margin: 0 2px 0 6px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+        .kw-weight::before { content: "×"; margin-right: 1px; }
+    </style>
 </head>
 <body>
 
@@ -26,13 +41,17 @@
 
     <div class="flash" id="flash-info">
         Keywords are used two ways: (1) to score every article's relevance
-        (all keywords, always), and (2) to query PubMed, arXiv, Europe PMC,
-        Hacker News, and Bluesky server-side (also all keywords, chunked).
-        Changes here take effect on the next scraper run automatically &mdash; no check-in needed.
+        (article score = <b>sum of matched keyword weights</b>), and (2) to
+        query PubMed, arXiv, Europe PMC, Hacker News, and Bluesky server-side.
+        Higher weight &rarr; higher rank in Breaking and elsewhere.
+        Changes take effect on the next scraper run &mdash; no check-in needed.
     </div>
 
     <div class="form-row">
-        <input type="text" id="new-keyword" placeholder="e.g. radical pair mechanism" style="flex: 1 1 300px;">
+        <input type="text" id="new-keyword" placeholder="e.g. radical pair mechanism" style="flex: 1 1 250px;">
+        <input type="number" id="new-weight" value="1" min="1" max="10"
+               title="Weight (1&ndash;10). Higher = more relevant."
+               style="width: 80px; text-align: center;">
         <button id="add-btn">Add keyword</button>
     </div>
 
@@ -49,30 +68,44 @@
         setTimeout(() => { flash.innerHTML = ""; }, 3500);
     }
 
+    // Parse "phrase [N]" into {phrase, weight}. Default weight 1.
+    function parseKeyword(str) {
+        const m = (str || "").match(/^(.*?)\s*\[(\d+)\]\s*$/);
+        if (m) return { phrase: m[1].trim(), weight: parseInt(m[2]) };
+        return { phrase: (str || "").trim(), weight: 1 };
+    }
+
     async function loadKeywords() {
         try {
             const r = await fetch("/api/keywords");
             if (!r.ok) throw new Error("Failed to load keywords");
             const data = await r.json();
             const container = document.getElementById("kw-container");
+            const count = data.count || 0;
+            const weighted = (data.keywords || []).filter(k => parseKeyword(k).weight > 1).length;
             document.getElementById("count-line").textContent =
-                `${data.count} keywords currently active`;
-            if (!data.keywords.length) {
+                `${count} keywords active${weighted ? ` · ${weighted} weighted above default` : ''}`;
+            if (!count) {
                 container.innerHTML = '<div class="empty-state">No keywords yet.</div>';
                 return;
             }
-            container.innerHTML = data.keywords.map(kw => `
-                <span class="kw-tag">
-                    ${kw}
-                    <button data-kw="${encodeURIComponent(kw)}" title="Remove">&times;</button>
-                </span>`).join("");
+            container.innerHTML = data.keywords.map(kw => {
+                const { phrase, weight } = parseKeyword(kw);
+                const weightBadge = weight > 1 ? `<span class="kw-weight">${weight}</span>` : '';
+                return `
+                    <span class="kw-tag">
+                        ${phrase}${weightBadge}
+                        <button data-kw="${encodeURIComponent(kw)}" title="Remove">&times;</button>
+                    </span>`;
+            }).join("");
             container.querySelectorAll("button[data-kw]").forEach(btn => {
                 btn.addEventListener("click", async () => {
                     const kw = decodeURIComponent(btn.dataset.kw);
-                    if (!confirm(`Remove "${kw}"?`)) return;
+                    const { phrase } = parseKeyword(kw);
+                    if (!confirm(`Remove "${phrase}"?`)) return;
                     const resp = await fetch(`/api/keywords/${encodeURIComponent(kw)}`, { method: "DELETE" });
                     if (resp.ok) {
-                        showFlash(`Removed "${kw}".`);
+                        showFlash(`Removed "${phrase}".`);
                         loadKeywords();
                     } else {
                         const err = await resp.json().catch(() => ({}));
@@ -92,17 +125,24 @@
     });
 
     async function addKeyword() {
-        const input = document.getElementById("new-keyword");
-        const value = input.value.trim();
-        if (!value) return;
+        const kwInput = document.getElementById("new-keyword");
+        const wInput  = document.getElementById("new-weight");
+        const phrase = kwInput.value.trim();
+        if (!phrase) return;
+        let weight = parseInt(wInput.value);
+        if (isNaN(weight) || weight < 1) weight = 1;
+        if (weight > 10) weight = 10;
+        // Build the storage format: "phrase" or "phrase [N]"
+        const fullKeyword = weight === 1 ? phrase : `${phrase} [${weight}]`;
         const resp = await fetch("/api/keywords", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ keyword: value }),
+            body: JSON.stringify({ keyword: fullKeyword }),
         });
         if (resp.ok) {
-            input.value = "";
-            showFlash(`Added "${value}".`);
+            kwInput.value = "";
+            wInput.value = 1;
+            showFlash(`Added "${phrase}"${weight > 1 ? ` (weight ${weight})` : ''}.`);
             loadKeywords();
         } else {
             const err = await resp.json().catch(() => ({}));

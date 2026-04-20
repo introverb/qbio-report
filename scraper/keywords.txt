@@ -17,6 +17,16 @@
 #   - Stack Exchange queries (curated in scraper.py STACK_EXCHANGE,
 #     kept small due to the 300 req/day quota)
 #   - RSS feed list (configured in scraper.py RSS_FEEDS)
+#
+# HOW TO WEIGHT KEYWORDS:
+#   Append [N] to a line to assign integer weight N (default = 1).
+#   Article score = SUM of matched keyword weights (was: count of matches).
+#   Higher score = higher rank in Breaking and elsewhere.
+#   Examples:
+#     quantum biology [5]        <- core term, strong boost
+#     radical pair [5]           <- flagship mechanism
+#     cryptochrome [3]
+#     biophysics                 <- default weight 1, no bracket needed
 # ==========================================
 
 # --- Core Quantum Biology ---

@@ -696,18 +696,30 @@
             // --- Build buckets (scraper already sorted by date desc) ---
             const seriousAll = articles.filter(isSerious);
 
-            // Breaking: one freshest item from each category (paper, preprint,
-            // news, forums, social). Ordered by editorial weight so papers
+            // Breaking: one item from each category (paper, preprint, news,
+            // forums, social). Pick the HIGHEST-SCORED in each category;
+            // tiebreak on most-recent. Ordered by editorial weight so papers
             // lead and social goes last. Up to 5 items.
             const CATEGORY_ORDER = ["paper", "preprint", "news", "forums", "social"];
-            const firstByCategory = (list) => {
-                const picks = {};
+            const bestByCategory = (list) => {
+                const byCat = {};
                 for (const a of list) {
-                    if (!picks[a.source_category]) picks[a.source_category] = a;
+                    const cat = a.source_category;
+                    if (!byCat[cat]) byCat[cat] = [];
+                    byCat[cat].push(a);
+                }
+                const picks = {};
+                for (const cat of Object.keys(byCat)) {
+                    byCat[cat].sort((a, b) => {
+                        const ds = (b.score || 0) - (a.score || 0);
+                        if (ds !== 0) return ds;
+                        return (b.date_iso || "").localeCompare(a.date_iso || "");
+                    });
+                    picks[cat] = byCat[cat][0];
                 }
                 return CATEGORY_ORDER.map(c => picks[c]).filter(Boolean);
             };
-            const breaking     = firstByCategory(articles).slice(0, 5);
+            const breaking     = bestByCategory(articles).slice(0, 5);
             const breakingSet  = new Set(breaking.map(a => a.link));
 
             // Recent pools: direct-QB vs adjacent, each capped at 3 per source

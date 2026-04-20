@@ -189,6 +189,17 @@ def api_list_keywords():
     return jsonify({"keywords": keywords, "count": len(keywords)})
 
 
+import re as _re
+_KW_WEIGHT_RE = _re.compile(r"^(.*?)\s*\[(\d+)\]\s*$")
+
+
+def _extract_phrase(s):
+    """Return just the phrase (lowercased) from a possibly-weighted entry."""
+    s = (s or "").strip()
+    m = _KW_WEIGHT_RE.match(s)
+    return (m.group(1) if m else s).strip().lower()
+
+
 @app.route("/api/keywords", methods=["POST"])
 @require_auth
 def api_add_keyword():
@@ -199,16 +210,31 @@ def api_add_keyword():
     if new_kw.startswith("#"):
         return jsonify({"error": "Keywords cannot start with '#'"}), 400
 
-    lines, keywords = _read_keywords_file()
-    if new_kw.lower() in (k.lower() for k in keywords):
-        return jsonify({"error": "Already exists"}), 409
+    new_phrase = _extract_phrase(new_kw)
+    if not new_phrase:
+        return jsonify({"error": "Empty phrase"}), 400
 
-    # Append at end of file. Keeps the user's section grouping untouched.
-    if lines and lines[-1].strip():
-        lines.append("")  # ensure trailing blank line before new entry
-    lines.append(new_kw)
-    _write_keywords_lines(lines)
-    return jsonify({"ok": True, "keyword": new_kw})
+    lines, _ = _read_keywords_file()
+    # Remove any existing line with the same phrase (regardless of weight).
+    # This makes "adding" a weighted version replace the unweighted one in place.
+    replaced = False
+    kept = []
+    for ln in lines:
+        stripped = ln.strip()
+        if not stripped or stripped.startswith("#"):
+            kept.append(ln)
+            continue
+        if _extract_phrase(stripped) == new_phrase:
+            replaced = True
+            continue  # drop this line
+        kept.append(ln)
+
+    # Append the new entry at the end
+    if kept and kept[-1].strip():
+        kept.append("")
+    kept.append(new_kw)
+    _write_keywords_lines(kept)
+    return jsonify({"ok": True, "keyword": new_kw, "replaced": replaced})
 
 
 @app.route("/api/keywords/<path:keyword>", methods=["DELETE"])

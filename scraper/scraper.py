@@ -141,16 +141,31 @@ def record_stats(tier, source_name, target, category, matched, total, error="", 
 # SHARED HELPERS
 # ============================================================================
 
+_WEIGHT_RE = re.compile(r"^(.*?)\s*\[(\d+)\]\s*$")
+
 def load_keywords(filepath=KEYWORDS_FILE):
-    keywords = []
+    """Parse keywords.txt. Returns dict {phrase: weight}.
+    Default weight is 1. Append `[N]` to a line to assign weight N.
+    Example: 'quantum biology [5]' -> weight 5.
+    """
+    weights = {}
     with open(filepath, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
-            keywords.append(line.lower())
-    print(f"Loaded {len(keywords)} keywords from {filepath}")
-    return keywords
+            m = _WEIGHT_RE.match(line)
+            if m:
+                phrase = m.group(1).strip().lower()
+                weight = int(m.group(2))
+            else:
+                phrase = line.lower()
+                weight = 1
+            if phrase:
+                weights[phrase] = weight
+    weighted = sum(1 for w in weights.values() if w > 1)
+    print(f"Loaded {len(weights)} keywords from {filepath} ({weighted} weighted > 1)")
+    return weights
 
 
 def clean_html(raw_html):
@@ -158,12 +173,25 @@ def clean_html(raw_html):
 
 
 def score_article(title, summary, keywords):
+    """Score = sum of matched keyword weights. Returns (score, matched_list).
+    `keywords` is a dict {phrase: weight}; a plain list/iterable is also
+    accepted for backwards compatibility (treats each as weight 1)."""
     text = f"{title} {summary}".lower()
+    if isinstance(keywords, dict):
+        matched = []
+        score = 0
+        for phrase, weight in keywords.items():
+            if phrase in text:
+                matched.append(phrase)
+                score += weight
+        return score, matched
     matched = [kw for kw in keywords if kw in text]
     return len(matched), matched
 
 
 def chunk_list(items, size):
+    """Chunk a list, iterable, or dict (yields keys in chunks for dicts)."""
+    items = list(items) if not isinstance(items, list) else items
     for i in range(0, len(items), size):
         yield items[i:i + size]
 
