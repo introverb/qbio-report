@@ -1,4 +1,4 @@
-# QBIO Report
+# QUBIE News
 
 Automated news aggregator for quantum biology and adjacent fields. Built for
 the Quantum Biology DAO.

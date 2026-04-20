@@ -1,4 +1,4 @@
-# QBIO Report — Media Director Handoff
+# QUBIE News — Media Director Handoff
 
 **Last updated:** 2026-04-20
 **Owner:** Olli (ollipayne182@gmail.com)
@@ -8,7 +8,7 @@
 
 ## 1. What this is
 
-QBIO Report is an automated news aggregator for quantum biology and adjacent
+QUBIE News is an automated news aggregator for quantum biology and adjacent
 fields. It runs 24/7 on a cloud host, scrapes ~30 sources twice a day, scores
 articles by keyword relevance, generates plain-English summaries of the most
 important ones, and publishes everything to a styled news-report page.
@@ -59,7 +59,7 @@ The page auto-refreshes each scrape cycle. No login needed.
 
 ### B. Edit the keyword list
 
-Keywords define what counts as "relevant" to QBIO Report. Adding one makes
+Keywords define what counts as "relevant" to QUBIE News. Adding one makes
 the scraper actively search for it on PubMed/arXiv/Europe PMC/Hacker News/
 Bluesky *and* use it in relevance scoring.
 
@@ -77,7 +77,7 @@ Bluesky *and* use it in relevance scoring.
 
 ### C. Request a new source
 
-Use this when you want QBIO Report to pull from a new journal, subreddit,
+Use this when you want QUBIE News to pull from a new journal, subreddit,
 API, etc. that isn't already configured.
 
 1. Go to **/sources** (you'll be prompted for the password)

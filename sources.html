@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QBIO Report — Sources</title>
+    <title>QUBIE News — Sources</title>
     <link rel="stylesheet" href="assets/shared.css">
     <style>
         .tab-panel { display: none; }
@@ -326,9 +326,9 @@
 
         // Subtitle + summary stats
         document.getElementById("subtitle").textContent =
-            `&mdash; live inventory of every source QBIO Report pulls from &mdash;`;
+            `&mdash; live inventory of every source QUBIE News pulls from &mdash;`;
         document.getElementById("subtitle").innerHTML =
-            "&mdash; live inventory of every source QBIO Report pulls from &mdash;";
+            "&mdash; live inventory of every source QUBIE News pulls from &mdash;";
         const totalSources = (data.summary || []).reduce((s, x) => s + x.sources_configured, 0);
         const totalArticles = (data.summary || []).reduce((s, x) => s + x.articles_contributed, 0);
         const totalErrored = (data.summary || []).reduce((s, x) => s + x.errored, 0);

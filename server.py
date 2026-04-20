@@ -1,5 +1,5 @@
 """
-QBIO Report local server
+QUBIE News local server
 ========================
 Replaces `python -m http.server` with a Flask app that:
   - Serves the static site (index.html, feed.json, assets, etc.)
@@ -72,7 +72,7 @@ def require_auth(f):
     return decorated
 
 LOG_HEADER = (
-    "# QBIO Report - Source Requests Log\n\n"
+    "# QUBIE News - Source Requests Log\n\n"
     "_Newest at top. Each entry is formatted for copy-paste straight to Claude._\n\n"
     "<!-- NEW_ENTRIES_BELOW -->\n\n"
 )
@@ -455,7 +455,7 @@ _start_scheduler()
 # ============================================================================
 
 if __name__ == "__main__":
-    print(f"QBIO Report server starting on port {PORT}")
+    print(f"QUBIE News server starting on port {PORT}")
     print(f"  /           - Report")
     print(f"  /sources    - Sources admin")
     print(f"  /keywords   - Keywords admin")
