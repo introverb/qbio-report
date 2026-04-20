@@ -1,223 +1,184 @@
 # QBIO Report — Media Director Handoff
 
-**Last updated:** 2026-04-17
-**Owner:** Olli
-**Status:** In active development, working prototype.
+**Last updated:** 2026-04-20
+**Owner:** Olli (ollipayne182@gmail.com)
+**Status:** Live in production on Railway.
 
 ---
 
 ## 1. What this is
 
 QBIO Report is an automated news aggregator for quantum biology and adjacent
-fields. Once triggered, it:
+fields. It runs 24/7 on a cloud host, scrapes ~30 sources twice a day, scores
+articles by keyword relevance, generates plain-English summaries of the most
+important ones, and publishes everything to a styled news-report page.
 
-1. Scrapes ~30 sources (academic journals, preprint servers, APIs, forums)
-2. Scores each article by how many quantum-biology keywords it matches
-3. Publishes a styled news-report page showing the most recent and most
-   relevant hits
-4. Regenerates a source-inventory spreadsheet for team review
-
-The front-end visual style is a light parody of the Drudge Report, rendered
-in the Quantum Biology DAO brand palette and typography.
+You don't need to install anything or run anything on your computer. Just
+visit URLs and log in when asked.
 
 ---
 
-## 2. Where everything lives
+## 2. The three URLs
 
-All files are in `C:\Users\ollip\OneDrive\Desktop\QBIO DAO\QBIO NEWS\`:
+| URL | What it is | Public? |
+|---|---|---|
+| **https://web-production-2537b.up.railway.app/** | The Report (read-only) | Yes — anyone can see it |
+| **https://web-production-2537b.up.railway.app/keywords** | Keywords admin (add/remove) | No — password required |
+| **https://web-production-2537b.up.railway.app/sources** | Sources admin (view stats, submit source requests) | No — password required |
 
-```
-QBIO NEWS/
-├── index.html                      ← the web page (what readers see)
-├── feed.json                       ← article data, AUTO-GENERATED
-├── QBIO-Report-Sources.xlsx        ← source inventory, AUTO-GENERATED
-├── MEDIA-DIRECTOR-HANDOFF.md       ← this document
-├── assets/
-│   ├── logo-icon.svg               ← the DAO hex icon (used in "Breaking")
-│   └── fonts/                      ← Apercu Pro + Chap
-└── scraper/
-    ├── scraper.py                  ← the engine (don't touch unless asked)
-    ├── keywords.txt                ← >>> YOU EDIT THIS <<<
-    └── requirements.txt            ← Python dependencies (install once)
-```
+### Admin password
 
-**Two files your team should know intimately:**
+When the browser prompts you for login:
 
-- `scraper/keywords.txt` — the list of terms that define "relevant" for us.
-  Editable. Changes take effect the next time the scraper runs.
-- `QBIO-Report-Sources.xlsx` — shows where articles are coming from and which
-  sources are broken. Regenerated every scraper run.
+- **Username:** anything (leave blank or type `admin` — it's not checked)
+- **Password:** `coherence`
+
+The browser will remember it for the current session. Close the browser to log out.
 
 ---
 
-## 3. Daily / weekly workflows
+## 3. How the system runs
 
-### A. Refreshing the feed (running the scraper)
+| Thing | When |
+|---|---|
+| Scrape runs automatically | Twice a day at **08:00 UTC** and **18:00 UTC** (= 04:00 and 14:00 US Eastern) |
+| Keyword edits take effect | **Next scheduled scrape** (max 12 hours later) |
+| Source requests reach Olli | Immediately — they appear in the log for Olli to action |
+| Blurbs ("why it matters" summaries) | Regenerated on each scrape for new articles; cached for seen ones |
 
-Recommended cadence: once or twice a day.
+You don't need to "run the scraper" — it runs itself.
 
-1. Open **PowerShell** in the QBIO NEWS folder.
-   *(In File Explorer: right-click inside the folder → "Open in Terminal"
-   or "Open PowerShell window here".)*
-2. Run this single command:
-   ```
-   py scraper\scraper.py
-   ```
-3. Wait ~1–2 minutes. You'll see progress printed live for each source:
-   ```
-   RSS: arXiv — Quantum Physics ...
-       -> 3 matched (of 133)
-   ```
-4. When you see `Done! NNN unique articles`, you're good.
-5. The page updates automatically next time you refresh your browser.
-6. The spreadsheet (`QBIO-Report-Sources.xlsx`) also updates automatically.
+---
 
-> **If you see `'python' is not recognized`** → use `py` instead of `python`.
-> The command above already uses `py` — always use that on Windows.
+## 4. Daily / weekly workflows
 
-### B. Viewing the page
+### A. Read the news
 
-The page has to be served by a mini web server; you can't just double-click
-`index.html` (the browser blocks it from loading the data file for security
-reasons).
+Just visit **https://web-production-2537b.up.railway.app/** and scroll.
+The page auto-refreshes each scrape cycle. No login needed.
 
-**If the server is already running**, open any browser and go to:
+### B. Edit the keyword list
 
-> **http://localhost:8000**
+Keywords define what counts as "relevant" to QBIO Report. Adding one makes
+the scraper actively search for it on PubMed/arXiv/Europe PMC/Hacker News/
+Bluesky *and* use it in relevance scoring.
 
-**If the server is NOT running**, start it:
+1. Go to **/keywords** (you'll be prompted for the password)
+2. See all current keywords as small tags
+3. To **add**: type the phrase at the top, click "Add keyword" (or press Enter)
+4. To **remove**: hover any tag, click the `×` button next to it
+5. Changes take effect on the next scheduled scrape (max 12 hours later)
 
-1. Open PowerShell in the QBIO NEWS folder.
-2. Run:
-   ```
-   py -m http.server 8000
-   ```
-3. Leave that terminal window open. Closing it stops the server.
-4. Visit `http://localhost:8000` in any browser.
-
-### C. Editing the keyword list
-
-1. Open `scraper\keywords.txt` in **Notepad**, **VS Code**, or any text editor.
-2. Read the comment block at the top — it explains exactly how keywords
-   are used (for scoring AND for searching the big APIs).
-3. Rules:
-   - One keyword or phrase per line.
-   - Lines starting with `#` are comments (ignored).
-   - Don't worry about alphabetical order — grouping is purely for readability.
-   - Multi-word phrases (e.g. `quantum coherence`) match as a single unit.
-4. Save the file.
-5. Your changes take effect on the **next scraper run**.
-
-**Judgment calls when editing:**
-
-- Too broad a keyword (e.g. just `biology`) → floods the feed with noise.
-- Too narrow → misses cross-field work.
-- A good rule: if you wouldn't want an article containing only that term
+**Judgment calls:**
+- Too broad a keyword (e.g. just `biology`) will flood the feed with noise.
+- Too narrow misses cross-field work.
+- A good rule: if you wouldn't want an article containing *only* that term
   to show up, don't add it alone.
 
-### D. Reviewing the source spreadsheet
+### C. Request a new source
 
-Open `QBIO-Report-Sources.xlsx` in Excel — or drag it into Google Drive
-to auto-convert into a Google Sheet.
+Use this when you want QBIO Report to pull from a new journal, subreddit,
+API, etc. that isn't already configured.
 
-Five tabs:
+1. Go to **/sources** (you'll be prompted for the password)
+2. Click the **Source Requests** tab (the last tab)
+3. Fill in the form at the top:
+   - **Source Name** (e.g. `Biophysical Journal`)
+   - **Type** (RSS / API / Forum / Social / Other)
+   - **URL or Endpoint** (or the subreddit name, hashtag, etc.)
+   - **Why / Notes** — any context for Olli to act on
+   - **Priority** (High / Medium / Low)
+   - **API Key Needed?** (Yes / No / Unknown)
+4. Click **Submit request**
+5. Your request shows up in the table below + is logged for Olli
+6. Olli sees the request, wires the source into the system, redeploys.
+   Usually within a day of the request.
 
-| Tab | What's in it |
-|---|---|
-| **Summary** | One-row-per-tier: sources configured, articles contributed, errors |
-| **Tier 1 - RSS Feeds** | Journal + news RSS feeds (16 sources) |
-| **Tier 2 - Search APIs** | PubMed, arXiv search, Europe PMC |
-| **Tier 3a - Forums** | Reddit, Hacker News, Stack Exchange |
-| **Tier 3b - Social** | Bluesky (currently broken) |
+### D. Review source coverage
 
-**Color coding on every tier tab:**
+Same **/sources** page, first 5 tabs:
 
-- 🟩 Green = Working, matched ≥ 1 article
-- 🟨 Yellow = Working, but found 0 relevant articles this run
-- 🟥 Red = Errored — see the **Error** column for the technical message
+- **Summary** — top-level totals per tier
+- **Tier 1 - RSS Feeds** — journal / news RSS feeds
+- **Tier 2 - Search APIs** — PubMed, arXiv, Europe PMC
+- **Tier 3a - Forums** — Reddit, Hacker News, Stack Exchange, Bluesky
+- **Tier 3b - Social** — (currently just Bluesky)
 
-The sheet regenerates on every scraper run. Don't hand-edit it; changes
-will be overwritten. If you want to annotate a source, tell Olli and
-they'll update the underlying scraper config.
+**Color coding on the tier tabs:**
+- 🟩 **Green** = Working (found matches this run)
+- 🟨 **Yellow** = Working, but 0 matches this run
+- 🟥 **Red** = Errored — see the **Error** column for the technical message
+
+The numbers update every scrape — so the most recent run's stats are always
+what you see.
 
 ---
 
-## 4. What the team can change vs. what needs Olli
+## 5. What the team can do vs. what needs Olli
 
-### Self-serve (no developer needed)
-- Add / remove / reorder terms in `scraper/keywords.txt`
-- Review `QBIO-Report-Sources.xlsx` and flag concerns
-- Run the scraper
-- View the page
-- Share the page URL once it's deployed publicly
+### Self-serve (no Olli needed)
+- Read the Report (public URL, no login)
+- Add or remove keywords on /keywords
+- Submit source requests on /sources
+- Review source coverage in the tier tabs
 
-### Needs Olli (developer work)
-- Adding a new source (RSS, API, forum, etc.)
-- Fixing a broken source
+### Needs Olli
+- Acting on source requests (wiring them into the scraper)
+- Fixing broken sources (red rows on /sources)
 - Changing the page design or layout
-- Changing how articles are scored
-- Deploying the site publicly (GitHub Pages)
-- Changing source categories / badges
-- Anything involving `scraper.py` or `index.html`
+- Changing how scoring works
+- Rotating the admin password
+- Anything involving code changes
 
 ---
 
-## 5. Known issues (as of 2026-04-17)
+## 6. Known issues
 
-These are documented and on the fix list:
+Some sources are intentionally marked red / ERROR because their public RSS
+feeds are blocked by Cloudflare bot protection:
 
-1. **Bluesky** — all queries error with a JSON parse failure. The public API
-   endpoint likely requires auth now. Visible in the spreadsheet as red rows.
-2. **Europe PMC** — the search endpoint accepts our query but returns 0
-   results. Query-format debugging pending.
-3. **ChemRxiv** and **Royal Society Interface** — RSS URLs return empty.
-   Both need replacement URLs.
-4. **Broad news feeds** (Nature, ScienceDaily, PNAS, etc.) rarely produce
-   matches because quantum biology is a niche topic inside broad science.
-   These are intentionally kept as **long-tail** — they'll catch surprise
-   crossover hits once a month, and cost nothing to leave in.
+- **ChemRxiv** — HTTP 403 from Cloudflare
+- **Royal Society Interface** — HTTP 403 from Cloudflare
 
-Check the Error column in the spreadsheet for the latest status on any
-of these.
+These can't be worked around without a headless browser (heavy infrastructure).
+Replacements are on Olli's list.
+
+Everything else is working or correctly no-hit (yellow) depending on the day.
 
 ---
 
-## 6. Troubleshooting
+## 7. Troubleshooting
 
-| Symptom | What's happening | Fix |
-|---|---|---|
-| `'python' is not recognized` | `python` isn't on this machine's PATH | Use `py` instead |
-| Page shows **"Failed to fetch"** | The server isn't running | Start it: `py -m http.server 8000` |
-| Page shows **"NO FEED.JSON — RUN THE SCRAPER FIRST"** | No article data exists yet | Run the scraper: `py scraper\scraper.py` |
-| Browser opens a **Google search for "index.html"** | You typed it into the address bar | Instead, type `http://localhost:8000` |
-| Scraper runs but produces 0 articles | Unusual, probably a network issue | Re-run after a minute; if it persists, contact Olli |
-| Terminal says `Device or resource busy` when re-running | A previous scraper process is still holding a file | Close other terminals / wait 30 seconds |
+| Symptom | What to try |
+|---|---|
+| Browser shows "Login required" on a page you've already logged into | Browser closed between sessions. Just log in again. |
+| Page loads but says "NO FEED.JSON — RUN THE SCRAPER FIRST" | Scraper hasn't run yet. Wait until the next 08:00 or 18:00 UTC scrape, or ask Olli to trigger one. |
+| Keyword edits aren't reflected in the Report | Scraper hasn't run yet since your edit. Wait until next scheduled scrape (max 12 hours). |
+| Can't reach any URL at all | Cloud host is down or redeploying. Try again in ~2 minutes. |
+| Some source has been showing red for days | Ping Olli — that one needs attention. |
 
 ---
 
-## 7. When to contact Olli
+## 8. When to contact Olli
 
 Raise a flag when:
-
-- Something in the workflow above fails and the troubleshooting table
-  didn't help.
-- You want to add a new source or remove an existing one.
-- You notice consistent red rows in the spreadsheet week after week.
-- The article feed feels off — too narrow, too broad, missing a topic area.
-- You want to change the page design, layout, or copy.
-- You want the site published publicly.
+- You submit a source request and want to flag it as urgent
+- A source has been red for more than a few days
+- The article feed feels off — too narrow, too broad, missing a topic area
+- You want to change the page design, layout, or copy
+- Something in the workflow doesn't work and the troubleshooting table didn't help
 
 Contact: **ollipayne182@gmail.com**
 
 ---
 
-## 8. Quick reference card (print this)
+## 9. Quick reference card
 
-**Refresh the feed:** `py scraper\scraper.py`
-**Start the server:** `py -m http.server 8000`
-**View the page:** `http://localhost:8000`
-**Edit keywords:** open `scraper\keywords.txt` in any text editor
-**Review sources:** open `QBIO-Report-Sources.xlsx`
+| Task | URL | Login? |
+|---|---|---|
+| Read the news | `/` | No |
+| Edit keywords | `/keywords` | Yes (pw: `coherence`) |
+| Submit source request | `/sources` → Source Requests tab | Yes (pw: `coherence`) |
+| Review source stats | `/sources` → any tier tab | Yes (pw: `coherence`) |
 
-Feed updates on every scraper run. Spreadsheet updates on every scraper run.
-Page updates on the next browser refresh after a scraper run.
+Base URL: **https://web-production-2537b.up.railway.app/**
