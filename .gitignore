@@ -17,6 +17,9 @@ blurbs_cache.json
 # — user edits go here, don't track it in Git.
 /keywords.txt
 
+# Generated docx exports — rebuild from the markdown when needed
+*.docx
+
 # Python
 __pycache__/
 *.py[cod]
