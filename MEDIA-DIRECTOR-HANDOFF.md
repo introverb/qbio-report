@@ -18,22 +18,22 @@ visit URLs and log in when asked.
 
 ---
 
-## 2. The three URLs
+## 2. The four URLs
 
 | URL | What it is | Public? |
 |---|---|---|
-| **https://web-production-2537b.up.railway.app/** | The Report (read-only) | Yes — anyone can see it |
-| **https://web-production-2537b.up.railway.app/keywords** | Keywords admin (add/remove) | No — password required |
+| **https://web-production-2537b.up.railway.app/** | The Report (the main feed, with a search box at the top) | Yes — anyone can see it |
+| **https://web-production-2537b.up.railway.app/chatter** | Chatter (Reddit, Hacker News, Bluesky, etc.) | Yes — anyone can see it |
+| **https://web-production-2537b.up.railway.app/keywords** | Keywords admin (add / remove / weight) | No — password required |
 | **https://web-production-2537b.up.railway.app/sources** | Sources admin (view stats, submit source requests) | No — password required |
 
 ### Admin password
 
-When the browser prompts you for login:
+The admin pages show a simple password form. Enter:
 
-- **Username:** anything (leave blank or type `admin` — it's not checked)
-- **Password:** `coherence`
+**Password:** `coherence`
 
-The browser will remember it for the current session. Close the browser to log out.
+Your browser remembers it for the session (up to 31 days). Close the browser or visit `/logout` to sign out.
 
 ---
 
@@ -55,22 +55,31 @@ You don't need to "run the scraper" — it runs itself.
 ### A. Read the news
 
 Just visit **https://web-production-2537b.up.railway.app/** and scroll.
-The page auto-refreshes each scrape cycle. No login needed.
+No login needed. The page auto-refreshes each scrape cycle.
+
+A **search box** at the very top of the page indexes every article in the feed — type any phrase (multi-word = AND), results filter live.
+
+### A2. Read the chatter
+
+For community/social signal (Reddit, Hacker News, Bluesky), visit **/chatter**. Same public page. Filter buttons let you narrow to just forums, just social, or direct-quantum-biology items only.
 
 ### B. Edit the keyword list
 
 Keywords define what counts as "relevant" to QUBIE News. Adding one makes
-the scraper actively search for it on PubMed/arXiv/Europe PMC/Hacker News/
+the scraper actively search for it on PubMed / arXiv / Europe PMC / Hacker News /
 Bluesky *and* use it in relevance scoring.
 
-1. Go to **/keywords** (you'll be prompted for the password)
+1. Go to **/keywords** and log in
 2. See all current keywords as small tags
-3. To **add**: type the phrase at the top, click "Add keyword" (or press Enter)
-4. To **remove**: hover any tag, click the `×` button next to it
-5. Changes take effect on the next scheduled scrape (max 12 hours later)
+3. To **add**: type the phrase, optionally set a weight (1–10), click "Add keyword"
+4. To **remove**: click the `×` button on any tag
+5. To **update a weight**: re-add the same keyword with a new weight (it replaces the old entry)
+6. Changes take effect on the next scheduled scrape (max 12 hours later)
+
+**Weighting:** Each keyword has a weight (default 1). An article's score = sum of matched keyword weights. Higher-scored articles rank higher in the feed. Give core terms like `quantum biology` or `radical pair` a higher weight (e.g. 5) to make directly-on-topic papers rise to the top.
 
 **Judgment calls:**
-- Too broad a keyword (e.g. just `biology`) will flood the feed with noise.
+- Too broad a keyword (e.g. just `biology`) floods the feed with noise.
 - Too narrow misses cross-field work.
 - A good rule: if you wouldn't want an article containing *only* that term
   to show up, don't add it alone.
@@ -177,6 +186,8 @@ Contact: **ollipayne182@gmail.com**
 | Task | URL | Login? |
 |---|---|---|
 | Read the news | `/` | No |
+| Search the feed | `/` (box at the top) | No |
+| Read community chatter | `/chatter` | No |
 | Edit keywords | `/keywords` | Yes (pw: `coherence`) |
 | Submit source request | `/sources` → Source Requests tab | Yes (pw: `coherence`) |
 | Review source stats | `/sources` → any tier tab | Yes (pw: `coherence`) |

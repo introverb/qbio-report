@@ -19,6 +19,67 @@
             letter-spacing: 0.04em;
         }
         .kw-weight::before { content: "×"; margin-right: 1px; }
+
+        /* Hover affordance — click anywhere on a tag to edit its weight */
+        .kw-tag { cursor: pointer; transition: background 0.1s; }
+        .kw-tag:hover { background: var(--cream-dim); }
+        .kw-tag.editing {
+            cursor: default;
+            background: var(--cream-dim);
+            border-color: var(--pink);
+            padding-right: 6px;
+        }
+        .kw-tag.editing:hover { background: var(--cream-dim); }
+
+        /* Edit-mode controls inside a tag */
+        .kw-tag .kw-weight-edit {
+            font-family: inherit;
+            font-size: 12px;
+            padding: 2px 4px;
+            margin-left: 8px;
+            border: 1px solid var(--light-purple);
+            background: var(--cream);
+            color: var(--dark-purple);
+            border-radius: 2px;
+            cursor: pointer;
+        }
+        .kw-tag .kw-weight-edit:focus {
+            outline: 2px solid var(--pink);
+            outline-offset: -2px;
+            border-color: var(--pink);
+        }
+        .kw-tag .kw-save,
+        .kw-tag .kw-cancel {
+            font-family: inherit;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            margin-left: 4px;
+            border-radius: 2px;
+            cursor: pointer;
+            border: 1px solid;
+        }
+        .kw-tag .kw-save {
+            background: var(--dark-purple);
+            color: var(--cream);
+            border-color: var(--dark-purple);
+        }
+        .kw-tag .kw-save:hover {
+            background: var(--pink);
+            color: var(--near-black);
+            border-color: var(--pink);
+        }
+        .kw-tag .kw-cancel {
+            background: transparent;
+            color: var(--light-purple);
+            border-color: var(--light-purple);
+        }
+        .kw-tag .kw-cancel:hover {
+            color: var(--pink);
+            border-color: var(--pink);
+        }
     </style>
 </head>
 <body>
@@ -43,8 +104,9 @@
         Keywords are used two ways: (1) to score every article's relevance
         (article score = <b>sum of matched keyword weights</b>), and (2) to
         query PubMed, arXiv, Europe PMC, Hacker News, and Bluesky server-side.
-        Higher weight &rarr; higher rank in Breaking and elsewhere.
-        Changes take effect on the next scraper run &mdash; no check-in needed.
+        Higher weight &rarr; higher rank in the feed.
+        <br><br>
+        <b>To change a keyword's weight:</b> click any tag below, pick a new weight, hit Save. Changes take effect on the next scraper run &mdash; no check-in needed.
     </div>
 
     <div class="form-row">
@@ -93,13 +155,16 @@
                 const { phrase, weight } = parseKeyword(kw);
                 const weightBadge = weight > 1 ? `<span class="kw-weight">${weight}</span>` : '';
                 return `
-                    <span class="kw-tag">
+                    <span class="kw-tag" data-full="${encodeURIComponent(kw)}" title="Click to change weight">
                         ${phrase}${weightBadge}
                         <button data-kw="${encodeURIComponent(kw)}" title="Remove">&times;</button>
                     </span>`;
             }).join("");
+
+            // Delete button click (stop propagation so it doesn't also trigger edit mode)
             container.querySelectorAll("button[data-kw]").forEach(btn => {
-                btn.addEventListener("click", async () => {
+                btn.addEventListener("click", async (e) => {
+                    e.stopPropagation();
                     const kw = decodeURIComponent(btn.dataset.kw);
                     const { phrase } = parseKeyword(kw);
                     if (!confirm(`Remove "${phrase}"?`)) return;
@@ -113,10 +178,95 @@
                     }
                 });
             });
+
+            // Click-to-edit on each tag
+            container.querySelectorAll(".kw-tag").forEach(tag => {
+                tag.addEventListener("click", (e) => {
+                    if (tag.classList.contains("editing")) return;
+                    if (e.target.closest("button")) return; // don't trigger on delete
+                    enterEditMode(tag);
+                });
+            });
         } catch (e) {
             document.getElementById("kw-container").innerHTML =
                 `<div class="flash error">Error: ${e.message}</div>`;
         }
+    }
+
+    // --- Click-to-edit weight on a tag ---
+    function enterEditMode(tag) {
+        const fullKw = decodeURIComponent(tag.dataset.full || "");
+        const { phrase, weight } = parseKeyword(fullKw);
+        tag.classList.add("editing");
+
+        const options = Array.from({ length: 10 }, (_, i) => {
+            const w = i + 1;
+            const sel = w === weight ? "selected" : "";
+            return `<option value="${w}" ${sel}>×${w}</option>`;
+        }).join("");
+
+        tag.innerHTML = `
+            <span>${phrase}</span>
+            <select class="kw-weight-edit" title="Weight">${options}</select>
+            <button class="kw-save" type="button">Save</button>
+            <button class="kw-cancel" type="button">Cancel</button>
+        `;
+
+        const select = tag.querySelector(".kw-weight-edit");
+        const saveBtn = tag.querySelector(".kw-save");
+        const cancelBtn = tag.querySelector(".kw-cancel");
+        select.focus();
+
+        let isSettling = false;  // prevent double-fire from click-outside
+
+        const save = async () => {
+            if (isSettling) return;
+            isSettling = true;
+            const newWeight = parseInt(select.value, 10) || 1;
+            if (newWeight === weight) {
+                loadKeywords();  // no change, just exit
+                return;
+            }
+            const newKw = newWeight === 1 ? phrase : `${phrase} [${newWeight}]`;
+            // POST replaces any existing entry with the same phrase
+            const resp = await fetch("/api/keywords", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ keyword: newKw }),
+            });
+            if (resp.ok) {
+                showFlash(`Updated "${phrase}" \u2192 weight ${newWeight}.`);
+                loadKeywords();
+            } else {
+                const err = await resp.json().catch(() => ({}));
+                showFlash(err.error || "Failed to update", true);
+                isSettling = false;
+            }
+        };
+        const cancel = () => {
+            if (isSettling) return;
+            isSettling = true;
+            loadKeywords();
+        };
+
+        saveBtn.addEventListener("click", (e) => { e.stopPropagation(); save(); });
+        cancelBtn.addEventListener("click", (e) => { e.stopPropagation(); cancel(); });
+
+        // Enter anywhere in edit mode saves; Esc cancels
+        tag.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") { e.preventDefault(); save(); }
+            if (e.key === "Escape") { e.preventDefault(); cancel(); }
+        });
+
+        // Click outside the tag = cancel
+        const outsideHandler = (e) => {
+            if (!tag.contains(e.target)) {
+                document.removeEventListener("click", outsideHandler);
+                cancel();
+            }
+        };
+        // Defer attaching by one tick so the opening click doesn't immediately cancel
+        setTimeout(() => document.addEventListener("click", outsideHandler), 0);
     }
 
     document.getElementById("add-btn").addEventListener("click", addKeyword);
