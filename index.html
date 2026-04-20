@@ -190,8 +190,19 @@
             line-height: 1.3;
         }
         .recent-main-cols {
+            position: relative;
             column-count: 2;
             column-gap: 32px;
+            max-height: 900px;
+            overflow: hidden;
+        }
+        .recent-main-cols::after {
+            content: "";
+            position: absolute;
+            left: 0; right: 0; bottom: 0;
+            height: 80px;
+            background: linear-gradient(to bottom, transparent, var(--cream));
+            pointer-events: none;
         }
         .recent-direct {
             flex: 1 1 0;
@@ -209,8 +220,19 @@
             line-height: 1.3;
         }
         .recent-direct-cols {
+            position: relative;
             column-count: 2;
             column-gap: 32px;
+            max-height: 900px;
+            overflow: hidden;
+        }
+        .recent-direct-cols::after {
+            content: "";
+            position: absolute;
+            left: 0; right: 0; bottom: 0;
+            height: 80px;
+            background: linear-gradient(to bottom, transparent, var(--cream));
+            pointer-events: none;
         }
         .recent-direct .empty {
             color: var(--soft-text);
@@ -394,7 +416,7 @@
         /* ---------- Chatter section (preview on the Report) ---------- */
         .chatter-section {
             max-width: 1100px;
-            margin: 60px auto 0;
+            margin: 20px auto 60px;
             padding: 0 24px;
         }
         .chatter-label {
@@ -510,10 +532,13 @@
 
 <div class="page-wide">
     <div id="recent-container"></div>
-    <div id="filed-container"></div>
 </div>
 
 <div id="chatter-container"></div>
+
+<div class="page-wide">
+    <div id="filed-container"></div>
+</div>
 
 <div class="page-footer">
     <footer>
@@ -671,8 +696,18 @@
             // --- Build buckets (scraper already sorted by date desc) ---
             const seriousAll = articles.filter(isSerious);
 
-            // Breaking: top 5 most recent serious items, max 2 per source
-            const breaking     = capPerSource(seriousAll, 2).slice(0, 5);
+            // Breaking: one freshest item from each category (paper, preprint,
+            // news, forums, social). Ordered by editorial weight so papers
+            // lead and social goes last. Up to 5 items.
+            const CATEGORY_ORDER = ["paper", "preprint", "news", "forums", "social"];
+            const firstByCategory = (list) => {
+                const picks = {};
+                for (const a of list) {
+                    if (!picks[a.source_category]) picks[a.source_category] = a;
+                }
+                return CATEGORY_ORDER.map(c => picks[c]).filter(Boolean);
+            };
+            const breaking     = firstByCategory(articles).slice(0, 5);
             const breakingSet  = new Set(breaking.map(a => a.link));
 
             // Recent pools: direct-QB vs adjacent, each capped at 3 per source
@@ -681,10 +716,11 @@
             const generalPool = capPerSource(
                 seriousAll.filter(a => !breakingSet.has(a.link) && !isDirect(a)), 3);
 
-            const RECENT_CAP = 15;
-            const recentCount = Math.min(qbioPool.length, generalPool.length, RECENT_CAP);
-            const recentQbio    = qbioPool.slice(0, recentCount);
-            const recentGeneral = generalPool.slice(0, recentCount);
+            // Each side gets up to 20 items; the CSS max-height clips
+            // visually so both sides end at the same horizontal line.
+            const RECENT_CAP = 20;
+            const recentQbio    = qbioPool.slice(0, RECENT_CAP);
+            const recentGeneral = generalPool.slice(0, RECENT_CAP);
             const recentQbioSet    = new Set(recentQbio.map(a => a.link));
             const recentGeneralSet = new Set(recentGeneral.map(a => a.link));
 
