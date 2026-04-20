@@ -110,12 +110,24 @@
         /* ---------- Recent Stories (chronological, 2-col per side) ---------- */
         .recent-label {
             text-align: center;
-            margin: 0 0 24px;
+            margin: 0 0 32px;
             font-weight: 700;
-            font-size: 11px;
-            letter-spacing: 0.4em;
+            font-size: 17px;
+            letter-spacing: 0.5em;
             color: var(--dark-purple);
             text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 22px;
+        }
+        .recent-label::before,
+        .recent-label::after {
+            content: "";
+            display: inline-block;
+            width: 26px;
+            height: 30px;
+            background: url("assets/logo-icon.svg") no-repeat center / contain;
         }
         /* Recent section: left half = general, right half = direct QB */
         .recent-wrap {
@@ -129,11 +141,11 @@
         }
         .recent-main-label {
             font-weight: 700;
-            font-size: 10px;
-            letter-spacing: 0.3em;
+            font-size: 13px;
+            letter-spacing: 0.35em;
             color: var(--pink);
             text-transform: uppercase;
-            margin-bottom: 20px;
+            margin-bottom: 22px;
             line-height: 1.3;
         }
         .recent-main-cols {
@@ -159,11 +171,11 @@
         }
         .recent-direct-label {
             font-weight: 700;
-            font-size: 10px;
-            letter-spacing: 0.3em;
+            font-size: 13px;
+            letter-spacing: 0.35em;
             color: var(--light-purple);
             text-transform: uppercase;
-            margin-bottom: 20px;
+            margin-bottom: 22px;
             line-height: 1.3;
         }
         .recent-direct-cols {
