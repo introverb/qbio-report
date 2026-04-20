@@ -361,6 +361,145 @@
             font-size: 13px;
         }
 
+        /* ---------- Search section ---------- */
+        .search-section {
+            max-width: 900px;
+            margin: 20px auto 60px;
+            padding: 0 24px;
+        }
+        .search-label {
+            text-align: center;
+            font-weight: 700;
+            font-size: 15px;
+            letter-spacing: 0.45em;
+            color: var(--dark-purple);
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+        }
+        .search-label::before,
+        .search-label::after {
+            content: "";
+            display: inline-block;
+            width: 20px;
+            height: 23px;
+            background: url("assets/logo-icon.svg") no-repeat center / contain;
+        }
+        .search-subtitle {
+            text-align: center;
+            font-style: italic;
+            font-size: 12px;
+            color: var(--soft-text);
+            margin: 0 0 22px;
+            letter-spacing: 0.03em;
+        }
+        .search-input-wrap {
+            position: relative;
+            margin-bottom: 10px;
+        }
+        .search-input-wrap::before {
+            content: "\2315";
+            position: absolute;
+            left: 16px; top: 50%;
+            transform: translateY(-50%);
+            color: var(--light-purple);
+            font-size: 18px;
+            font-weight: 700;
+            pointer-events: none;
+        }
+        #search-input {
+            width: 100%;
+            font-family: inherit;
+            font-size: 15px;
+            padding: 11px 14px 11px 44px;
+            border: 1px solid var(--light-purple);
+            background: var(--cream);
+            color: var(--near-black);
+            border-radius: 3px;
+        }
+        #search-input:focus {
+            outline: 2px solid var(--pink);
+            outline-offset: -2px;
+            border-color: var(--pink);
+        }
+        #search-input:disabled { opacity: 0.6; }
+        .search-stats {
+            text-align: center;
+            font-size: 11px;
+            color: var(--soft-text);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+        .search-results {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid rgba(125, 74, 110, 0.3);
+            background: var(--cream-dim);
+            border-radius: 3px;
+            padding: 8px 18px;
+        }
+        .search-results .search-item {
+            padding: 12px 0;
+            border-bottom: 1px dotted rgba(45, 27, 48, 0.2);
+        }
+        .search-results .search-item:last-child { border-bottom: none; }
+        .search-results .search-item .title {
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1.3;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.01em;
+        }
+        .search-results .search-item .title a {
+            color: var(--near-black);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+        }
+        .search-results .search-item .title a:hover {
+            color: var(--pink);
+            border-bottom-color: var(--pink);
+        }
+        .search-results .search-item .meta {
+            font-size: 11px;
+            color: var(--light-purple);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .search-results .search-item .meta .source { font-style: italic; }
+        .search-results .search-item .blurb {
+            font-size: 12px;
+            color: var(--soft-text);
+            font-style: italic;
+            line-height: 1.4;
+        }
+        .search-results .empty-row {
+            text-align: center;
+            color: var(--soft-text);
+            font-style: italic;
+            padding: 36px 20px;
+            font-size: 13px;
+        }
+        .search-results::-webkit-scrollbar { width: 8px; }
+        .search-results::-webkit-scrollbar-track { background: transparent; }
+        .search-results::-webkit-scrollbar-thumb {
+            background: rgba(125, 74, 110, 0.45);
+            border-radius: 4px;
+        }
+        .search-results::-webkit-scrollbar-thumb:hover {
+            background: rgba(125, 74, 110, 0.7);
+        }
+
         /* ---------- Chatter section (preview on the Report) ---------- */
         .chatter-section {
             max-width: 1100px;
@@ -479,6 +618,18 @@
 <div class="page-wide">
     <div id="recent-container"></div>
 </div>
+
+<section class="search-section" id="search-section">
+    <div class="search-label">Search the Feed</div>
+    <div class="search-subtitle">&mdash; every article indexed, no scrape needed &mdash;</div>
+    <div class="search-input-wrap">
+        <input type="search" id="search-input"
+               placeholder="Search titles, summaries, keywords, blurbs&hellip;"
+               autocomplete="off" disabled>
+    </div>
+    <div class="search-stats" id="search-stats">Loading the index&hellip;</div>
+    <div class="search-results" id="search-results"></div>
+</section>
 
 <div id="chatter-container"></div>
 
@@ -719,6 +870,92 @@
                     <div class="columns">${filed.map(renderFiled).join("")}</div>
                 `;
             }
+
+            // --- Search section (client-side over all articles) ---
+            (() => {
+                const input   = document.getElementById("search-input");
+                const results = document.getElementById("search-results");
+                const stats   = document.getElementById("search-stats");
+
+                // Index: all articles sorted by date desc
+                const indexed = articles.slice().sort(
+                    (a, b) => (b.date_iso || "").localeCompare(a.date_iso || "")
+                );
+                const MAX_RENDER = 200;
+
+                const buildHaystack = (a) => (
+                    (a.title || "") + " " +
+                    (a.summary || "") + " " +
+                    (a.source || "") + " " +
+                    ((a.matched_keywords || []).join(" ")) + " " +
+                    (a.blurb || "")
+                ).toLowerCase();
+
+                // Precompute haystacks once
+                indexed.forEach(a => { a._hay = buildHaystack(a); });
+
+                const renderItem = (a) => {
+                    const when  = a.date_iso ? formatArticleDate(a.date_iso) : "";
+                    const badge = `<span class="badge badge-${a.source_category}">${categoryLabel(a.source_category)}</span>`;
+                    const blurbLine = a.blurb ? `<div class="blurb">${a.blurb}</div>` : "";
+                    const dateBit   = when ? `<span>&middot; ${when}</span>` : "";
+                    return `
+                        <div class="search-item">
+                            <div class="title">
+                                <a href="${a.link}" target="_blank" title="${stripHtml(a.summary)}">${a.title}</a>
+                            </div>
+                            <div class="meta">
+                                ${badge}
+                                <span class="source">${a.source}</span>
+                                ${dateBit}
+                            </div>
+                            ${blurbLine}
+                        </div>`;
+                };
+
+                const doSearch = (raw) => {
+                    const q = (raw || "").trim().toLowerCase();
+                    let matches;
+                    if (!q) {
+                        matches = indexed;
+                        stats.textContent = `${indexed.length} articles indexed`;
+                    } else {
+                        const terms = q.split(/\s+/).filter(Boolean);
+                        matches = indexed.filter(a => terms.every(t => a._hay.includes(t)));
+                        stats.textContent =
+                            `${matches.length} match${matches.length === 1 ? "" : "es"} for "${raw.trim()}"`;
+                    }
+
+                    if (!matches.length) {
+                        results.innerHTML =
+                            '<div class="empty-row">No matches. Try fewer or different words.</div>';
+                        return;
+                    }
+                    const toShow = matches.slice(0, MAX_RENDER);
+                    let html = toShow.map(renderItem).join("");
+                    if (matches.length > MAX_RENDER) {
+                        html += `<div class="empty-row">Showing first ${MAX_RENDER} of ${matches.length}. Refine your search to see more.</div>`;
+                    }
+                    results.innerHTML = html;
+                    results.scrollTop = 0;
+                };
+
+                let searchTimer;
+                input.addEventListener("input", (e) => {
+                    clearTimeout(searchTimer);
+                    searchTimer = setTimeout(() => doSearch(e.target.value), 150);
+                });
+                // Escape clears the search
+                input.addEventListener("keydown", (e) => {
+                    if (e.key === "Escape") {
+                        input.value = "";
+                        doSearch("");
+                    }
+                });
+
+                input.disabled = false;
+                doSearch("");
+            })();
 
             // --- Chatter preview section (forums + social, playful) ---
             const renderChatter = (a) => {
