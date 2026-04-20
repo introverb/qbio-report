@@ -21,8 +21,9 @@ import subprocess
 import sys
 import threading
 from datetime import datetime
+from functools import wraps
 
-from flask import Flask, jsonify, request, send_from_directory, abort
+from flask import Flask, Response, jsonify, request, send_from_directory, abort
 from openpyxl import load_workbook
 
 # --- Paths ------------------------------------------------------------------
@@ -51,6 +52,29 @@ def _seed_volume():
 
 _seed_volume()
 
+# ============================================================================
+# Auth
+# ============================================================================
+# Simple HTTP Basic Auth protects admin pages + write endpoints.
+# Username can be anything; only the password is checked.
+# Override via ADMIN_PASSWORD env var on Railway.
+
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "coherence")
+
+
+def require_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not auth or auth.password != ADMIN_PASSWORD:
+            return Response(
+                "Login required. Contact Olli for the password.",
+                401,
+                {"WWW-Authenticate": 'Basic realm="QBIO Report Admin"'},
+            )
+        return f(*args, **kwargs)
+    return decorated
+
 LOG_HEADER = (
     "# QBIO Report - Source Requests Log\n\n"
     "_Newest at top. Each entry is formatted for copy-paste straight to Claude._\n\n"
@@ -73,11 +97,13 @@ def page_report():
 
 
 @app.route("/sources")
+@require_auth
 def page_sources():
     return send_from_directory(HERE, "sources.html")
 
 
 @app.route("/keywords")
+@require_auth
 def page_keywords():
     return send_from_directory(HERE, "keywords.html")
 
@@ -121,12 +147,14 @@ def _write_keywords_lines(lines):
 
 
 @app.route("/api/keywords", methods=["GET"])
+@require_auth
 def api_list_keywords():
     lines, keywords = _read_keywords_file()
     return jsonify({"keywords": keywords, "count": len(keywords)})
 
 
 @app.route("/api/keywords", methods=["POST"])
+@require_auth
 def api_add_keyword():
     data = request.get_json(force=True, silent=True) or {}
     new_kw = (data.get("keyword") or "").strip()
@@ -148,6 +176,7 @@ def api_add_keyword():
 
 
 @app.route("/api/keywords/<path:keyword>", methods=["DELETE"])
+@require_auth
 def api_delete_keyword(keyword):
     target = keyword.strip().lower()
     lines, _ = _read_keywords_file()
@@ -198,6 +227,7 @@ def _read_source_requests():
 
 
 @app.route("/api/source-requests", methods=["GET"])
+@require_auth
 def api_list_source_requests():
     return jsonify({"requests": _read_source_requests()})
 
@@ -231,6 +261,7 @@ def _log_source_request(payload):
 
 
 @app.route("/api/source-requests", methods=["POST"])
+@require_auth
 def api_add_source_request():
     data = request.get_json(force=True, silent=True) or {}
     if not (data.get("source_name") or "").strip():
@@ -268,6 +299,7 @@ def api_add_source_request():
 
 
 @app.route("/api/source-requests/<int:row_number>", methods=["DELETE"])
+@require_auth
 def api_delete_source_request(row_number):
     if row_number < 2:
         return jsonify({"error": "Cannot delete header row"}), 400
@@ -345,6 +377,7 @@ def _start_scheduler():
 
 
 @app.route("/api/scrape", methods=["POST"])
+@require_auth
 def api_manual_scrape():
     """Manually trigger a scrape (useful from the admin pages)."""
     threading.Thread(target=run_scrape_sync, daemon=True).start()
