@@ -193,7 +193,7 @@
             position: relative;
             column-count: 2;
             column-gap: 32px;
-            max-height: 900px;
+            max-height: 1800px;
             overflow: hidden;
         }
         .recent-main-cols::after {
@@ -223,7 +223,7 @@
             position: relative;
             column-count: 2;
             column-gap: 32px;
-            max-height: 900px;
+            max-height: 1800px;
             overflow: hidden;
         }
         .recent-direct-cols::after {
@@ -716,9 +716,9 @@
             const generalPool = capPerSource(
                 seriousAll.filter(a => !breakingSet.has(a.link) && !isDirect(a)), 3);
 
-            // Each side gets up to 20 items; the CSS max-height clips
+            // Each side gets up to 40 items; the CSS max-height clips
             // visually so both sides end at the same horizontal line.
-            const RECENT_CAP = 20;
+            const RECENT_CAP = 40;
             const recentQbio    = qbioPool.slice(0, RECENT_CAP);
             const recentGeneral = generalPool.slice(0, RECENT_CAP);
             const recentQbioSet    = new Set(recentQbio.map(a => a.link));
