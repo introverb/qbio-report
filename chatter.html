@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QBIO Chatter</title>
+    <style>
+        /* ---------- Brand Fonts ---------- */
+        @font-face { font-family: "Apercu Pro"; src: url("assets/fonts/apercu_regular_pro.otf") format("opentype"); font-weight: 400; font-style: normal; font-display: swap; }
+        @font-face { font-family: "Apercu Pro"; src: url("assets/fonts/apercu_regular_italic_pro.otf") format("opentype"); font-weight: 400; font-style: italic; font-display: swap; }
+        @font-face { font-family: "Apercu Pro"; src: url("assets/fonts/apercu_medium_pro.otf") format("opentype"); font-weight: 500; font-style: normal; font-display: swap; }
+        @font-face { font-family: "Apercu Pro"; src: url("assets/fonts/apercu_bold_pro.otf") format("opentype"); font-weight: 700; font-style: normal; font-display: swap; }
+        @font-face { font-family: "Chap"; src: url("assets/fonts/Chap-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+
+        :root {
+            --cream:       #EEE8DF;
+            --cream-dim:   #E5DED2;
+            --dark-purple: #2D1B30;
+            --light-purple:#7D4A6E;
+            --pink:        #D57DB2;
+            --near-black:  #1A1416;
+            --soft-text:   #3A3036;
+        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; }
+
+        body {
+            font-family: "Apercu Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background: var(--cream);
+            color: var(--near-black);
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        /* ---- Site nav ---- */
+        .site-nav {
+            background: var(--cream-dim);
+            border-bottom: 1px solid rgba(45, 27, 48, 0.2);
+            padding: 10px 24px;
+            text-align: center;
+            font-size: 11px;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+        .site-nav a {
+            color: var(--dark-purple);
+            text-decoration: none;
+            margin: 0 14px;
+            padding: 4px 8px;
+        }
+        .site-nav a:hover { color: var(--pink); }
+        .site-nav a.active {
+            color: var(--pink);
+            border-bottom: 2px solid var(--pink);
+        }
+        .site-nav .sep { color: rgba(45, 27, 48, 0.35); padding: 0 6px; font-weight: 400; }
+
+        /* ---- Masthead ---- */
+        .masthead {
+            text-align: center;
+            padding: 40px 24px 24px;
+            max-width: 820px;
+            margin: 0 auto;
+        }
+        .masthead .title {
+            font-family: "Chap", "Apercu Pro", sans-serif;
+            font-weight: 400;
+            font-size: 56px;
+            letter-spacing: 0.06em;
+            color: var(--dark-purple);
+            margin: 0;
+            line-height: 1;
+            text-transform: uppercase;
+        }
+        .masthead .subtitle {
+            font-style: italic;
+            font-size: 13px;
+            color: var(--soft-text);
+            margin: 14px 0 10px;
+            letter-spacing: 0.05em;
+        }
+        .masthead .dateline {
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--dark-purple);
+            font-weight: 700;
+        }
+
+        /* ---- Layout ---- */
+        .page-wide {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 32px 24px 80px;
+        }
+
+        .filter-row {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--soft-text);
+            font-weight: 700;
+        }
+        .filter-row button {
+            background: transparent;
+            border: 1px solid var(--light-purple);
+            color: var(--light-purple);
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            padding: 6px 14px;
+            margin: 0 4px;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+        .filter-row button:hover { color: var(--pink); border-color: var(--pink); }
+        .filter-row button.active {
+            background: var(--light-purple);
+            color: var(--cream);
+            border-color: var(--light-purple);
+        }
+        .filter-row button.active:hover {
+            background: var(--pink);
+            color: var(--near-black);
+            border-color: var(--pink);
+        }
+
+        /* ---- Chatter items (playful, blockquote-style) ---- */
+        .chatter-items {
+            column-count: 3;
+            column-gap: 40px;
+        }
+        @media (max-width: 900px) { .chatter-items { column-count: 2; } }
+        @media (max-width: 560px) { .chatter-items { column-count: 1; } }
+
+        .chatter-item {
+            break-inside: avoid;
+            margin-bottom: 28px;
+            padding-left: 18px;
+            border-left: 2px solid rgba(125, 74, 110, 0.35);
+        }
+        .chatter-item .headline {
+            font-style: italic;
+            font-size: 15px;
+            line-height: 1.4;
+            color: var(--near-black);
+            margin-bottom: 6px;
+        }
+        .chatter-item .headline a {
+            color: inherit;
+            text-decoration: none;
+        }
+        .chatter-item .headline a:hover { color: var(--pink); }
+        .chatter-item .attribution {
+            font-size: 11px;
+            color: var(--light-purple);
+            font-style: italic;
+            letter-spacing: 0.03em;
+        }
+        .chatter-item .attribution::before { content: "— "; }
+        .chatter-item .badge-mini {
+            display: inline-block;
+            font-style: normal;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding: 1px 6px;
+            margin-right: 6px;
+            border-radius: 2px;
+            border: 1px solid var(--light-purple);
+            color: var(--light-purple);
+            background: transparent;
+        }
+        .chatter-item .badge-mini.social {
+            border-color: var(--pink);
+            color: var(--pink);
+        }
+
+        .status {
+            text-align: center;
+            color: var(--soft-text);
+            font-style: italic;
+            padding: 40px 12px;
+            font-size: 13px;
+        }
+
+        /* ---- Footer ---- */
+        footer {
+            margin-top: 60px;
+            text-align: center;
+            font-size: 10px;
+            color: var(--soft-text);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            padding: 0 24px;
+        }
+        footer a {
+            color: var(--dark-purple);
+            text-decoration: none;
+            border-bottom: 1px solid var(--dark-purple);
+        }
+        footer a:hover { color: var(--pink); border-bottom-color: var(--pink); }
+        footer .copyright {
+            font-style: italic;
+            margin-top: 8px;
+            letter-spacing: 0.08em;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="site-nav">
+    <a href="/">Report</a>
+    <span class="sep">·</span>
+    <a href="/chatter" class="active">Chatter</a>
+    <span class="sep">·</span>
+    <a href="/sources">Sources</a>
+    <span class="sep">·</span>
+    <a href="/keywords">Keywords</a>
+</nav>
+
+<header class="masthead">
+    <div class="title">QBIO Chatter</div>
+    <div class="subtitle">&mdash; overheard in forums, social, and elsewhere &mdash;</div>
+    <div class="dateline" id="dateline">Loading&hellip;</div>
+</header>
+
+<main class="page-wide">
+    <div class="filter-row" id="filters">
+        <button data-filter="all" class="active">All</button>
+        <button data-filter="forums">Forums</button>
+        <button data-filter="social">Social</button>
+        <button data-filter="qbio">Direct Q.B. only</button>
+    </div>
+
+    <div id="status" class="status">Loading feed&hellip;</div>
+    <div id="chatter-items" class="chatter-items"></div>
+</main>
+
+<footer>
+    <div id="footer-timestamp">Feed generated&hellip;</div>
+    <div style="margin-top:6px;"><a href="https://quantumbiologydao.xyz" target="_blank">quantumbiologydao.xyz</a></div>
+    <div class="copyright">&copy; Quantum Biology DAO</div>
+</footer>
+
+<script>
+    const DIRECT_TERMS = [
+        "quantum biolog", "quantum bioscien", "quantum bio-",
+        "biological quantum", "biology of quantum",
+        "quantum effects in biolog", "quantum effects in living", "quantum effects in life",
+        "quantum phenomena in biolog", "quantum phenomena in living", "quantum phenomena in life",
+        "quantum mechanics in biolog", "quantum mechanics in living",
+        "quantum mechanics of biolog", "quantum mechanics of life",
+        "quantum processes in biolog", "quantum processes in living",
+        "quantum behavior in biolog", "quantum behavior in living",
+        "quantum life", "quantum living", "living quantum",
+        "quantum nature of biolog", "quantum nature of life",
+        "quantum-enabled biolog", "quantum enabled biolog",
+        "radical pair",
+    ];
+    const isDirect = (a) => {
+        const text = ((a.title || "") + " " + (a.summary || "")).toLowerCase();
+        return DIRECT_TERMS.some(t => text.includes(t));
+    };
+    const isChatter = (a) => a.source_category === "forums" || a.source_category === "social";
+
+    function formatDateline(iso) {
+        if (!iso) return "";
+        const d = new Date(iso);
+        const date = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "2-digit", year: "numeric" });
+        const time = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+        return `${date} · ${time}`.toUpperCase();
+    }
+    function formatTimestamp(iso) {
+        if (!iso) return "";
+        const d = new Date(iso);
+        return d.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+    }
+    function formatArticleDate(iso) {
+        if (!iso) return "";
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return "";
+        const now = new Date();
+        const hours = (now - d) / (1000 * 60 * 60);
+        if (hours < 1)  return "< 1h ago";
+        if (hours < 24) return `${Math.round(hours)}h ago`;
+        if (hours < 48) return "yesterday";
+        return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    }
+    function stripHtml(s) {
+        const tmp = document.createElement("div");
+        tmp.innerHTML = s || "";
+        return (tmp.textContent || tmp.innerText || "").replace(/"/g, "&quot;");
+    }
+
+    let allItems = [];
+
+    function renderItems(items) {
+        const container = document.getElementById("chatter-items");
+        if (!items.length) {
+            container.innerHTML = '<div class="status">No chatter matches this filter.</div>';
+            return;
+        }
+        container.innerHTML = items.map(a => {
+            const when = a.date_iso ? formatArticleDate(a.date_iso) : "";
+            const bits = [a.source];
+            if (when) bits.push(when);
+            const badgeClass = a.source_category === "social" ? "social" : "";
+            const badgeLabel = a.source_category === "social" ? "Social" : "Forum";
+            return `
+                <div class="chatter-item">
+                    <div class="headline">
+                        <span class="badge-mini ${badgeClass}">${badgeLabel}</span>
+                        <a href="${a.link}" target="_blank" title="${stripHtml(a.summary)}">${a.title}</a>
+                    </div>
+                    <div class="attribution">${bits.join(" · ")}</div>
+                </div>`;
+        }).join("");
+    }
+
+    function applyFilter(filter) {
+        let items = allItems;
+        if (filter === "forums") items = items.filter(a => a.source_category === "forums");
+        else if (filter === "social") items = items.filter(a => a.source_category === "social");
+        else if (filter === "qbio") items = items.filter(isDirect);
+        renderItems(items);
+    }
+
+    document.querySelectorAll("#filters button").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll("#filters button").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            applyFilter(btn.dataset.filter);
+        });
+    });
+
+    fetch("/feed.json")
+        .then(r => {
+            if (!r.ok) throw new Error("NO FEED.JSON — scraper hasn't run yet.");
+            return r.json();
+        })
+        .then(data => {
+            const articles = data.articles || [];
+            allItems = articles
+                .filter(isChatter)
+                .slice()
+                .sort((a, b) => (b.date_iso || "").localeCompare(a.date_iso || ""));
+
+            document.getElementById("dateline").textContent =
+                `${formatDateline(data.generated_at)} · ${allItems.length} CHATTER ITEMS`;
+            document.getElementById("footer-timestamp").textContent =
+                `Feed generated ${formatTimestamp(data.generated_at)}`;
+            document.getElementById("status").remove();
+
+            applyFilter("all");
+        })
+        .catch(err => {
+            document.getElementById("status").textContent = err.message;
+        });
+</script>
+
+</body>
+</html>

@@ -391,6 +391,75 @@
             font-size: 13px;
         }
 
+        /* ---------- Chatter section (preview on the Report) ---------- */
+        .chatter-section {
+            max-width: 1100px;
+            margin: 60px auto 0;
+            padding: 0 24px;
+        }
+        .chatter-label {
+            text-align: center;
+            font-weight: 700;
+            font-size: 11px;
+            letter-spacing: 0.4em;
+            color: var(--light-purple);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .chatter-subtitle {
+            text-align: center;
+            font-style: italic;
+            color: var(--soft-text);
+            font-size: 12px;
+            margin-bottom: 36px;
+            letter-spacing: 0.03em;
+        }
+        .chatter-items {
+            column-count: 2;
+            column-gap: 40px;
+        }
+        @media (max-width: 680px) { .chatter-items { column-count: 1; } }
+        .chatter-item {
+            break-inside: avoid;
+            margin-bottom: 22px;
+            padding-left: 18px;
+            border-left: 2px solid rgba(125, 74, 110, 0.35);
+        }
+        .chatter-item .headline {
+            font-style: italic;
+            font-size: 15px;
+            line-height: 1.4;
+            color: var(--near-black);
+            margin-bottom: 6px;
+        }
+        .chatter-item .headline a {
+            color: inherit;
+            text-decoration: none;
+        }
+        .chatter-item .headline a:hover { color: var(--pink); }
+        .chatter-item .attribution {
+            font-size: 11px;
+            color: var(--light-purple);
+            font-style: italic;
+            letter-spacing: 0.03em;
+        }
+        .chatter-item .attribution::before { content: "— "; }
+        .chatter-more {
+            text-align: center;
+            margin-top: 28px;
+            font-size: 11px;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+        .chatter-more a {
+            color: var(--light-purple);
+            text-decoration: none;
+            border-bottom: 1px solid var(--light-purple);
+            padding-bottom: 2px;
+        }
+        .chatter-more a:hover { color: var(--pink); border-bottom-color: var(--pink); }
+
         /* ---------- Footer ---------- */
         footer {
             margin-top: 72px;
@@ -418,6 +487,8 @@
 <nav class="site-nav">
     <a href="/" class="active">Report</a>
     <span class="sep">·</span>
+    <a href="/chatter">Chatter</a>
+    <span class="sep">·</span>
     <a href="/sources">Sources</a>
     <span class="sep">·</span>
     <a href="/keywords">Keywords</a>
@@ -441,6 +512,8 @@
     <div id="recent-container"></div>
     <div id="filed-container"></div>
 </div>
+
+<div id="chatter-container"></div>
 
 <div class="page-footer">
     <footer>
@@ -577,33 +650,59 @@
                 return DIRECT_TERMS.some(t => text.includes(t));
             };
 
-            // Scraper already sorted by date desc. Build content buckets:
-            const breaking     = articles.slice(0, 5);
+            // --- Category split: "serious" = papers/preprints/news; "chatter" = forums/social ---
+            const CHATTER_CATEGORIES = new Set(["forums", "social"]);
+            const isChatter = (a) => CHATTER_CATEGORIES.has(a.source_category);
+            const isSerious = (a) => !isChatter(a);
+
+            // Source-capping: no more than N items per source in a given list.
+            // Preserves input order; drops overflow.
+            const capPerSource = (list, maxPerSource) => {
+                const counts = {};
+                const result = [];
+                for (const a of list) {
+                    const key = a.source || "(unknown)";
+                    counts[key] = (counts[key] || 0) + 1;
+                    if (counts[key] <= maxPerSource) result.push(a);
+                }
+                return result;
+            };
+
+            // --- Build buckets (scraper already sorted by date desc) ---
+            const seriousAll = articles.filter(isSerious);
+
+            // Breaking: top 5 most recent serious items, max 2 per source
+            const breaking     = capPerSource(seriousAll, 2).slice(0, 5);
             const breakingSet  = new Set(breaking.map(a => a.link));
 
-            // Candidate pools for the Recent section (excluding Breaking)
-            const qbioPool    = articles.filter(a => !breakingSet.has(a.link) && isDirect(a));
-            const generalPool = articles.filter(a => !breakingSet.has(a.link) && !isDirect(a));
-            // Keep both sides the same length for visual parity (cap at 15).
+            // Recent pools: direct-QB vs adjacent, each capped at 3 per source
+            const qbioPool    = capPerSource(
+                seriousAll.filter(a => !breakingSet.has(a.link) && isDirect(a)), 3);
+            const generalPool = capPerSource(
+                seriousAll.filter(a => !breakingSet.has(a.link) && !isDirect(a)), 3);
+
             const RECENT_CAP = 15;
             const recentCount = Math.min(qbioPool.length, generalPool.length, RECENT_CAP);
-
             const recentQbio    = qbioPool.slice(0, recentCount);
             const recentGeneral = generalPool.slice(0, recentCount);
             const recentQbioSet    = new Set(recentQbio.map(a => a.link));
             const recentGeneralSet = new Set(recentGeneral.map(a => a.link));
 
-            const shown = new Set([
+            const shownSerious = new Set([
                 ...breakingSet,
                 ...recentQbioSet,
                 ...recentGeneralSet,
             ]);
 
-            // Everything not shown above goes into Filed, sorted by date (newest first).
-            const filed = articles
-                .filter(a => !shown.has(a.link))
+            // Filed: all remaining serious items by date (no cap)
+            const filed = seriousAll
+                .filter(a => !shownSerious.has(a.link))
                 .slice()
                 .sort((a, b) => (b.date_iso || "").localeCompare(a.date_iso || ""));
+
+            // Chatter preview: top 10 most recent chatter items, max 2 per source
+            const chatterAll     = articles.filter(isChatter);
+            const chatterPreview = capPerSource(chatterAll, 2).slice(0, 10);
 
             // --- Render helpers ---
             const blurbHtml = (a) => a.blurb ? `<div class="blurb">${a.blurb}</div>` : "";
@@ -658,12 +757,37 @@
                 `;
             }
 
-            // --- Filed section (single 4-column flow, by score) ---
+            // --- Filed section (single 4-column flow, by date) ---
             if (filed.length) {
                 document.getElementById("filed-container").innerHTML = `
                     <div class="filed-label">Filed &middot; By Date</div>
                     <div class="columns">${filed.map(renderFiled).join("")}</div>
                 `;
+            }
+
+            // --- Chatter preview section (forums + social, playful) ---
+            const renderChatter = (a) => {
+                const when = a.date_iso ? formatArticleDate(a.date_iso) : "";
+                const bits = [a.source];
+                if (when) bits.push(when);
+                return `
+                    <div class="chatter-item">
+                        <div class="headline">
+                            <a href="${a.link}" target="_blank" title="${stripHtml(a.summary)}">${a.title}</a>
+                        </div>
+                        <div class="attribution">${bits.join(" · ")}</div>
+                    </div>`;
+            };
+            if (chatterPreview.length) {
+                document.getElementById("chatter-container").innerHTML = `
+                    <section class="chatter-section">
+                        <div class="chatter-label">Chatter &middot; From the Field</div>
+                        <div class="chatter-subtitle">overheard in forums, social, and elsewhere</div>
+                        <div class="chatter-items">${chatterPreview.map(renderChatter).join("")}</div>
+                        <div class="chatter-more">
+                            <a href="/chatter">See all chatter &rarr;</a>
+                        </div>
+                    </section>`;
             }
         })
         .catch(err => {

@@ -96,6 +96,11 @@ def page_report():
     return send_from_directory(HERE, "index.html")
 
 
+@app.route("/chatter")
+def page_chatter():
+    return send_from_directory(HERE, "chatter.html")
+
+
 @app.route("/sources")
 @require_auth
 def page_sources():
