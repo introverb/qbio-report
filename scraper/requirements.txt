@@ -1,0 +1,6 @@
+feedparser
+requests
+openpyxl
+anthropic
+python-dotenv
+flask

@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QBIO Report — Sources</title>
+    <link rel="stylesheet" href="assets/shared.css">
+    <style>
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+        .stat-bar {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            font-size: 12px;
+            color: var(--soft-text);
+            margin-bottom: 24px;
+            letter-spacing: 0.05em;
+        }
+        .stat-bar b {
+            color: var(--dark-purple);
+            font-size: 20px;
+            display: block;
+            letter-spacing: 0;
+        }
+        .request-form {
+            background: var(--cream-dim);
+            padding: 20px;
+            border-radius: 2px;
+            margin-bottom: 24px;
+        }
+        .request-form h3 {
+            margin: 0 0 14px;
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--dark-purple);
+        }
+        .request-form .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        @media (max-width: 640px) { .request-form .form-grid { grid-template-columns: 1fr; } }
+        .request-form input, .request-form select, .request-form textarea {
+            width: 100%;
+        }
+        .request-form textarea { min-height: 50px; resize: vertical; }
+    </style>
+</head>
+<body>
+
+<nav class="site-nav">
+    <a href="/">Report</a>
+    <span class="sep">·</span>
+    <a href="/sources" class="active">Sources</a>
+    <span class="sep">·</span>
+    <a href="/keywords">Keywords</a>
+</nav>
+
+<main class="admin-page">
+    <h1>Sources</h1>
+    <div class="subtitle" id="subtitle">Loading &hellip;</div>
+
+    <div class="stat-bar" id="summary-bar"></div>
+
+    <div class="tabs" id="tabs"></div>
+
+    <div id="panels"></div>
+</main>
+
+<script>
+    // --------------------------------------------------------------------
+    // Tab layout config — order + labels + whether editable
+    // --------------------------------------------------------------------
+    const TIER_KEYS = [
+        { key: "Tier 1",  label: "RSS Feeds" },
+        { key: "Tier 2",  label: "Search APIs" },
+        { key: "Tier 3a", label: "Forums" },
+        { key: "Tier 3b", label: "Social" },
+    ];
+
+    const TAB_ORDER = [
+        { id: "summary",  label: "Summary" },
+        { id: "tier-1",   label: "Tier 1 — RSS" },
+        { id: "tier-2",   label: "Tier 2 — APIs" },
+        { id: "tier-3a",  label: "Tier 3a — Forums" },
+        { id: "tier-3b",  label: "Tier 3b — Social" },
+        { id: "requests", label: "Source Requests", editable: true },
+    ];
+
+    function showFlash(msg, isError, target) {
+        const el = document.createElement("div");
+        el.className = "flash " + (isError ? "error" : "");
+        el.textContent = msg;
+        target.prepend(el);
+        setTimeout(() => el.remove(), 4000);
+    }
+
+    // --------------------------------------------------------------------
+    // Tab rendering
+    // --------------------------------------------------------------------
+    function renderTabs() {
+        const tabsEl = document.getElementById("tabs");
+        tabsEl.innerHTML = TAB_ORDER.map(t =>
+            `<div class="tab" data-tab="${t.id}">${t.label}</div>`).join("");
+        tabsEl.querySelectorAll(".tab").forEach(t => {
+            t.addEventListener("click", () => activateTab(t.dataset.tab));
+        });
+    }
+
+    function activateTab(id) {
+        document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === id));
+        document.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.id === `panel-${id}`));
+        history.replaceState(null, "", `#${id}`);
+    }
+
+    function rowClass(status) {
+        if (status === "ERROR") return "status-error";
+        if ((status || "").startsWith("Working (no hits)") || status === "No results returned") return "status-nohits";
+        if ((status || "").startsWith("Working")) return "status-working";
+        return "";
+    }
+
+    // --------------------------------------------------------------------
+    // Summary tab
+    // --------------------------------------------------------------------
+    function renderSummary(data) {
+        const rows = (data.summary || []).map(s => `
+            <tr>
+                <td><b>${s.tier}</b></td>
+                <td>${s.sources_configured}</td>
+                <td>${s.articles_contributed}</td>
+                <td>${s.errored > 0 ? `<span style="color:#c55">${s.errored}</span>` : s.errored}</td>
+            </tr>`).join("");
+        const when = new Date(data.generated_at).toLocaleString("en-US",
+            { month:"short", day:"numeric", year:"numeric", hour:"numeric", minute:"2-digit" });
+        return `
+            <table class="data">
+                <thead><tr>
+                    <th>Tier</th><th>Sources</th><th>Articles Contributed</th><th>Errored</th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+            <div class="subtitle">Last scraped: ${when} &nbsp;·&nbsp; ${data.unique_articles_after_dedup} unique articles after dedup</div>
+        `;
+    }
+
+    // --------------------------------------------------------------------
+    // Tier tabs (Tier 1 / 2 / 3a / 3b)
+    // --------------------------------------------------------------------
+    function renderTier(rows) {
+        if (!rows || !rows.length) {
+            return '<div class="empty-state">No sources configured in this tier.</div>';
+        }
+        const body = rows.map(r => `
+            <tr class="${rowClass(r.status)}">
+                <td><b>${r.source_name}</b></td>
+                <td class="mono">${r.target}</td>
+                <td><span class="badge badge-${r.category}">${r.category}</span></td>
+                <td style="text-align:right;">${r.matched}</td>
+                <td style="text-align:right;">${r.total}</td>
+                <td>${r.status}</td>
+                <td style="color:#c55;">${r.error || ""}</td>
+                <td style="color: var(--soft-text); font-style: italic;">${r.notes || ""}</td>
+            </tr>`).join("");
+        return `
+            <table class="data">
+                <thead><tr>
+                    <th>Source</th><th>Target / URL</th><th>Category</th>
+                    <th style="text-align:right;">Matched</th>
+                    <th style="text-align:right;">Total</th>
+                    <th>Status</th><th>Error</th><th>Notes</th>
+                </tr></thead>
+                <tbody>${body}</tbody>
+            </table>
+        `;
+    }
+
+    // --------------------------------------------------------------------
+    // Source Requests tab (editable)
+    // --------------------------------------------------------------------
+    function requestFormHtml() {
+        return `
+            <div class="request-form" id="request-form">
+                <h3>+ Add a source request</h3>
+                <div class="form-grid">
+                    <input type="text" id="req-source-name" placeholder="Source name (e.g. Biophysical Journal)">
+                    <select id="req-type">
+                        <option value="">Type…</option>
+                        <option>RSS</option>
+                        <option>API</option>
+                        <option>Forum</option>
+                        <option>Social</option>
+                        <option>Other</option>
+                    </select>
+                    <input type="text" id="req-url" placeholder="URL or endpoint (or subreddit name, hashtag, etc.)">
+                    <select id="req-priority">
+                        <option value="">Priority…</option>
+                        <option>High</option>
+                        <option selected>Medium</option>
+                        <option>Low</option>
+                    </select>
+                    <select id="req-api">
+                        <option value="">API key needed?</option>
+                        <option selected>No</option>
+                        <option>Yes</option>
+                        <option>Unknown</option>
+                    </select>
+                    <input type="text" id="req-status" placeholder="Status (default: Requested)">
+                </div>
+                <textarea id="req-notes" placeholder="Why this source? Any context for Olli to act on…"></textarea>
+                <div style="margin-top:10px;">
+                    <button id="req-submit">Submit request</button>
+                    <button class="secondary" id="req-clear">Clear</button>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderRequestsTable(requests) {
+        if (!requests.length) {
+            return '<div class="empty-state">No source requests yet. Use the form above to add one.</div>';
+        }
+        return `
+            <table class="data">
+                <thead><tr>
+                    <th>Source</th><th>Type</th><th>URL / Target</th><th>Why / Notes</th>
+                    <th>API?</th><th>Priority</th><th>Status</th><th></th>
+                </tr></thead>
+                <tbody>
+                ${requests.map(r => `
+                    <tr>
+                        <td><b>${r.source_name}</b></td>
+                        <td>${r.type}</td>
+                        <td class="mono">${r.url}</td>
+                        <td>${r.why_notes}</td>
+                        <td>${r.api_key_needed}</td>
+                        <td>${r.priority}</td>
+                        <td>${r.status}</td>
+                        <td><button class="danger" data-row="${r.row_number}">Delete</button></td>
+                    </tr>`).join("")}
+                </tbody>
+            </table>
+        `;
+    }
+
+    async function loadAndRenderRequests() {
+        const resp = await fetch("/api/source-requests");
+        const data = await resp.json();
+        document.getElementById("requests-list").innerHTML = renderRequestsTable(data.requests || []);
+        document.querySelectorAll("button[data-row]").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const row = btn.dataset.row;
+                if (!confirm("Delete this request?")) return;
+                const r = await fetch(`/api/source-requests/${row}`, { method: "DELETE" });
+                if (r.ok) {
+                    showFlash("Request deleted.", false, document.querySelector("#panel-requests"));
+                    loadAndRenderRequests();
+                } else {
+                    showFlash("Failed to delete.", true, document.querySelector("#panel-requests"));
+                }
+            });
+        });
+    }
+
+    function wireRequestForm() {
+        const btn = document.getElementById("req-submit");
+        const clearBtn = document.getElementById("req-clear");
+        const fields = ["req-source-name","req-type","req-url","req-priority","req-api","req-status","req-notes"];
+
+        btn.addEventListener("click", async () => {
+            const payload = {
+                source_name:     document.getElementById("req-source-name").value,
+                type:            document.getElementById("req-type").value,
+                url:             document.getElementById("req-url").value,
+                why_notes:       document.getElementById("req-notes").value,
+                api_key_needed:  document.getElementById("req-api").value,
+                priority:        document.getElementById("req-priority").value,
+                status:          document.getElementById("req-status").value,
+            };
+            const resp = await fetch("/api/source-requests", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            if (resp.ok) {
+                fields.forEach(id => { document.getElementById(id).value = ""; });
+                showFlash("Request submitted. Logged to source_requests_log.md for Olli to action.",
+                    false, document.querySelector("#panel-requests"));
+                loadAndRenderRequests();
+            } else {
+                const err = await resp.json().catch(() => ({}));
+                showFlash(err.error || "Submit failed.", true, document.querySelector("#panel-requests"));
+            }
+        });
+        clearBtn.addEventListener("click", () => {
+            fields.forEach(id => { document.getElementById(id).value = ""; });
+        });
+    }
+
+    // --------------------------------------------------------------------
+    // Main loader
+    // --------------------------------------------------------------------
+    async function init() {
+        renderTabs();
+
+        const panelsEl = document.getElementById("panels");
+        panelsEl.innerHTML = TAB_ORDER.map(t =>
+            `<div class="tab-panel" id="panel-${t.id}"></div>`).join("");
+
+        let data;
+        try {
+            const r = await fetch("/api/sources");
+            if (!r.ok) throw new Error("No sources.json — run the scraper first.");
+            data = await r.json();
+        } catch (e) {
+            document.getElementById("subtitle").textContent = "Source data unavailable.";
+            document.getElementById("panel-summary").innerHTML = `<div class="flash error">${e.message}</div>`;
+            activateTab("summary");
+            return;
+        }
+
+        // Subtitle + summary stats
+        document.getElementById("subtitle").textContent =
+            `&mdash; live inventory of every source QBIO Report pulls from &mdash;`;
+        document.getElementById("subtitle").innerHTML =
+            "&mdash; live inventory of every source QBIO Report pulls from &mdash;";
+        const totalSources = (data.summary || []).reduce((s, x) => s + x.sources_configured, 0);
+        const totalArticles = (data.summary || []).reduce((s, x) => s + x.articles_contributed, 0);
+        const totalErrored = (data.summary || []).reduce((s, x) => s + x.errored, 0);
+        document.getElementById("summary-bar").innerHTML = `
+            <div><b>${totalSources}</b>sources configured</div>
+            <div><b>${totalArticles}</b>articles contributed</div>
+            <div><b>${data.unique_articles_after_dedup}</b>unique after dedup</div>
+            <div><b style="color:${totalErrored > 0 ? '#c55' : 'var(--dark-purple)'};">${totalErrored}</b>errored</div>
+        `;
+
+        // Summary tab
+        document.getElementById("panel-summary").innerHTML = renderSummary(data);
+
+        // Tier tabs
+        const tierIds = ["tier-1", "tier-2", "tier-3a", "tier-3b"];
+        TIER_KEYS.forEach((t, i) => {
+            document.getElementById(`panel-${tierIds[i]}`).innerHTML =
+                renderTier((data.tiers || {})[t.key] || []);
+        });
+
+        // Source Requests tab (editable)
+        document.getElementById("panel-requests").innerHTML =
+            requestFormHtml() +
+            '<div id="requests-list"></div>';
+        wireRequestForm();
+        loadAndRenderRequests();
+
+        // Activate from hash or default to summary
+        const wanted = (location.hash || "").replace("#", "");
+        activateTab(TAB_ORDER.some(t => t.id === wanted) ? wanted : "summary");
+    }
+
+    init();
+</script>
+
+</body>
+</html>

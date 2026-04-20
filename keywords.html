@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QBIO Report — Keywords</title>
+    <link rel="stylesheet" href="assets/shared.css">
+</head>
+<body>
+
+<nav class="site-nav">
+    <a href="/">Report</a>
+    <span class="sep">·</span>
+    <a href="/sources">Sources</a>
+    <span class="sep">·</span>
+    <a href="/keywords" class="active">Keywords</a>
+</nav>
+
+<main class="admin-page">
+    <h1>Keywords</h1>
+    <div class="subtitle">
+        &mdash; the terms that define relevance for QBIO Report &mdash;
+    </div>
+
+    <div class="flash" id="flash-info">
+        Keywords are used two ways: (1) to score every article's relevance
+        (all keywords, always), and (2) to query PubMed, arXiv, Europe PMC,
+        Hacker News, and Bluesky server-side (also all keywords, chunked).
+        Changes here take effect on the next scraper run automatically &mdash; no check-in needed.
+    </div>
+
+    <div class="form-row">
+        <input type="text" id="new-keyword" placeholder="e.g. radical pair mechanism" style="flex: 1 1 300px;">
+        <button id="add-btn">Add keyword</button>
+    </div>
+
+    <div id="flash-status"></div>
+
+    <div id="count-line" class="subtitle"></div>
+    <div id="kw-container"></div>
+</main>
+
+<script>
+    const flash = document.getElementById("flash-status");
+    function showFlash(msg, isError) {
+        flash.innerHTML = `<div class="flash ${isError ? 'error' : ''}">${msg}</div>`;
+        setTimeout(() => { flash.innerHTML = ""; }, 3500);
+    }
+
+    async function loadKeywords() {
+        try {
+            const r = await fetch("/api/keywords");
+            if (!r.ok) throw new Error("Failed to load keywords");
+            const data = await r.json();
+            const container = document.getElementById("kw-container");
+            document.getElementById("count-line").textContent =
+                `${data.count} keywords currently active`;
+            if (!data.keywords.length) {
+                container.innerHTML = '<div class="empty-state">No keywords yet.</div>';
+                return;
+            }
+            container.innerHTML = data.keywords.map(kw => `
+                <span class="kw-tag">
+                    ${kw}
+                    <button data-kw="${encodeURIComponent(kw)}" title="Remove">&times;</button>
+                </span>`).join("");
+            container.querySelectorAll("button[data-kw]").forEach(btn => {
+                btn.addEventListener("click", async () => {
+                    const kw = decodeURIComponent(btn.dataset.kw);
+                    if (!confirm(`Remove "${kw}"?`)) return;
+                    const resp = await fetch(`/api/keywords/${encodeURIComponent(kw)}`, { method: "DELETE" });
+                    if (resp.ok) {
+                        showFlash(`Removed "${kw}".`);
+                        loadKeywords();
+                    } else {
+                        const err = await resp.json().catch(() => ({}));
+                        showFlash(err.error || "Failed to remove", true);
+                    }
+                });
+            });
+        } catch (e) {
+            document.getElementById("kw-container").innerHTML =
+                `<div class="flash error">Error: ${e.message}</div>`;
+        }
+    }
+
+    document.getElementById("add-btn").addEventListener("click", addKeyword);
+    document.getElementById("new-keyword").addEventListener("keydown", e => {
+        if (e.key === "Enter") addKeyword();
+    });
+
+    async function addKeyword() {
+        const input = document.getElementById("new-keyword");
+        const value = input.value.trim();
+        if (!value) return;
+        const resp = await fetch("/api/keywords", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ keyword: value }),
+        });
+        if (resp.ok) {
+            input.value = "";
+            showFlash(`Added "${value}".`);
+            loadKeywords();
+        } else {
+            const err = await resp.json().catch(() => ({}));
+            showFlash(err.error || "Failed to add", true);
+        }
+    }
+
+    loadKeywords();
+</script>
+
+</body>
+</html>

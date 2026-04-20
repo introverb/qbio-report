@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QBIO REPORT</title>
+    <style>
+        /* ---------- Brand Fonts ---------- */
+        @font-face { font-family: "Apercu Pro"; src: url("assets/fonts/apercu_regular_pro.otf") format("opentype"); font-weight: 400; font-style: normal; font-display: swap; }
+        @font-face { font-family: "Apercu Pro"; src: url("assets/fonts/apercu_regular_italic_pro.otf") format("opentype"); font-weight: 400; font-style: italic; font-display: swap; }
+        @font-face { font-family: "Apercu Pro"; src: url("assets/fonts/apercu_medium_pro.otf") format("opentype"); font-weight: 500; font-style: normal; font-display: swap; }
+        @font-face { font-family: "Apercu Pro"; src: url("assets/fonts/apercu_medium_italic_pro.otf") format("opentype"); font-weight: 500; font-style: italic; font-display: swap; }
+        @font-face { font-family: "Apercu Pro"; src: url("assets/fonts/apercu_bold_pro.otf") format("opentype"); font-weight: 700; font-style: normal; font-display: swap; }
+        @font-face { font-family: "Apercu Pro"; src: url("assets/fonts/apercu_bold_italic_pro.otf") format("opentype"); font-weight: 700; font-style: italic; font-display: swap; }
+        @font-face { font-family: "Chap"; src: url("assets/fonts/Chap-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+
+        /* ---------- QBI Palette ---------- */
+        :root {
+            --cream:       #EEE8DF;
+            --cream-dim:   #E5DED2;
+            --dark-purple: #2D1B30;
+            --light-purple:#7D4A6E;
+            --pink:        #D57DB2;
+            --near-black:  #1A1416;
+            --soft-text:   #3A3036;
+        }
+
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; }
+
+        body {
+            font-family: "Apercu Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background: var(--cream);
+            color: var(--near-black);
+            font-size: 15px;
+            line-height: 1.45;
+        }
+
+        /* ---- Site nav (shared across Report / Sources / Keywords) ---- */
+        .site-nav {
+            background: var(--cream-dim);
+            border-bottom: 1px solid rgba(45, 27, 48, 0.2);
+            padding: 10px 24px;
+            text-align: center;
+            font-size: 11px;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+        .site-nav a {
+            color: var(--dark-purple);
+            text-decoration: none;
+            margin: 0 14px;
+            padding: 4px 8px;
+            border-bottom: none;
+        }
+        .site-nav a:hover { color: var(--pink); }
+        .site-nav a.active {
+            color: var(--pink);
+            border-bottom: 2px solid var(--pink);
+        }
+        .site-nav .sep { color: rgba(45, 27, 48, 0.35); padding: 0 6px; font-weight: 400; }
+
+        .page {
+            max-width: 820px;
+            margin: 0 auto;
+            padding: 36px 24px 0;
+        }
+        .page-wide {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+        .page-footer {
+            max-width: 820px;
+            margin: 0 auto;
+            padding: 0 24px 80px;
+        }
+
+        /* ---------- Masthead ---------- */
+        .masthead {
+            text-align: center;
+            padding: 0 0 48px;
+        }
+        .masthead .title {
+            font-family: "Chap", "Apercu Pro", sans-serif;
+            font-weight: 400;
+            font-size: 56px;
+            letter-spacing: 0.06em;
+            color: var(--dark-purple);
+            margin: 0;
+            line-height: 1;
+            text-transform: uppercase;
+        }
+        .masthead .subtitle {
+            font-style: italic;
+            font-size: 12px;
+            color: var(--soft-text);
+            margin: 14px 0 10px;
+            letter-spacing: 0.05em;
+        }
+        .masthead .dateline {
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--dark-purple);
+            font-weight: 700;
+        }
+
+        /* ---------- Breaking label ---------- */
+        .breaking-label {
+            text-align: center;
+            margin: 0 0 28px;
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 0.5em;
+            color: var(--pink);
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+        }
+        .breaking-label::before,
+        .breaking-label::after {
+            content: "";
+            display: inline-block;
+            width: 22px;
+            height: 25px;
+            background: url("assets/logo-icon.svg") no-repeat center / contain;
+        }
+
+        /* ---------- Breaking Stories (top 5, chronological) ---------- */
+        .breaking-stories {
+            text-align: center;
+            padding: 0 0 56px;
+        }
+        .story-breaking {
+            margin: 0 0 36px;
+        }
+        .story-breaking:last-child { margin-bottom: 0; }
+        .story-breaking h2 {
+            font-size: 26px;
+            font-weight: 700;
+            line-height: 1.15;
+            margin: 0 0 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.01em;
+        }
+        .story-breaking:first-child h2 {
+            font-size: 34px;
+            line-height: 1.05;
+            margin-bottom: 14px;
+        }
+        .story-breaking h2 a {
+            color: var(--near-black);
+            text-decoration: none;
+            border-bottom: 2px solid var(--near-black);
+            padding-bottom: 2px;
+        }
+        .story-breaking h2 a:hover { color: var(--pink); border-bottom-color: var(--pink); }
+
+        /* ---------- Recent Stories (next 15, chronological, 2-col) ---------- */
+        .recent-label {
+            text-align: center;
+            margin: 0 0 24px;
+            font-weight: 700;
+            font-size: 11px;
+            letter-spacing: 0.4em;
+            color: var(--dark-purple);
+            text-transform: uppercase;
+        }
+        /* Recent section: left half = general, right half = direct QB */
+        .recent-wrap {
+            display: flex;
+            align-items: flex-start;
+            gap: 48px;
+            padding-bottom: 56px;
+        }
+        .recent-main {
+            flex: 1 1 0;
+        }
+        .recent-main-label {
+            font-weight: 700;
+            font-size: 10px;
+            letter-spacing: 0.3em;
+            color: var(--pink);
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            line-height: 1.3;
+        }
+        .recent-main-cols {
+            column-count: 2;
+            column-gap: 32px;
+        }
+        .recent-direct {
+            flex: 1 1 0;
+            border-left: 1px solid var(--dark-purple);
+            padding-left: 48px;
+            align-self: stretch;
+        }
+        .recent-direct-label {
+            font-weight: 700;
+            font-size: 10px;
+            letter-spacing: 0.3em;
+            color: var(--light-purple);
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            line-height: 1.3;
+        }
+        .recent-direct-cols {
+            column-count: 2;
+            column-gap: 32px;
+        }
+        .recent-direct .empty {
+            color: var(--soft-text);
+            font-style: italic;
+            font-size: 12px;
+        }
+        @media (max-width: 900px) {
+            .recent-wrap { gap: 36px; }
+            .recent-direct { padding-left: 36px; }
+            .recent-direct-cols { column-count: 1; }
+        }
+        @media (max-width: 680px) {
+            .recent-wrap { flex-direction: column; gap: 32px; }
+            .recent-direct {
+                border-left: none;
+                border-top: 1px solid var(--dark-purple);
+                padding-left: 0;
+                padding-top: 28px;
+            }
+            .recent-direct-cols { column-count: 2; }
+        }
+        @media (max-width: 440px) {
+            .recent-main-cols { column-count: 1; }
+            .recent-direct-cols { column-count: 1; }
+        }
+        .story-recent {
+            break-inside: avoid;
+            margin-bottom: 24px;
+            min-height: 150px;  /* floor: keeps short cards from creating gaps */
+        }
+        .story-recent h3 {
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1.2;
+            margin: 0 0 6px;
+            text-transform: uppercase;
+        }
+        .story-recent h3 a {
+            color: var(--near-black);
+            text-decoration: none;
+            border-bottom: 1.5px solid var(--near-black);
+        }
+        .story-recent h3 a:hover { color: var(--pink); border-bottom-color: var(--pink); }
+
+        /* ---------- Filed Stories (columns by score) ---------- */
+        .filed-label {
+            text-align: center;
+            margin: 0 0 24px;
+            font-weight: 700;
+            font-size: 11px;
+            letter-spacing: 0.4em;
+            color: var(--light-purple);
+            text-transform: uppercase;
+        }
+        /* Filed section: 4-column flow sorted by relevance score */
+        .columns {
+            column-count: 4;
+            column-gap: 32px;
+        }
+        @media (max-width: 900px) { .columns { column-count: 3; column-gap: 28px; } }
+        @media (max-width: 680px) { .columns { column-count: 2; column-gap: 24px; } }
+        @media (max-width: 440px) { .columns { column-count: 1; } }
+        .article {
+            break-inside: avoid;
+            margin-bottom: 28px;
+        }
+        .article h3 {
+            font-size: 14px;
+            font-weight: 700;
+            margin: 0 0 6px;
+            text-transform: uppercase;
+            line-height: 1.25;
+        }
+        .article:nth-child(3n) h3 { font-size: 16px; }
+        .article:nth-child(5n) h3 { font-size: 13px; }
+        .article h3 a {
+            color: var(--dark-purple);
+            text-decoration: none;
+            border-bottom: 1px solid var(--dark-purple);
+        }
+        .article h3 a:hover { color: var(--pink); border-bottom-color: var(--pink); }
+        .article .developing { color: var(--pink); font-weight: 700; font-style: italic; }
+
+        /* ---------- Meta block (source + badge + date) — shared ---------- */
+        .meta {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--light-purple);
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: inherit;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .story-breaking .meta { justify-content: center; }
+        .meta .source { font-style: italic; }
+        .meta .date   { color: var(--soft-text); }
+
+        /* ---------- LLM "why it matters" blurbs ---------- */
+        .blurb {
+            font-style: italic;
+            color: var(--soft-text);
+            line-height: 1.5;
+            font-size: 12px;
+            margin: 6px 0 8px;
+        }
+        .story-breaking .blurb {
+            font-size: 14px;
+            max-width: 620px;
+            margin: 10px auto 14px;
+            line-height: 1.5;
+        }
+        .story-breaking:first-child .blurb {
+            font-size: 15px;
+        }
+        .story-recent .blurb {
+            font-size: 12px;
+        }
+        .article .blurb {
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        /* ---------- Matched-keyword pills ---------- */
+        .keyword-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 6px;
+            justify-content: inherit;
+        }
+        .story-breaking .keyword-pills { justify-content: center; }
+        .keyword-pill {
+            font-size: 9px;
+            font-style: italic;
+            color: var(--light-purple);
+            padding: 1px 6px 2px;
+            border: 1px solid var(--light-purple);
+            border-radius: 2px;
+            background: transparent;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+            opacity: 0.85;
+        }
+        .keyword-pill-more {
+            font-size: 9px;
+            font-style: italic;
+            color: var(--soft-text);
+            padding: 1px 4px;
+            letter-spacing: 0.04em;
+        }
+
+        /* ---------- Category badges ---------- */
+        .badge {
+            display: inline-block;
+            padding: 2px 7px 1px;
+            border-radius: 2px;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-style: normal;
+        }
+        .badge-paper    { background: var(--dark-purple);  color: var(--cream); }
+        .badge-preprint { background: var(--light-purple); color: var(--cream); }
+        .badge-news     { background: var(--pink);         color: var(--near-black); }
+        .badge-forums   { background: transparent;         color: var(--dark-purple); border: 1px solid var(--dark-purple); }
+        .badge-social   { background: transparent;         color: var(--light-purple); border: 1px solid var(--light-purple); }
+
+        /* ---------- Status / empty ---------- */
+        .status {
+            text-align: center;
+            color: var(--soft-text);
+            font-style: italic;
+            padding: 40px 12px;
+            font-size: 13px;
+        }
+
+        /* ---------- Footer ---------- */
+        footer {
+            margin-top: 72px;
+            text-align: center;
+            font-size: 10px;
+            color: var(--soft-text);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+        footer a {
+            color: var(--dark-purple);
+            text-decoration: none;
+            border-bottom: 1px solid var(--dark-purple);
+        }
+        footer a:hover { color: var(--pink); border-bottom-color: var(--pink); }
+        footer .copyright {
+            font-style: italic;
+            margin-top: 8px;
+            letter-spacing: 0.08em;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="site-nav">
+    <a href="/" class="active">Report</a>
+    <span class="sep">·</span>
+    <a href="/sources">Sources</a>
+    <span class="sep">·</span>
+    <a href="/keywords">Keywords</a>
+</nav>
+
+<div class="page">
+
+    <header class="masthead">
+        <div class="title">QBIO REPORT</div>
+        <div class="subtitle">&mdash; the quantum biology headline aggregator &mdash;</div>
+        <div class="dateline" id="dateline">Loading&hellip;</div>
+    </header>
+
+    <div id="status" class="status">Loading feed&hellip;</div>
+
+    <div id="breaking-container"></div>
+
+</div>
+
+<div class="page-wide">
+    <div id="recent-container"></div>
+    <div id="filed-container"></div>
+</div>
+
+<div class="page-footer">
+    <footer>
+        <div id="footer-timestamp">Feed generated&hellip;</div>
+        <div style="margin-top:6px;"><a href="https://quantumbiologydao.xyz" target="_blank">quantumbiologydao.xyz</a></div>
+        <div class="copyright">&copy; Quantum Biology DAO</div>
+    </footer>
+</div>
+
+<script>
+    // ---------- Date helpers ----------
+    function formatDateline(iso) {
+        if (!iso) return "";
+        const d = new Date(iso);
+        const date = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "2-digit", year: "numeric" });
+        const time = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+        return `${date} · ${time}`.toUpperCase();
+    }
+    function formatTimestamp(iso) {
+        if (!iso) return "";
+        const d = new Date(iso);
+        return d.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+    }
+    function formatArticleDate(iso) {
+        if (!iso) return "";
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return "";
+        const now = new Date();
+        const hours = (now - d) / (1000 * 60 * 60);
+        // If within 48 hours, show relative; otherwise show date
+        if (hours < 1)  return "< 1h ago";
+        if (hours < 24) return `${Math.round(hours)}h ago`;
+        if (hours < 48) return "yesterday";
+        return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    }
+    function stripHtml(s) {
+        const tmp = document.createElement("div");
+        tmp.innerHTML = s || "";
+        return (tmp.textContent || tmp.innerText || "").replace(/"/g, "&quot;");
+    }
+
+    // ---------- Markup helpers ----------
+    function categoryLabel(cat) {
+        const labels = {
+            "paper": "Paper", "preprint": "Preprint",
+            "news": "News",   "forums": "Forum",  "social": "Social"
+        };
+        return labels[cat] || cat;
+    }
+    function metaHtml(article) {
+        const badge = `<span class="badge badge-${article.source_category}">${categoryLabel(article.source_category)}</span>`;
+        const date  = article.date_iso ? `<span class="date">${formatArticleDate(article.date_iso)}</span>` : "";
+        return `
+            <div class="meta">
+                ${badge}
+                <span class="source">${article.source}</span>
+                ${date}
+            </div>
+            ${keywordPillsHtml(article)}`;
+    }
+
+    function keywordPillsHtml(article) {
+        const kws = article.matched_keywords || [];
+        if (!kws.length) return "";
+        const MAX_SHOW = 4;
+        const shown = kws.slice(0, MAX_SHOW);
+        const pills = shown.map(k => `<span class="keyword-pill">${k}</span>`).join("");
+        const more  = kws.length > MAX_SHOW
+            ? `<span class="keyword-pill-more">+${kws.length - MAX_SHOW} more</span>`
+            : "";
+        return `<div class="keyword-pills">${pills}${more}</div>`;
+    }
+
+    // ---------- Main ----------
+    fetch("feed.json")
+        .then(r => {
+            if (!r.ok) throw new Error("NO FEED.JSON — RUN THE SCRAPER FIRST");
+            return r.json();
+        })
+        .then(data => {
+            const articles = data.articles || [];
+            const count = articles.length;
+            document.getElementById("dateline").textContent =
+                `${formatDateline(data.generated_at)} · ${String(count).padStart(2, "0")} DISPATCHES`;
+            document.getElementById("footer-timestamp").textContent =
+                `Feed generated ${formatTimestamp(data.generated_at)}`;
+            document.getElementById("status").remove();
+
+            if (count === 0) {
+                document.getElementById("filed-container").innerHTML =
+                    '<div class="status">NO DISPATCHES ON THE WIRE. RE-RUN SCRAPER.</div>';
+                return;
+            }
+
+            // --- Direct-QB filter (used by both Recent and Filed sections) ---
+            // Substring matches (not whole words) so "quantum biolog"
+            // catches biology, biological, biologist, biologically, etc.
+            const DIRECT_TERMS = [
+                // Direct field names
+                "quantum biolog",              // biology, biological, biologist, biologically
+                "quantum bioscien",            // bioscience, biosciences
+                "quantum bio-",
+                "biological quantum",
+                "biology of quantum",
+                // "Quantum X in/of Y" framings
+                "quantum effects in biolog",
+                "quantum effects in living",
+                "quantum effects in life",
+                "quantum phenomena in biolog",
+                "quantum phenomena in living",
+                "quantum phenomena in life",
+                "quantum mechanics in biolog",
+                "quantum mechanics in living",
+                "quantum mechanics of biolog",
+                "quantum mechanics of life",
+                "quantum processes in biolog",
+                "quantum processes in living",
+                "quantum behavior in biolog",
+                "quantum behavior in living",
+                // Life/living framings
+                "quantum life",
+                "quantum living",
+                "living quantum",
+                // Newer / alternative framings
+                "quantum nature of biolog",
+                "quantum nature of life",
+                "quantum-enabled biolog",
+                "quantum enabled biolog",
+                // Core mechanism — current flagship hypothesis of the field
+                "radical pair",                // also catches "radical pair mechanism"
+            ];
+            const isDirect = (a) => {
+                const text = ((a.title || "") + " " + (a.summary || "")).toLowerCase();
+                return DIRECT_TERMS.some(t => text.includes(t));
+            };
+
+            // Scraper already sorted by date desc. Build content buckets:
+            const breaking     = articles.slice(0, 5);
+            const breakingSet  = new Set(breaking.map(a => a.link));
+
+            // Candidate pools for the Recent section (excluding Breaking)
+            const qbioPool    = articles.filter(a => !breakingSet.has(a.link) && isDirect(a));
+            const generalPool = articles.filter(a => !breakingSet.has(a.link) && !isDirect(a));
+            // Keep both sides the same length for visual parity (cap at 15).
+            const RECENT_CAP = 15;
+            const recentCount = Math.min(qbioPool.length, generalPool.length, RECENT_CAP);
+
+            const recentQbio    = qbioPool.slice(0, recentCount);
+            const recentGeneral = generalPool.slice(0, recentCount);
+            const recentQbioSet    = new Set(recentQbio.map(a => a.link));
+            const recentGeneralSet = new Set(recentGeneral.map(a => a.link));
+
+            const shown = new Set([
+                ...breakingSet,
+                ...recentQbioSet,
+                ...recentGeneralSet,
+            ]);
+
+            // Everything not shown above goes into Filed, sorted by date (newest first).
+            const filed = articles
+                .filter(a => !shown.has(a.link))
+                .slice()
+                .sort((a, b) => (b.date_iso || "").localeCompare(a.date_iso || ""));
+
+            // --- Render helpers ---
+            const blurbHtml = (a) => a.blurb ? `<div class="blurb">${a.blurb}</div>` : "";
+
+            const renderBreaking = (a) => `
+                <div class="story-breaking">
+                    <h2><a href="${a.link}" target="_blank" title="${stripHtml(a.summary)}">${a.title}</a></h2>
+                    ${blurbHtml(a)}
+                    ${metaHtml(a)}
+                </div>`;
+            const renderRecent = (a) => `
+                <div class="story-recent">
+                    <h3><a href="${a.link}" target="_blank" title="${stripHtml(a.summary)}">${a.title}</a></h3>
+                    ${blurbHtml(a)}
+                    ${metaHtml(a)}
+                </div>`;
+            const renderFiled = (a) => {
+                const developing = a.score >= 2 ? '<span class="developing">Developing&hellip;</span> ' : '';
+                return `
+                    <div class="article">
+                        <h3>${developing}<a href="${a.link}" target="_blank" title="${stripHtml(a.summary)}">${a.title}</a></h3>
+                        ${blurbHtml(a)}
+                        ${metaHtml(a)}
+                    </div>`;
+            };
+
+            // --- Breaking section ---
+            document.getElementById("breaking-container").innerHTML = `
+                <div class="breaking-label">Breaking</div>
+                <div class="breaking-stories">${breaking.map(renderBreaking).join("")}</div>
+            `;
+
+            // --- Recent section (split layout) ---
+            if (recentGeneral.length || recentQbio.length) {
+                const generalHtml = recentGeneral.map(renderRecent).join("") ||
+                    '<div class="empty">No general dispatches today.</div>';
+                const qbioHtml = recentQbio.length
+                    ? recentQbio.map(renderRecent).join("")
+                    : '<div class="empty">No direct quantum biology dispatches today.</div>';
+                document.getElementById("recent-container").innerHTML = `
+                    <div class="recent-label">Recent Dispatches</div>
+                    <div class="recent-wrap">
+                        <div class="recent-main">
+                            <div class="recent-main-label">Recent &middot; Quantum Biology</div>
+                            <div class="recent-main-cols">${qbioHtml}</div>
+                        </div>
+                        <div class="recent-direct">
+                            <div class="recent-direct-label">Recent &middot; Adjacent Fields</div>
+                            <div class="recent-direct-cols">${generalHtml}</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // --- Filed section (single 4-column flow, by score) ---
+            if (filed.length) {
+                document.getElementById("filed-container").innerHTML = `
+                    <div class="filed-label">Filed &middot; By Date</div>
+                    <div class="columns">${filed.map(renderFiled).join("")}</div>
+                `;
+            }
+        })
+        .catch(err => {
+            document.getElementById("status").textContent = err.message;
+        });
+</script>
+
+</body>
+</html>

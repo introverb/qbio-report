@@ -1,0 +1,34 @@
+# Secrets — never commit these
+.env
+.env.local
+*.key
+
+# Local-only log of pending source requests (can contain notes not meant for public)
+source_requests_log.md
+
+# Generated scraper output — regenerated on every scrape
+feed.json
+sources.json
+QBIO-Report-Sources.xlsx
+scraper/blurbs_cache.json
+blurbs_cache.json
+
+# Root-level keywords.txt is the "live" copy (seeded from scraper/keywords.txt)
+# — user edits go here, don't track it in Git.
+/keywords.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp

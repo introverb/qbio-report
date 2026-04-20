@@ -1,0 +1,83 @@
+# ==========================================
+# QBIO REPORT — Keyword List
+# ==========================================
+# One keyword or phrase per line.
+# Lines starting with # are comments (ignored by scraper).
+# Edit freely — add, remove, or reorder terms.
+#
+# HOW THESE KEYWORDS ARE USED:
+#   (1) SCORING: every article's text is checked against ALL keywords
+#       below; an article's score = number of unique keyword matches.
+#   (2) SEARCHING: PubMed, arXiv, Europe PMC, Hacker News, and Bluesky
+#       all search for these keywords server-side (chunked to avoid URL
+#       length limits). Adding a keyword here means more relevant hits.
+#
+# NOT AFFECTED BY THIS FILE:
+#   - Reddit subreddits (configured in scraper.py REDDIT_SUBREDDITS)
+#   - Stack Exchange queries (curated in scraper.py STACK_EXCHANGE,
+#     kept small due to the 300 req/day quota)
+#   - RSS feed list (configured in scraper.py RSS_FEEDS)
+# ==========================================
+
+# --- Core Quantum Biology ---
+quantum biology
+quantum coherence
+quantum tunneling
+quantum entanglement in biology
+quantum effects in living systems
+biological quantum
+
+# --- Photosynthesis & Energy Transfer ---
+photosynthetic efficiency
+light harvesting complex
+FMO complex
+Fenna-Matthews-Olson
+exciton transport
+exciton transfer
+photosynthetic reaction center
+energy transfer coherence
+
+# --- Enzyme Catalysis ---
+enzyme tunneling
+proton tunneling
+hydrogen tunneling
+kinetic isotope effect
+quantum catalysis
+
+# --- Magnetoreception ---
+magnetoreception
+cryptochrome
+radical pair mechanism
+radical pair
+avian navigation magnetic
+geomagnetic sensing
+
+# --- Olfaction ---
+vibration theory of olfaction
+quantum smell
+phonon-assisted tunneling
+olfactory receptor quantum
+
+# --- DNA & Mutations ---
+quantum mutations
+proton transfer DNA
+tautomeric shift
+quantum effects mutation
+quantum decoherence DNA
+
+# --- Consciousness (Adjacent) ---
+quantum consciousness
+Penrose-Hameroff
+microtubule quantum
+orchestrated objective reduction
+
+# --- General Adjacent Topics ---
+biophysics
+quantum chemistry
+molecular dynamics simulation
+decoherence
+quantum thermodynamics
+quantum information biology
+biomolecular quantum
+coherence biological
+
