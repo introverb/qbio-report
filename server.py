@@ -23,7 +23,7 @@ import threading
 from datetime import datetime
 from functools import wraps
 
-from flask import Flask, Response, jsonify, request, send_from_directory, abort
+from flask import Flask, Response, jsonify, redirect, request, send_from_directory, session, abort
 from openpyxl import load_workbook
 
 # --- Paths ------------------------------------------------------------------
@@ -53,26 +53,22 @@ def _seed_volume():
 _seed_volume()
 
 # ============================================================================
-# Auth
+# Auth — cookie-based session with a password-only login form.
+# Admin pages redirect unauthed users to /login; admin APIs return 401 JSON.
 # ============================================================================
-# Simple HTTP Basic Auth protects admin pages + write endpoints.
-# Username can be anything; only the password is checked.
-# Override via ADMIN_PASSWORD env var on Railway.
 
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "coherence")
+# Note: app.secret_key is set a few lines below, right after app is created.
 
 
 def require_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        auth = request.authorization
-        if not auth or auth.password != ADMIN_PASSWORD:
-            return Response(
-                "Login required. Contact Olli for the password.",
-                401,
-                {"WWW-Authenticate": 'Basic realm="QBIO Report Admin"'},
-            )
-        return f(*args, **kwargs)
+        if session.get("authed"):
+            return f(*args, **kwargs)
+        if request.path.startswith("/api/"):
+            return jsonify({"error": "Login required"}), 401
+        return redirect(f"/login?next={request.path}")
     return decorated
 
 LOG_HEADER = (
@@ -85,6 +81,9 @@ LOG_SENTINEL = "<!-- NEW_ENTRIES_BELOW -->\n\n"
 PORT = int(os.environ.get("PORT", 8000))
 
 app = Flask(__name__, static_folder=HERE, static_url_path="")
+# Sign session cookies with a secret derived from the password so rotating
+# the password invalidates existing sessions. Override via FLASK_SECRET_KEY.
+app.secret_key = os.environ.get("FLASK_SECRET_KEY") or (ADMIN_PASSWORD + "-qbio-session-salt")
 
 
 # ============================================================================
@@ -94,6 +93,38 @@ app = Flask(__name__, static_folder=HERE, static_url_path="")
 @app.route("/")
 def page_report():
     return send_from_directory(HERE, "index.html")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def page_login():
+    """Password-only admin login form. Sets a session cookie on success."""
+    nxt = request.args.get("next") or request.form.get("next") or "/"
+    # Normalize to a same-site path to avoid open-redirect abuse
+    if not (isinstance(nxt, str) and nxt.startswith("/")):
+        nxt = "/"
+
+    error = ""
+    if request.method == "POST":
+        pw = (request.form.get("password") or "").strip()
+        if pw == ADMIN_PASSWORD:
+            session["authed"] = True
+            session.permanent = True
+            return redirect(nxt)
+        error = "Wrong password."
+
+    # Render the login page with the current next param + any error
+    with open(os.path.join(HERE, "login.html"), "r", encoding="utf-8") as f:
+        html = f.read()
+    next_query = f'?next={nxt}' if nxt and nxt != "/" else ""
+    html = html.replace("{{NEXT_QUERY}}", next_query)
+    html = html.replace("{{ERROR_MESSAGE}}", error)
+    return html
+
+
+@app.route("/logout")
+def page_logout():
+    session.pop("authed", None)
+    return redirect("/")
 
 
 @app.route("/chatter")

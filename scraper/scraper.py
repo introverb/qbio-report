@@ -613,10 +613,11 @@ def fetch_bluesky(keywords):
 BLURB_MODEL       = "claude-haiku-4-5"
 BLURB_MAX_TOKENS  = 150
 BLURB_CACHE_FILE  = os.path.join(DATA_DIR, "blurbs_cache.json")
-# Coverage targets — generous enough that Breaking, Recent · Q.B., and
-# Recent · Adjacent Fields all get blurbs, with buffer.
-BLURB_TOP_OVERALL     = 20   # top N most recent overall (covers Breaking)
-BLURB_TOP_NONDIRECT   = 20   # top N most recent non-direct (covers Recent Adjacent)
+# Coverage targets — generous enough that Breaking (1 per category), Recent,
+# and any direct-QB article all get blurbs.
+BLURB_TOP_OVERALL      = 20   # top N most recent overall
+BLURB_TOP_NONDIRECT    = 20   # top N most recent non-direct (covers Recent Adjacent)
+BLURB_TOP_PER_CATEGORY = 10   # top N per category (guarantees Breaking coverage)
 
 # Direct-QB phrase matches (kept in sync with the list in index.html)
 DIRECT_QB_TERMS = [
@@ -727,6 +728,15 @@ def enrich_with_blurbs(articles):
     nondirect_recent = [a for a in articles if a.get("link") and not is_direct_qb(a)]
     for a in nondirect_recent[:BLURB_TOP_NONDIRECT]:
         to_blurb.add(a["link"])
+    # Bucket 4: top-N per category (guarantees Breaking items always have blurbs)
+    per_cat = {}
+    for a in articles:
+        cat = a.get("source_category")
+        if cat and a.get("link"):
+            per_cat.setdefault(cat, []).append(a)
+    for cat, items in per_cat.items():
+        for a in items[:BLURB_TOP_PER_CATEGORY]:
+            to_blurb.add(a["link"])
 
     cached_hits = 0
     generated = 0
