@@ -560,6 +560,14 @@
             text-decoration: none;
         }
         .chatter-item .headline a:hover { color: var(--pink); }
+        .chatter-item .headline mark.kw-hit {
+            background: rgba(213, 125, 178, 0.3);
+            color: inherit;
+            padding: 0 2px;
+            border-radius: 2px;
+            font-weight: 700;
+            font-style: normal;
+        }
         .chatter-item .attribution {
             font-size: 11px;
             color: var(--light-purple);
@@ -693,6 +701,72 @@
         const tmp = document.createElement("div");
         tmp.innerHTML = s || "";
         return (tmp.textContent || tmp.innerText || "").replace(/"/g, "&quot;");
+    }
+
+    function escapeHtml(s) {
+        return (s || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+    }
+
+    // See /chatter for the full explanation — extracts the sentence containing
+    // the first-matched keyword, with the keyword highlighted.
+    function extractSnippet(article) {
+        const title = article.title || "", summary = article.summary || "";
+        let text;
+        if (summary && title && summary.toLowerCase()
+                .startsWith(title.slice(0, Math.min(40, title.length)).toLowerCase())) {
+            text = summary;
+        } else if (summary) {
+            text = (title ? title + " \u2014 " : "") + summary;
+        } else {
+            text = title;
+        }
+        text = (text || "").trim();
+        const terms = article.matched_keywords || [];
+        if (!text) return escapeHtml(title);
+        const lowered = text.toLowerCase();
+        let firstPos = -1, matchedTerm = "";
+        for (const term of terms) {
+            if (!term) continue;
+            const p = lowered.indexOf(term.toLowerCase());
+            if (p !== -1 && (firstPos === -1 || p < firstPos)) { firstPos = p; matchedTerm = term; }
+        }
+        if (firstPos === -1) {
+            return escapeHtml(text.length > 140 ? text.slice(0, 140).trim() + "\u2026" : text);
+        }
+        let sentStart = 0;
+        for (let i = firstPos - 1; i >= 0; i--) {
+            if (/[.!?\n]/.test(text[i])) { sentStart = i + 1; break; }
+        }
+        let sentEnd = text.length;
+        for (let i = firstPos + matchedTerm.length; i < text.length; i++) {
+            if (/[.!?\n]/.test(text[i])) { sentEnd = i + 1; break; }
+        }
+        let snippet = text.slice(sentStart, sentEnd).trim();
+        let prefix = sentStart > 0, suffix = sentEnd < text.length;
+        if (snippet.length < 30 || snippet.length > 240) {
+            const before = 70, after = 110;
+            const s = Math.max(0, firstPos - before);
+            const e = Math.min(text.length, firstPos + matchedTerm.length + after);
+            snippet = text.slice(s, e).trim();
+            prefix = s > 0; suffix = e < text.length;
+        }
+        const lowSnippet = snippet.toLowerCase();
+        const pos = lowSnippet.indexOf(matchedTerm.toLowerCase());
+        let html;
+        if (pos !== -1) {
+            html = escapeHtml(snippet.slice(0, pos))
+                 + '<mark class="kw-hit">' + escapeHtml(snippet.slice(pos, pos + matchedTerm.length)) + '</mark>'
+                 + escapeHtml(snippet.slice(pos + matchedTerm.length));
+        } else {
+            html = escapeHtml(snippet);
+        }
+        if (prefix) html = "\u2026 " + html;
+        if (suffix) html = html + " \u2026";
+        return html;
     }
 
     // ---------- Markup helpers ----------
@@ -980,10 +1054,11 @@
                 const when = a.date_iso ? formatArticleDate(a.date_iso) : "";
                 const bits = [a.source];
                 if (when) bits.push(when);
+                const snippet = extractSnippet(a);
                 return `
                     <div class="chatter-item">
                         <div class="headline">
-                            <a href="${a.link}" target="_blank" title="${stripHtml(a.summary)}">${a.title}</a>
+                            <a href="${a.link}" target="_blank" title="${stripHtml(a.title)}">${snippet}</a>
                         </div>
                         <div class="attribution">${bits.join(" · ")}</div>
                     </div>`;

@@ -164,6 +164,14 @@
             text-decoration: none;
         }
         .chatter-item .headline a:hover { color: var(--pink); }
+        .chatter-item .headline mark.kw-hit {
+            background: rgba(213, 125, 178, 0.3);
+            color: inherit;
+            padding: 0 2px;
+            border-radius: 2px;
+            font-weight: 700;
+            font-style: normal;
+        }
         .chatter-item .attribution {
             font-size: 11px;
             color: var(--light-purple);
@@ -310,6 +318,93 @@
         return (tmp.textContent || tmp.innerText || "").replace(/"/g, "&quot;");
     }
 
+    function escapeHtml(s) {
+        return (s || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+    }
+
+    // Given an article, return an HTML-safe snippet that centers on the
+    // first-matched keyword — preferring the FULL sentence containing it,
+    // falling back to a char-window if the sentence is too short/long.
+    // The matched keyword is wrapped in <mark class="kw-hit"> for highlight.
+    function extractSnippet(article) {
+        const title   = article.title || "";
+        const summary = article.summary || "";
+        // For Bluesky-style posts, title is a prefix of summary — prefer summary.
+        // For HN/Reddit titles + no body, summary is "" — use title.
+        let text;
+        if (summary && title && summary.toLowerCase()
+                .startsWith(title.slice(0, Math.min(40, title.length)).toLowerCase())) {
+            text = summary;
+        } else if (summary) {
+            text = (title ? title + " \u2014 " : "") + summary;
+        } else {
+            text = title;
+        }
+        text = (text || "").trim();
+        const terms = article.matched_keywords || [];
+        if (!text) return escapeHtml(title);
+
+        // Find earliest matched keyword in text
+        const lowered = text.toLowerCase();
+        let firstPos = -1, matchedTerm = "";
+        for (const term of terms) {
+            if (!term) continue;
+            const pos = lowered.indexOf(term.toLowerCase());
+            if (pos !== -1 && (firstPos === -1 || pos < firstPos)) {
+                firstPos = pos;
+                matchedTerm = term;
+            }
+        }
+        // No keyword in text — just show the title / text as-is
+        if (firstPos === -1) {
+            return escapeHtml(text.length > 140 ? text.slice(0, 140).trim() + "\u2026" : text);
+        }
+
+        // Walk back to start of sentence
+        let sentStart = 0;
+        for (let i = firstPos - 1; i >= 0; i--) {
+            if (/[.!?\n]/.test(text[i])) { sentStart = i + 1; break; }
+        }
+        // Walk forward to end of sentence
+        let sentEnd = text.length;
+        for (let i = firstPos + matchedTerm.length; i < text.length; i++) {
+            if (/[.!?\n]/.test(text[i])) { sentEnd = i + 1; break; }
+        }
+
+        let snippet = text.slice(sentStart, sentEnd).trim();
+        let prefix = sentStart > 0;
+        let suffix = sentEnd < text.length;
+
+        // Fall back to a char window if sentence is too short or too long
+        if (snippet.length < 30 || snippet.length > 240) {
+            const before = 70, after = 110;
+            const s = Math.max(0, firstPos - before);
+            const e = Math.min(text.length, firstPos + matchedTerm.length + after);
+            snippet = text.slice(s, e).trim();
+            prefix = s > 0;
+            suffix = e < text.length;
+        }
+
+        // Highlight the matched keyword inside the snippet
+        const lowSnippet = snippet.toLowerCase();
+        const pos = lowSnippet.indexOf(matchedTerm.toLowerCase());
+        let html;
+        if (pos !== -1) {
+            html = escapeHtml(snippet.slice(0, pos))
+                 + '<mark class="kw-hit">' + escapeHtml(snippet.slice(pos, pos + matchedTerm.length)) + '</mark>'
+                 + escapeHtml(snippet.slice(pos + matchedTerm.length));
+        } else {
+            html = escapeHtml(snippet);
+        }
+        if (prefix) html = "\u2026 " + html;
+        if (suffix) html = html + " \u2026";
+        return html;
+    }
+
     let allItems = [];
 
     function renderItems(items) {
@@ -324,11 +419,12 @@
             if (when) bits.push(when);
             const badgeClass = a.source_category === "social" ? "social" : "";
             const badgeLabel = a.source_category === "social" ? "Social" : "Forum";
+            const snippet = extractSnippet(a);
             return `
                 <div class="chatter-item">
                     <div class="headline">
                         <span class="badge-mini ${badgeClass}">${badgeLabel}</span>
-                        <a href="${a.link}" target="_blank" title="${stripHtml(a.summary)}">${a.title}</a>
+                        <a href="${a.link}" target="_blank" title="${stripHtml(a.title)}">${snippet}</a>
                     </div>
                     <div class="attribution">${bits.join(" · ")}</div>
                 </div>`;
