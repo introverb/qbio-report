@@ -138,16 +138,21 @@ def page_suggest():
     return send_from_directory(HERE, "suggest.html")
 
 
-@app.route("/sources")
+@app.route("/admin")
 @require_auth
-def page_sources():
-    return send_from_directory(HERE, "sources.html")
+def page_admin():
+    return send_from_directory(HERE, "admin.html")
+
+
+# Old admin URLs redirect to the consolidated /admin page (bookmarks still work)
+@app.route("/sources")
+def page_sources_redirect():
+    return redirect("/admin", code=302)
 
 
 @app.route("/keywords")
-@require_auth
-def page_keywords():
-    return send_from_directory(HERE, "keywords.html")
+def page_keywords_redirect():
+    return redirect("/admin", code=302)
 
 
 # These are data files on the volume (not static assets) — serve from DATA_DIR
@@ -430,7 +435,12 @@ def api_suggest_source():
 
 @app.route("/api/suggest-keyword", methods=["POST"])
 def api_suggest_keyword():
-    """Public: DAO member suggests a new keyword. Goes into Keyword Suggestions tab."""
+    """Public: DAO member suggests a new keyword OR requests a weight change
+    on an existing one. Goes into Keyword Suggestions tab.
+
+    If `kind` is "weight-change", the `why_notes` is prefixed with a tag so the
+    admin UI can display it distinctly.
+    """
     data = request.get_json(force=True, silent=True) or {}
     phrase = (data.get("phrase") or "").strip()
     if not phrase:
@@ -451,10 +461,130 @@ def api_suggest_keyword():
     submitted_by = (data.get("submitted_by") or "").strip() or "anonymous"
     submitted_at = datetime.now().isoformat(timespec="seconds")
 
+    # Tag weight-change requests so the admin UI can render them as "change"
+    # rather than "new". Keeps the same tab/column shape.
+    if (data.get("kind") or "").lower() == "weight-change":
+        tag = "[weight-change]"
+        why_notes = f"{tag} {why_notes}".strip()
+
     wb = load_workbook(XLSX_FILE)
     _ensure_kw_suggest_tab(wb)
     ws = wb[KW_SUGGEST_TAB]
     ws.append([phrase, weight, why_notes, submitted_by, submitted_at, "Pending"])
+    wb.save(XLSX_FILE)
+    return jsonify({"ok": True})
+
+
+# --- Admin: review & action the keyword-suggestions queue ---
+
+def _is_example_kw_suggest_row(row):
+    return row and isinstance(row[0], str) and row[0].startswith("e.g.")
+
+
+def _read_kw_suggestions():
+    if not os.path.exists(XLSX_FILE):
+        return []
+    wb = load_workbook(XLSX_FILE)
+    if KW_SUGGEST_TAB not in wb.sheetnames:
+        return []
+    ws = wb[KW_SUGGEST_TAB]
+    rows = []
+    for i, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+        if not any(c not in (None, "") for c in row):
+            continue
+        if _is_example_kw_suggest_row(row):
+            continue
+        phrase = row[0] or ""
+        weight = row[1] or 1
+        notes  = row[2] or ""
+        is_weight_change = str(notes).lstrip().lower().startswith("[weight-change]")
+        # Strip the tag from display
+        if is_weight_change:
+            notes = _re.sub(r"^\s*\[weight-change\]\s*", "", str(notes), flags=_re.IGNORECASE)
+        rows.append({
+            "row_number":       i,
+            "phrase":           phrase,
+            "suggested_weight": int(weight) if str(weight).isdigit() else weight,
+            "why_notes":        notes,
+            "submitted_by":     row[3] or "",
+            "submitted_at":     row[4] or "",
+            "status":           row[5] or "Pending",
+            "is_weight_change": is_weight_change,
+        })
+    return rows
+
+
+@app.route("/api/keyword-suggestions", methods=["GET"])
+@require_auth
+def api_list_kw_suggestions():
+    return jsonify({"suggestions": _read_kw_suggestions()})
+
+
+@app.route("/api/keyword-suggestions/<int:row_number>/approve", methods=["POST"])
+@require_auth
+def api_approve_kw_suggestion(row_number):
+    """Apply a pending keyword suggestion to keywords.txt, then remove the row."""
+    if row_number < 2:
+        return jsonify({"error": "Cannot approve header row"}), 400
+    if not os.path.exists(XLSX_FILE):
+        return jsonify({"error": "Workbook missing"}), 404
+
+    wb = load_workbook(XLSX_FILE)
+    if KW_SUGGEST_TAB not in wb.sheetnames:
+        return jsonify({"error": "Suggestions tab missing"}), 404
+    ws = wb[KW_SUGGEST_TAB]
+    if row_number > ws.max_row:
+        return jsonify({"error": "Row out of range"}), 404
+
+    phrase = (ws.cell(row=row_number, column=1).value or "").strip()
+    weight_raw = ws.cell(row=row_number, column=2).value
+    try:
+        weight = max(1, min(10, int(weight_raw)))
+    except (TypeError, ValueError):
+        weight = 1
+
+    if not phrase:
+        return jsonify({"error": "Empty phrase in this row"}), 400
+
+    # Apply to keywords.txt by reusing the add-keyword replacement logic.
+    new_kw = phrase if weight == 1 else f"{phrase} [{weight}]"
+    new_phrase = _extract_phrase(new_kw)
+    lines, _ = _read_keywords_file()
+    kept = []
+    for ln in lines:
+        stripped = ln.strip()
+        if not stripped or stripped.startswith("#"):
+            kept.append(ln)
+            continue
+        if _extract_phrase(stripped) == new_phrase:
+            continue  # drop — will be replaced
+        kept.append(ln)
+    if kept and kept[-1].strip():
+        kept.append("")
+    kept.append(new_kw)
+    _write_keywords_lines(kept)
+
+    # Remove the approved row from the suggestions tab
+    ws.delete_rows(row_number, 1)
+    wb.save(XLSX_FILE)
+    return jsonify({"ok": True, "applied": new_kw})
+
+
+@app.route("/api/keyword-suggestions/<int:row_number>", methods=["DELETE"])
+@require_auth
+def api_decline_kw_suggestion(row_number):
+    """Remove a pending keyword suggestion without applying it."""
+    if row_number < 2:
+        return jsonify({"error": "Cannot delete header row"}), 400
+    if not os.path.exists(XLSX_FILE):
+        return jsonify({"error": "Workbook missing"}), 404
+    wb = load_workbook(XLSX_FILE)
+    if KW_SUGGEST_TAB not in wb.sheetnames:
+        return jsonify({"error": "Suggestions tab missing"}), 404
+    ws = wb[KW_SUGGEST_TAB]
+    if row_number > ws.max_row:
+        return jsonify({"error": "Row out of range"}), 404
+    ws.delete_rows(row_number, 1)
     wb.save(XLSX_FILE)
     return jsonify({"ok": True})
 

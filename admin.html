@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUBIE News — Admin</title>
+    <link rel="stylesheet" href="assets/shared.css">
+    <style>
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* Section headers */
+        .section {
+            margin-top: 56px;
+            padding-top: 36px;
+            border-top: 2px solid var(--dark-purple);
+        }
+        .section-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .section-header h2 {
+            font-family: "Chap", "Apercu Pro", sans-serif;
+            font-weight: 400;
+            font-size: 28px;
+            letter-spacing: 0.06em;
+            color: var(--dark-purple);
+            text-transform: uppercase;
+            margin: 0 0 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+        .section-header h2::before,
+        .section-header h2::after {
+            content: "";
+            display: inline-block;
+            width: 20px;
+            height: 23px;
+            background: url("assets/logo-icon.svg") no-repeat center / contain;
+        }
+        .section-header .section-subtitle {
+            font-style: italic;
+            font-size: 12px;
+            color: var(--soft-text);
+            letter-spacing: 0.03em;
+        }
+
+        .stat-bar {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            font-size: 12px;
+            color: var(--soft-text);
+            margin-bottom: 24px;
+            letter-spacing: 0.05em;
+        }
+        .stat-bar b {
+            color: var(--dark-purple);
+            font-size: 20px;
+            display: block;
+            letter-spacing: 0;
+        }
+
+        .empty-state-small {
+            padding: 20px;
+            text-align: center;
+            color: var(--soft-text);
+            font-style: italic;
+            background: var(--cream-dim);
+            border-radius: 3px;
+        }
+
+        /* Pending request card styling */
+        .request-card {
+            background: var(--cream-dim);
+            border-left: 3px solid var(--light-purple);
+            padding: 14px 18px;
+            margin-bottom: 12px;
+            border-radius: 3px;
+        }
+        .request-card.weight-change { border-left-color: var(--pink); }
+        .request-card .rc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 6px;
+        }
+        .request-card .rc-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--dark-purple);
+        }
+        .request-card .rc-kind {
+            font-size: 10px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--pink);
+            font-weight: 700;
+        }
+        .request-card .rc-meta {
+            font-size: 11px;
+            color: var(--soft-text);
+            font-style: italic;
+            margin-bottom: 6px;
+        }
+        .request-card .rc-notes {
+            font-size: 13px;
+            color: var(--near-black);
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+        .request-card .rc-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        .request-card .rc-actions button { padding: 4px 12px; font-size: 11px; }
+
+        /* Quick add (keyword) form */
+        .quick-add {
+            background: rgba(45, 27, 48, 0.04);
+            padding: 16px 18px;
+            border-radius: 3px;
+            margin-top: 20px;
+        }
+        .quick-add-header {
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--light-purple);
+            margin-bottom: 10px;
+        }
+
+        /* Source fixes list */
+        .fix-row {
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            background: rgba(197, 85, 85, 0.08);
+            border-left: 3px solid #c55;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+        .fix-row .fix-name { font-weight: 700; color: var(--dark-purple); }
+        .fix-row .fix-target { font-family: monospace; font-size: 11px; color: var(--soft-text); }
+        .fix-row .fix-error {
+            color: #c55;
+            font-family: monospace;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        /* Tabs (reuse) */
+        .tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid var(--dark-purple);
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .tab {
+            padding: 10px 18px;
+            font-size: 11px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--soft-text);
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-bottom: none;
+            background: transparent;
+            border-radius: 2px 2px 0 0;
+        }
+        .tab:hover { color: var(--dark-purple); }
+        .tab.active {
+            color: var(--dark-purple);
+            background: var(--cream-dim);
+            border-color: rgba(45, 27, 48, 0.3);
+            border-bottom: 1px solid var(--cream-dim);
+            margin-bottom: -1px;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="site-nav">
+    <div class="nav-public">
+        <a href="/">Report</a>
+        <span class="sep">·</span>
+        <a href="/chatter">Chatter</a>
+        <span class="sep">·</span>
+        <a href="/suggest">Suggest</a>
+    </div>
+    <div class="nav-admin">
+        <a href="/admin" class="active">Admin</a>
+    </div>
+</nav>
+
+<main class="admin-page">
+    <h1>Admin</h1>
+    <div class="subtitle" id="admin-subtitle">
+        &mdash; source overview, request queues, and things that need fixing &mdash;
+    </div>
+
+    <div id="flash-status"></div>
+
+    <!-- ====== Section 1: Source Overview (tabs) ====== -->
+    <section class="section" style="margin-top:0; padding-top:0; border-top:none;">
+        <div class="section-header">
+            <h2>Source Overview</h2>
+            <div class="section-subtitle">every source configured, live stats from the latest scrape</div>
+        </div>
+        <div class="stat-bar" id="summary-bar"></div>
+        <div class="tabs" id="tabs"></div>
+        <div id="panels"></div>
+    </section>
+
+    <!-- ====== Section 2: Source Requests ====== -->
+    <section class="section">
+        <div class="section-header">
+            <h2>Source Requests</h2>
+            <div class="section-subtitle">pending new-source requests from you + DAO members via <a href="/suggest">/suggest</a></div>
+        </div>
+        <div id="source-requests-list"></div>
+    </section>
+
+    <!-- ====== Section 3: Keyword Changes ====== -->
+    <section class="section">
+        <div class="section-header">
+            <h2>Keyword Changes</h2>
+            <div class="section-subtitle">new keyword and weight-change requests. Apply to save to keywords.txt; Decline to dismiss.</div>
+        </div>
+        <div id="keyword-suggestions-list"></div>
+
+        <!-- Quick add (admin fast-path) -->
+        <div class="quick-add">
+            <div class="quick-add-header">Quick add a keyword directly (bypass queue)</div>
+            <div class="form-row">
+                <input type="text" id="quick-kw" placeholder="e.g. radical pair mechanism" style="flex: 1 1 250px;">
+                <input type="number" id="quick-weight" value="1" min="1" max="10" style="width:80px; text-align:center;">
+                <button id="quick-add-btn">Add keyword</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ====== Section 4: Source Fixes ====== -->
+    <section class="section">
+        <div class="section-header">
+            <h2>Source Fixes</h2>
+            <div class="section-subtitle">sources currently in ERROR state &mdash; each needs dev attention</div>
+        </div>
+        <div id="source-fixes-list"></div>
+    </section>
+</main>
+
+<script>
+    const TIER_KEYS = [
+        { key: "Tier 1",  label: "RSS Feeds" },
+        { key: "Tier 2",  label: "Search APIs" },
+        { key: "Tier 3a", label: "Forums" },
+        { key: "Tier 3b", label: "Social" },
+    ];
+    const TAB_ORDER = [
+        { id: "summary",  label: "Summary" },
+        { id: "tier-1",   label: "Tier 1 — RSS" },
+        { id: "tier-2",   label: "Tier 2 — APIs" },
+        { id: "tier-3a",  label: "Tier 3a — Forums" },
+        { id: "tier-3b",  label: "Tier 3b — Social" },
+    ];
+
+    const statusEl = document.getElementById("flash-status");
+    function showFlash(msg, isError) {
+        statusEl.innerHTML = `<div class="flash ${isError ? "error" : ""}">${msg}</div>`;
+        setTimeout(() => { statusEl.innerHTML = ""; }, 4000);
+    }
+
+    // =========================================================
+    // Section 1: Source Overview (tabs)
+    // =========================================================
+    function renderTabs() {
+        const tabsEl = document.getElementById("tabs");
+        tabsEl.innerHTML = TAB_ORDER.map(t =>
+            `<div class="tab" data-tab="${t.id}">${t.label}</div>`).join("");
+        tabsEl.querySelectorAll(".tab").forEach(t => {
+            t.addEventListener("click", () => activateTab(t.dataset.tab));
+        });
+    }
+    function activateTab(id) {
+        document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === id));
+        document.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.id === `panel-${id}`));
+        history.replaceState(null, "", `#${id}`);
+    }
+    function rowClass(status) {
+        if (status === "ERROR") return "status-error";
+        if ((status || "").startsWith("Working (no hits)") || status === "No results returned") return "status-nohits";
+        if ((status || "").startsWith("Working")) return "status-working";
+        return "";
+    }
+    function renderSummary(data) {
+        const rows = (data.summary || []).map(s => `
+            <tr>
+                <td><b>${s.tier}</b></td>
+                <td>${s.sources_configured}</td>
+                <td>${s.articles_contributed}</td>
+                <td>${s.errored > 0 ? `<span style="color:#c55">${s.errored}</span>` : s.errored}</td>
+            </tr>`).join("");
+        const when = new Date(data.generated_at).toLocaleString("en-US",
+            { month:"short", day:"numeric", year:"numeric", hour:"numeric", minute:"2-digit" });
+        return `
+            <table class="data">
+                <thead><tr><th>Tier</th><th>Sources</th><th>Articles Contributed</th><th>Errored</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+            <div class="subtitle">Last scraped: ${when} &middot; ${data.unique_articles_after_dedup} unique articles after dedup</div>
+        `;
+    }
+    function renderTier(rows) {
+        if (!rows || !rows.length) return '<div class="empty-state-small">No sources in this tier.</div>';
+        const body = rows.map(r => `
+            <tr class="${rowClass(r.status)}">
+                <td><b>${r.source_name}</b></td>
+                <td class="mono">${r.target}</td>
+                <td><span class="badge badge-${r.category}">${r.category}</span></td>
+                <td style="text-align:right;">${r.matched}</td>
+                <td style="text-align:right;">${r.total}</td>
+                <td>${r.status}</td>
+                <td style="color:#c55;">${r.error || ""}</td>
+                <td style="color: var(--soft-text); font-style: italic;">${r.notes || ""}</td>
+            </tr>`).join("");
+        return `
+            <table class="data">
+                <thead><tr>
+                    <th>Source</th><th>Target / URL</th><th>Category</th>
+                    <th style="text-align:right;">Matched</th>
+                    <th style="text-align:right;">Total</th>
+                    <th>Status</th><th>Error</th><th>Notes</th>
+                </tr></thead>
+                <tbody>${body}</tbody>
+            </table>`;
+    }
+
+    // =========================================================
+    // Section 2: Source Requests queue
+    // =========================================================
+    async function loadSourceRequests() {
+        const resp = await fetch("/api/source-requests");
+        const data = await resp.json().catch(() => ({}));
+        const requests = data.requests || [];
+        const el = document.getElementById("source-requests-list");
+        if (!requests.length) {
+            el.innerHTML = '<div class="empty-state-small">No pending source requests.</div>';
+            return;
+        }
+        el.innerHTML = requests.map(r => `
+            <div class="request-card">
+                <div class="rc-header">
+                    <span class="rc-title">${r.source_name}</span>
+                    <span class="rc-kind">${r.type || "—"} &middot; ${r.priority || "Medium"}</span>
+                </div>
+                <div class="rc-meta">
+                    ${r.url ? `<b>URL:</b> ${r.url} &middot; ` : ""}
+                    <b>API key needed:</b> ${r.api_key_needed || "Unknown"} &middot;
+                    <b>Status:</b> ${r.status || "Requested"}
+                </div>
+                ${r.why_notes ? `<div class="rc-notes">${r.why_notes}</div>` : ""}
+                <div class="rc-actions">
+                    <button class="danger" data-row="${r.row_number}">Dismiss</button>
+                </div>
+            </div>`).join("");
+        el.querySelectorAll("button[data-row]").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                if (!confirm("Dismiss this source request?")) return;
+                const r = await fetch(`/api/source-requests/${btn.dataset.row}`, { method: "DELETE" });
+                if (r.ok) { showFlash("Dismissed."); loadSourceRequests(); }
+                else      { showFlash("Dismiss failed.", true); }
+            });
+        });
+    }
+
+    // =========================================================
+    // Section 3: Keyword Changes queue
+    // =========================================================
+    async function loadKeywordSuggestions() {
+        const resp = await fetch("/api/keyword-suggestions");
+        const data = await resp.json().catch(() => ({}));
+        const suggestions = data.suggestions || [];
+        const el = document.getElementById("keyword-suggestions-list");
+        if (!suggestions.length) {
+            el.innerHTML = '<div class="empty-state-small">No pending keyword changes.</div>';
+            return;
+        }
+        el.innerHTML = suggestions.map(s => `
+            <div class="request-card ${s.is_weight_change ? "weight-change" : ""}">
+                <div class="rc-header">
+                    <span class="rc-title">${s.phrase} <span style="color: var(--pink);">&times;${s.suggested_weight}</span></span>
+                    <span class="rc-kind">${s.is_weight_change ? "Weight change" : "New keyword"}</span>
+                </div>
+                <div class="rc-meta">
+                    from <b>${s.submitted_by || "anonymous"}</b>
+                    ${s.submitted_at ? ` &middot; ${s.submitted_at}` : ""}
+                </div>
+                ${s.why_notes ? `<div class="rc-notes">${s.why_notes}</div>` : ""}
+                <div class="rc-actions">
+                    <button class="danger" data-decline="${s.row_number}">Decline</button>
+                    <button data-approve="${s.row_number}">Apply</button>
+                </div>
+            </div>`).join("");
+        el.querySelectorAll("button[data-approve]").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const row = btn.dataset.approve;
+                const r = await fetch(`/api/keyword-suggestions/${row}/approve`, { method: "POST" });
+                if (r.ok) {
+                    const d = await r.json().catch(() => ({}));
+                    showFlash(`Applied: ${d.applied || "keyword updated"}.`);
+                    loadKeywordSuggestions();
+                } else {
+                    const err = await r.json().catch(() => ({}));
+                    showFlash(err.error || "Failed to apply.", true);
+                }
+            });
+        });
+        el.querySelectorAll("button[data-decline]").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const row = btn.dataset.decline;
+                if (!confirm("Decline this request?")) return;
+                const r = await fetch(`/api/keyword-suggestions/${row}`, { method: "DELETE" });
+                if (r.ok) { showFlash("Declined."); loadKeywordSuggestions(); }
+                else     { showFlash("Decline failed.", true); }
+            });
+        });
+    }
+
+    // Quick add admin keyword
+    document.getElementById("quick-add-btn").addEventListener("click", async () => {
+        const phrase = document.getElementById("quick-kw").value.trim();
+        if (!phrase) return;
+        let weight = parseInt(document.getElementById("quick-weight").value) || 1;
+        if (weight < 1) weight = 1;
+        if (weight > 10) weight = 10;
+        const kw = weight === 1 ? phrase : `${phrase} [${weight}]`;
+        const resp = await fetch("/api/keywords", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ keyword: kw }),
+        });
+        if (resp.ok) {
+            document.getElementById("quick-kw").value = "";
+            document.getElementById("quick-weight").value = 1;
+            showFlash(`Added "${phrase}"${weight > 1 ? ` (weight ${weight})` : ""} to keywords.txt.`);
+        } else {
+            const err = await resp.json().catch(() => ({}));
+            showFlash(err.error || "Failed to add.", true);
+        }
+    });
+
+    // =========================================================
+    // Section 4: Source Fixes (derived from tier data)
+    // =========================================================
+    function renderSourceFixes(data) {
+        const errored = [];
+        for (const [tier, rows] of Object.entries(data.tiers || {})) {
+            for (const r of rows) {
+                if (r.status === "ERROR") errored.push({ ...r, tier });
+            }
+        }
+        const el = document.getElementById("source-fixes-list");
+        if (!errored.length) {
+            el.innerHTML = '<div class="empty-state-small">All sources are happy right now. 🎉</div>';
+            return;
+        }
+        el.innerHTML = errored.map(r => `
+            <div class="fix-row">
+                <span class="fix-name">${r.source_name}</span>
+                &middot; ${r.tier} &middot; <span class="fix-target">${r.target}</span>
+                <div class="fix-error">Error: ${r.error || "(unknown)"}</div>
+                ${r.notes ? `<div style="font-style:italic; font-size:11px; color: var(--soft-text); margin-top:4px;">${r.notes}</div>` : ""}
+            </div>`).join("");
+    }
+
+    // =========================================================
+    // Main
+    // =========================================================
+    async function initSourceOverview() {
+        renderTabs();
+        const panelsEl = document.getElementById("panels");
+        panelsEl.innerHTML = TAB_ORDER.map(t =>
+            `<div class="tab-panel" id="panel-${t.id}"></div>`).join("");
+
+        let data;
+        try {
+            const r = await fetch("/api/sources");
+            if (!r.ok) throw new Error("No sources.json — run the scraper first.");
+            data = await r.json();
+        } catch (e) {
+            document.getElementById("panel-summary").innerHTML = `<div class="flash error">${e.message}</div>`;
+            activateTab("summary");
+            return null;
+        }
+
+        // Summary bar
+        const totalSources = (data.summary || []).reduce((s, x) => s + x.sources_configured, 0);
+        const totalArticles = (data.summary || []).reduce((s, x) => s + x.articles_contributed, 0);
+        const totalErrored = (data.summary || []).reduce((s, x) => s + x.errored, 0);
+        document.getElementById("summary-bar").innerHTML = `
+            <div><b>${totalSources}</b>sources configured</div>
+            <div><b>${totalArticles}</b>articles contributed</div>
+            <div><b>${data.unique_articles_after_dedup}</b>unique after dedup</div>
+            <div><b style="color:${totalErrored > 0 ? "#c55" : "var(--dark-purple)"};">${totalErrored}</b>errored</div>
+        `;
+
+        // Summary + tier tabs
+        document.getElementById("panel-summary").innerHTML = renderSummary(data);
+        const tierIds = ["tier-1", "tier-2", "tier-3a", "tier-3b"];
+        TIER_KEYS.forEach((t, i) => {
+            document.getElementById(`panel-${tierIds[i]}`).innerHTML =
+                renderTier((data.tiers || {})[t.key] || []);
+        });
+
+        const wanted = (location.hash || "").replace("#", "");
+        activateTab(TAB_ORDER.some(t => t.id === wanted) ? wanted : "summary");
+        return data;
+    }
+
+    (async () => {
+        const sourceData = await initSourceOverview();
+        loadSourceRequests();
+        loadKeywordSuggestions();
+        if (sourceData) renderSourceFixes(sourceData);
+    })();
+</script>
+
+</body>
+</html>

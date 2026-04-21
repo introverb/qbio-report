@@ -133,6 +133,87 @@
             display: flex;
             justify-content: flex-end;
         }
+        .form-header {
+            font-family: "Chap", "Apercu Pro", sans-serif;
+            font-weight: 400;
+            font-size: 18px;
+            letter-spacing: 0.06em;
+            color: var(--dark-purple);
+            text-transform: uppercase;
+            margin: 18px 0 10px;
+        }
+
+        /* Click-to-edit weight change popover on existing keyword tags */
+        .kw-cloud .kw-tag { cursor: pointer; transition: background 0.1s; }
+        .kw-cloud .kw-tag:hover { background: var(--cream-dim); border-color: var(--pink); }
+
+        .weight-change-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(45, 27, 48, 0.35);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .weight-change-modal.open { display: flex; }
+        .weight-change-panel {
+            background: var(--cream);
+            border: 1px solid var(--dark-purple);
+            border-radius: 4px;
+            padding: 24px;
+            max-width: 420px;
+            width: calc(100% - 48px);
+        }
+        .weight-change-panel h4 {
+            font-family: "Chap", "Apercu Pro", sans-serif;
+            font-weight: 400;
+            font-size: 18px;
+            letter-spacing: 0.05em;
+            color: var(--dark-purple);
+            text-transform: uppercase;
+            margin: 0 0 4px;
+        }
+        .weight-change-panel .sub {
+            font-style: italic;
+            font-size: 12px;
+            color: var(--soft-text);
+            margin-bottom: 14px;
+        }
+        .weight-change-panel .sub b { color: var(--dark-purple); font-style: normal; }
+        .weight-change-panel label {
+            display: block;
+            font-size: 10px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--light-purple);
+            margin: 10px 0 4px;
+        }
+        .weight-change-panel input,
+        .weight-change-panel select,
+        .weight-change-panel textarea {
+            width: 100%;
+            font-family: inherit;
+            font-size: 14px;
+            padding: 8px 10px;
+            border: 1px solid var(--light-purple);
+            background: var(--cream);
+            color: var(--near-black);
+            border-radius: 2px;
+        }
+        .weight-change-panel textarea { min-height: 56px; resize: vertical; }
+        .weight-change-panel .actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+        .weight-change-panel button.secondary {
+            background: transparent;
+            color: var(--dark-purple);
+            border: 1px solid var(--dark-purple);
+        }
     </style>
 </head>
 <body>
@@ -146,9 +227,7 @@
         <a href="/suggest" class="active">Suggest</a>
     </div>
     <div class="nav-admin">
-        <a href="/sources">Sources</a>
-        <span class="sep">·</span>
-        <a href="/keywords">Keywords</a>
+        <a href="/admin">Admin</a>
     </div>
 </nav>
 
@@ -175,6 +254,7 @@
                 <div class="loading">Loading sources&hellip;</div>
             </div>
 
+            <h3 class="form-header">Request New Source</h3>
             <div class="suggest-form">
                 <label for="src-name">Source name <span style="color:#c55;">*</span></label>
                 <input type="text" id="src-name" placeholder="e.g. Biophysical Journal">
@@ -219,11 +299,15 @@
         <!-- ================= KEYWORDS ================= -->
         <div class="suggest-col">
             <h2>Keywords</h2>
-            <div class="col-subtitle">Currently indexed (live) &mdash; weights shown as ×N</div>
+            <div class="col-subtitle">
+                Currently indexed (live) &mdash; weights shown as ×N.<br>
+                <b>Click any tag</b> to request a weight change.
+            </div>
             <div class="current-box" id="kw-box">
                 <div class="loading">Loading keywords&hellip;</div>
             </div>
 
+            <h3 class="form-header">Request New Keyword</h3>
             <div class="suggest-form">
                 <label for="kw-phrase">Keyword or phrase <span style="color:#c55;">*</span></label>
                 <input type="text" id="kw-phrase" placeholder="e.g. microtubule coherence">
@@ -250,6 +334,28 @@
 
     </div>
 </main>
+
+<!-- Weight-change request modal, opens when user clicks an existing keyword tag -->
+<div class="weight-change-modal" id="wc-modal">
+    <div class="weight-change-panel">
+        <h4>Request Weight Change</h4>
+        <div class="sub">for <b id="wc-phrase"></b> (current: <span id="wc-current"></span>)</div>
+
+        <label for="wc-weight">New suggested weight (1&ndash;10)</label>
+        <input type="number" id="wc-weight" min="1" max="10">
+
+        <label for="wc-notes">Why?</label>
+        <textarea id="wc-notes" placeholder="e.g. this is a flagship mechanism and deserves more weight"></textarea>
+
+        <label for="wc-submitter">Your name / handle (optional)</label>
+        <input type="text" id="wc-submitter" placeholder="anonymous">
+
+        <div class="actions">
+            <button type="button" class="secondary" id="wc-cancel">Cancel</button>
+            <button type="button" id="wc-submit">Submit request</button>
+        </div>
+    </div>
+</div>
 
 <script>
     const statusEl = document.getElementById("flash-status");
@@ -297,15 +403,83 @@
             const tags = (data.keywords || []).map(kw => {
                 const { phrase, weight } = parseKeyword(kw);
                 const badge = weight > 1 ? `<span class="kw-weight">${weight}</span>` : "";
-                return `<span class="kw-tag">${phrase}${badge}</span>`;
+                return `<span class="kw-tag"
+                              data-phrase="${encodeURIComponent(phrase)}"
+                              data-weight="${weight}"
+                              title="Click to request a weight change">${phrase}${badge}</span>`;
             });
             document.getElementById("kw-box").innerHTML =
                 `<div class="kw-cloud">${tags.join("")}</div>`;
+            // Click handler on every tag
+            document.querySelectorAll("#kw-box .kw-tag").forEach(tag => {
+                tag.addEventListener("click", () => {
+                    const phrase = decodeURIComponent(tag.dataset.phrase);
+                    const weight = parseInt(tag.dataset.weight) || 1;
+                    openWeightChangeModal(phrase, weight);
+                });
+            });
         } catch (e) {
             document.getElementById("kw-box").innerHTML =
                 `<div class="loading">${e.message}</div>`;
         }
     }
+
+    // ---- Weight-change modal ----
+    const wcModal = document.getElementById("wc-modal");
+    let wcPhrase = "", wcCurrentWeight = 1;
+
+    function openWeightChangeModal(phrase, currentWeight) {
+        wcPhrase = phrase;
+        wcCurrentWeight = currentWeight;
+        document.getElementById("wc-phrase").textContent = phrase;
+        document.getElementById("wc-current").textContent = "×" + currentWeight;
+        // Default to current + 1 (likely direction of request), clamp 1-10
+        const defaultNew = Math.min(10, currentWeight + 1);
+        document.getElementById("wc-weight").value = defaultNew;
+        document.getElementById("wc-notes").value = "";
+        document.getElementById("wc-submitter").value = "";
+        wcModal.classList.add("open");
+        setTimeout(() => document.getElementById("wc-weight").focus(), 0);
+    }
+    function closeWeightChangeModal() {
+        wcModal.classList.remove("open");
+    }
+
+    document.getElementById("wc-cancel").addEventListener("click", closeWeightChangeModal);
+    wcModal.addEventListener("click", (e) => {
+        if (e.target === wcModal) closeWeightChangeModal();  // click backdrop
+    });
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && wcModal.classList.contains("open")) closeWeightChangeModal();
+    });
+
+    document.getElementById("wc-submit").addEventListener("click", async () => {
+        let weight = parseInt(document.getElementById("wc-weight").value) || 1;
+        if (weight < 1) weight = 1;
+        if (weight > 10) weight = 10;
+        if (weight === wcCurrentWeight) {
+            showFlash("New weight is the same as current — no request submitted.", true);
+            return;
+        }
+        const resp = await fetch("/api/suggest-keyword", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                phrase:       wcPhrase,
+                weight:       weight,
+                kind:         "weight-change",
+                why_notes:    document.getElementById("wc-notes").value,
+                submitted_by: document.getElementById("wc-submitter").value,
+            }),
+        });
+        if (resp.ok) {
+            closeWeightChangeModal();
+            showFlash(`Thanks! Weight change for "${wcPhrase}" (${wcCurrentWeight} → ${weight}) submitted for review.`);
+        } else {
+            const err = await resp.json().catch(() => ({}));
+            showFlash(err.error || "Submission failed.", true);
+        }
+    });
 
     // ---- Submit source ----
     document.getElementById("src-submit").addEventListener("click", async () => {
