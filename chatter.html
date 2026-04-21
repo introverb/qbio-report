@@ -112,44 +112,98 @@
             color: var(--soft-text);
             font-weight: 700;
         }
-        .sort-row {
+        /* Sources dropdown — narrow the feed to specific sources */
+        .source-picker-row {
             text-align: center;
             margin-bottom: 40px;
+            position: relative;
+        }
+        .source-picker-btn {
+            background: transparent;
+            border: 1px solid var(--light-purple);
+            color: var(--light-purple);
+            font-family: inherit;
+            font-weight: 700;
             font-size: 11px;
             letter-spacing: 0.2em;
             text-transform: uppercase;
-            color: var(--soft-text);
-            font-weight: 700;
+            padding: 7px 14px;
+            border-radius: 2px;
+            cursor: pointer;
         }
-        .sort-row .sort-label {
-            color: var(--soft-text);
-            margin-right: 6px;
-            font-style: italic;
-            letter-spacing: 0.1em;
+        .source-picker-btn:hover { color: var(--pink); border-color: var(--pink); }
+        .source-picker-btn .caret { margin-left: 4px; font-style: normal; }
+        .source-picker-btn.open {
+            background: var(--light-purple);
+            color: var(--cream);
+            border-color: var(--light-purple);
         }
 
-        /* Source-grouped view */
-        .source-group { margin-bottom: 36px; }
-        .source-group-header {
-            font-family: "Chap", "Apercu Pro", sans-serif;
-            font-weight: 400;
-            font-size: 16px;
-            letter-spacing: 0.08em;
-            color: var(--dark-purple);
-            text-transform: uppercase;
-            margin: 0 0 8px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid rgba(45, 27, 48, 0.2);
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
+        .source-picker-panel {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(420px, calc(100vw - 48px));
+            max-height: 60vh;
+            overflow-y: auto;
+            background: var(--cream);
+            border: 1px solid var(--dark-purple);
+            border-radius: 3px;
+            box-shadow: 0 8px 24px rgba(45, 27, 48, 0.2);
+            padding: 12px 14px;
+            text-align: left;
+            z-index: 100;
         }
-        .source-group-header .source-count {
-            font-family: "Apercu Pro", sans-serif;
-            font-size: 11px;
+        .source-picker-panel::-webkit-scrollbar { width: 8px; }
+        .source-picker-panel::-webkit-scrollbar-thumb {
+            background: rgba(125, 74, 110, 0.45);
+            border-radius: 4px;
+        }
+
+        .source-picker-actions {
+            font-size: 10px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--soft-text);
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px dotted rgba(45, 27, 48, 0.2);
+        }
+        .source-picker-actions a {
             color: var(--light-purple);
-            letter-spacing: 0.15em;
+            text-decoration: none;
+            border-bottom: 1px solid var(--light-purple);
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .source-picker-actions a:hover { color: var(--pink); border-bottom-color: var(--pink); }
+
+        .source-picker-row label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 5px 4px;
+            font-size: 13px;
+            color: var(--near-black);
+            text-transform: none;
+            letter-spacing: 0;
+            font-weight: 400;
+            cursor: pointer;
+            border-radius: 2px;
+        }
+        .source-picker-row label:hover { background: var(--cream-dim); }
+        .source-picker-row input[type="checkbox"] {
+            accent-color: var(--pink);
+            cursor: pointer;
+        }
+        .source-picker-row .label-name { flex: 1 1 auto; }
+        .source-picker-row .label-count {
+            font-size: 11px;
             font-style: italic;
+            color: var(--light-purple);
+            letter-spacing: 0.05em;
         }
         .filter-row button {
             background: transparent;
@@ -296,10 +350,18 @@
         <button data-filter="social">Social</button>
         <button data-filter="qbio">Direct Q.B. only</button>
     </div>
-    <div class="sort-row" id="sort-row">
-        <span class="sort-label">Sort by:</span>
-        <button data-sort="date" class="active">Date</button>
-        <button data-sort="source">Source</button>
+    <div class="source-picker-row">
+        <button type="button" id="source-picker-btn" class="source-picker-btn">
+            <span id="source-picker-label">Sources: all</span>
+            <span class="caret">&#9662;</span>
+        </button>
+        <div id="source-picker-panel" class="source-picker-panel" hidden>
+            <div class="source-picker-actions">
+                <a id="source-picker-all">Select all</a>
+                <a id="source-picker-none">Clear</a>
+            </div>
+            <div id="source-picker-list"></div>
+        </div>
     </div>
 
     <div id="status" class="status">Loading feed&hellip;</div>
@@ -451,7 +513,10 @@
 
     let allItems = [];
     let currentFilter = "all";
-    let currentSort = "date";
+    // Sources currently selected (Set of normalized source names). Defaults
+    // to all sources present in the loaded data.
+    let selectedSources = new Set();
+    let allSourcesSet = new Set();
 
     // Collapse HN + Bluesky (per-author source names) into single buckets.
     // Keep Reddit subreddits + Stack Exchange sites granular (they're meaningful groups).
@@ -479,56 +544,63 @@
             </div>`;
     }
 
-    function renderFlat(items) {
-        const container = document.getElementById("chatter-items");
-        if (!items.length) {
-            container.innerHTML = '<div class="status">No chatter matches this filter.</div>';
-            return;
-        }
-        container.innerHTML = items.map(renderOneItem).join("");
-    }
-
-    function renderGrouped(items) {
-        const container = document.getElementById("chatter-items");
-        if (!items.length) {
-            container.innerHTML = '<div class="status">No chatter matches this filter.</div>';
-            return;
-        }
-        const groups = {};
-        for (const a of items) {
-            const key = normalizeSource(a.source);
-            (groups[key] = groups[key] || []).push(a);
-        }
-        const keys = Object.keys(groups).sort();
-        container.innerHTML = keys.map(key => {
-            const groupItems = groups[key]
-                .slice()
-                .sort((a, b) => (b.date_iso || "").localeCompare(a.date_iso || ""));
-            return `
-                <div class="source-group">
-                    <div class="source-group-header">
-                        <span>${key}</span>
-                        <span class="source-count">${groupItems.length} ${groupItems.length === 1 ? "item" : "items"}</span>
-                    </div>
-                    ${groupItems.map(renderOneItem).join("")}
-                </div>`;
-        }).join("");
-    }
-
     function applyFilter() {
         let items = allItems;
         if (currentFilter === "forums") items = items.filter(a => a.source_category === "forums");
         else if (currentFilter === "social") items = items.filter(a => a.source_category === "social");
         else if (currentFilter === "qbio") items = items.filter(isDirect);
+        // Apply source-picker filter on top
+        items = items.filter(a => selectedSources.has(normalizeSource(a.source)));
 
-        if (currentSort === "source") {
-            renderGrouped(items);
-        } else {
-            // Date desc — source column is already pre-sorted by date
-            renderFlat(items);
+        const container = document.getElementById("chatter-items");
+        if (!items.length) {
+            container.innerHTML = '<div class="status">No chatter matches these filters.</div>';
+            return;
         }
+        container.innerHTML = items.map(renderOneItem).join("");
+        updatePickerLabel();
     }
 
+    function updatePickerLabel() {
+        const label = document.getElementById("source-picker-label");
+        const total = allSourcesSet.size;
+        const picked = selectedSources.size;
+        if (picked === total) label.textContent = "Sources: all";
+        else if (picked === 0) label.textContent = "Sources: none";
+        else label.textContent = `Sources: ${picked}/${total}`;
+    }
+
+    function buildSourcePickerList() {
+        // Count items per normalized source (from the full corpus, not the
+        // current filter — keeps counts stable when users change filters)
+        const counts = {};
+        for (const a of allItems) {
+            const key = normalizeSource(a.source);
+            counts[key] = (counts[key] || 0) + 1;
+        }
+        const sortedKeys = Object.keys(counts).sort();
+        allSourcesSet = new Set(sortedKeys);
+        selectedSources = new Set(sortedKeys); // start with all selected
+
+        const list = document.getElementById("source-picker-list");
+        list.innerHTML = sortedKeys.map(key => `
+            <label>
+                <input type="checkbox" data-src="${encodeURIComponent(key)}" checked>
+                <span class="label-name">${key}</span>
+                <span class="label-count">${counts[key]}</span>
+            </label>`).join("");
+        list.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener("change", () => {
+                const src = decodeURIComponent(cb.dataset.src);
+                if (cb.checked) selectedSources.add(src);
+                else selectedSources.delete(src);
+                applyFilter();
+            });
+        });
+        updatePickerLabel();
+    }
+
+    // --- Filter (All / Forums / Social / Direct Q.B.) ---
     document.querySelectorAll("#filters button").forEach(btn => {
         btn.addEventListener("click", () => {
             document.querySelectorAll("#filters button").forEach(b => b.classList.remove("active"));
@@ -537,13 +609,38 @@
             applyFilter();
         });
     });
-    document.querySelectorAll("#sort-row button").forEach(btn => {
-        btn.addEventListener("click", () => {
-            document.querySelectorAll("#sort-row button").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-            currentSort = btn.dataset.sort;
-            applyFilter();
-        });
+
+    // --- Source picker open/close + bulk actions ---
+    const pickerBtn = document.getElementById("source-picker-btn");
+    const pickerPanel = document.getElementById("source-picker-panel");
+    pickerBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isOpen = !pickerPanel.hasAttribute("hidden");
+        if (isOpen) {
+            pickerPanel.setAttribute("hidden", "");
+            pickerBtn.classList.remove("open");
+        } else {
+            pickerPanel.removeAttribute("hidden");
+            pickerBtn.classList.add("open");
+        }
+    });
+    document.addEventListener("click", (e) => {
+        if (!pickerPanel.hasAttribute("hidden") && !pickerPanel.contains(e.target) && e.target !== pickerBtn) {
+            pickerPanel.setAttribute("hidden", "");
+            pickerBtn.classList.remove("open");
+        }
+    });
+    document.getElementById("source-picker-all").addEventListener("click", (e) => {
+        e.preventDefault();
+        selectedSources = new Set(allSourcesSet);
+        document.querySelectorAll("#source-picker-list input[type='checkbox']").forEach(cb => cb.checked = true);
+        applyFilter();
+    });
+    document.getElementById("source-picker-none").addEventListener("click", (e) => {
+        e.preventDefault();
+        selectedSources = new Set();
+        document.querySelectorAll("#source-picker-list input[type='checkbox']").forEach(cb => cb.checked = false);
+        applyFilter();
     });
 
     fetch("/feed.json")
@@ -564,6 +661,7 @@
                 `Feed generated ${formatTimestamp(data.generated_at)}`;
             document.getElementById("status").remove();
 
+            buildSourcePickerList();
             applyFilter();
         })
         .catch(err => {
