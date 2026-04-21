@@ -105,12 +105,51 @@
 
         .filter-row {
             text-align: center;
+            margin-bottom: 12px;
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--soft-text);
+            font-weight: 700;
+        }
+        .sort-row {
+            text-align: center;
             margin-bottom: 40px;
             font-size: 11px;
             letter-spacing: 0.2em;
             text-transform: uppercase;
             color: var(--soft-text);
             font-weight: 700;
+        }
+        .sort-row .sort-label {
+            color: var(--soft-text);
+            margin-right: 6px;
+            font-style: italic;
+            letter-spacing: 0.1em;
+        }
+
+        /* Source-grouped view */
+        .source-group { margin-bottom: 36px; }
+        .source-group-header {
+            font-family: "Chap", "Apercu Pro", sans-serif;
+            font-weight: 400;
+            font-size: 16px;
+            letter-spacing: 0.08em;
+            color: var(--dark-purple);
+            text-transform: uppercase;
+            margin: 0 0 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(45, 27, 48, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+        .source-group-header .source-count {
+            font-family: "Apercu Pro", sans-serif;
+            font-size: 11px;
+            color: var(--light-purple);
+            letter-spacing: 0.15em;
+            font-style: italic;
         }
         .filter-row button {
             background: transparent;
@@ -256,6 +295,11 @@
         <button data-filter="forums">Forums</button>
         <button data-filter="social">Social</button>
         <button data-filter="qbio">Direct Q.B. only</button>
+    </div>
+    <div class="sort-row" id="sort-row">
+        <span class="sort-label">Sort by:</span>
+        <button data-sort="date" class="active">Date</button>
+        <button data-sort="source">Source</button>
     </div>
 
     <div id="status" class="status">Loading feed&hellip;</div>
@@ -406,44 +450,99 @@
     }
 
     let allItems = [];
+    let currentFilter = "all";
+    let currentSort = "date";
 
-    function renderItems(items) {
+    // Collapse HN + Bluesky (per-author source names) into single buckets.
+    // Keep Reddit subreddits + Stack Exchange sites granular (they're meaningful groups).
+    function normalizeSource(src) {
+        const s = src || "(unknown)";
+        if (s.startsWith("Hacker News")) return "Hacker News";
+        if (s.startsWith("Bluesky")) return "Bluesky";
+        return s;
+    }
+
+    function renderOneItem(a) {
+        const when = a.date_iso ? formatArticleDate(a.date_iso) : "";
+        const bits = [a.source];
+        if (when) bits.push(when);
+        const badgeClass = a.source_category === "social" ? "social" : "";
+        const badgeLabel = a.source_category === "social" ? "Social" : "Forum";
+        const snippet = extractSnippet(a);
+        return `
+            <div class="chatter-item">
+                <div class="headline">
+                    <span class="badge-mini ${badgeClass}">${badgeLabel}</span>
+                    <a href="${a.link}" target="_blank" title="${stripHtml(a.title)}">${snippet}</a>
+                </div>
+                <div class="attribution">${bits.join(" · ")}</div>
+            </div>`;
+    }
+
+    function renderFlat(items) {
         const container = document.getElementById("chatter-items");
         if (!items.length) {
             container.innerHTML = '<div class="status">No chatter matches this filter.</div>';
             return;
         }
-        container.innerHTML = items.map(a => {
-            const when = a.date_iso ? formatArticleDate(a.date_iso) : "";
-            const bits = [a.source];
-            if (when) bits.push(when);
-            const badgeClass = a.source_category === "social" ? "social" : "";
-            const badgeLabel = a.source_category === "social" ? "Social" : "Forum";
-            const snippet = extractSnippet(a);
+        container.innerHTML = items.map(renderOneItem).join("");
+    }
+
+    function renderGrouped(items) {
+        const container = document.getElementById("chatter-items");
+        if (!items.length) {
+            container.innerHTML = '<div class="status">No chatter matches this filter.</div>';
+            return;
+        }
+        const groups = {};
+        for (const a of items) {
+            const key = normalizeSource(a.source);
+            (groups[key] = groups[key] || []).push(a);
+        }
+        const keys = Object.keys(groups).sort();
+        container.innerHTML = keys.map(key => {
+            const groupItems = groups[key]
+                .slice()
+                .sort((a, b) => (b.date_iso || "").localeCompare(a.date_iso || ""));
             return `
-                <div class="chatter-item">
-                    <div class="headline">
-                        <span class="badge-mini ${badgeClass}">${badgeLabel}</span>
-                        <a href="${a.link}" target="_blank" title="${stripHtml(a.title)}">${snippet}</a>
+                <div class="source-group">
+                    <div class="source-group-header">
+                        <span>${key}</span>
+                        <span class="source-count">${groupItems.length} ${groupItems.length === 1 ? "item" : "items"}</span>
                     </div>
-                    <div class="attribution">${bits.join(" · ")}</div>
+                    ${groupItems.map(renderOneItem).join("")}
                 </div>`;
         }).join("");
     }
 
-    function applyFilter(filter) {
+    function applyFilter() {
         let items = allItems;
-        if (filter === "forums") items = items.filter(a => a.source_category === "forums");
-        else if (filter === "social") items = items.filter(a => a.source_category === "social");
-        else if (filter === "qbio") items = items.filter(isDirect);
-        renderItems(items);
+        if (currentFilter === "forums") items = items.filter(a => a.source_category === "forums");
+        else if (currentFilter === "social") items = items.filter(a => a.source_category === "social");
+        else if (currentFilter === "qbio") items = items.filter(isDirect);
+
+        if (currentSort === "source") {
+            renderGrouped(items);
+        } else {
+            // Date desc — source column is already pre-sorted by date
+            renderFlat(items);
+        }
     }
 
     document.querySelectorAll("#filters button").forEach(btn => {
         btn.addEventListener("click", () => {
             document.querySelectorAll("#filters button").forEach(b => b.classList.remove("active"));
             btn.classList.add("active");
-            applyFilter(btn.dataset.filter);
+            currentFilter = btn.dataset.filter;
+            applyFilter();
+        });
+    });
+    document.querySelectorAll("#sort-row button").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll("#sort-row button").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            currentSort = btn.dataset.sort;
+            applyFilter();
         });
     });
 
@@ -465,7 +564,7 @@
                 `Feed generated ${formatTimestamp(data.generated_at)}`;
             document.getElementById("status").remove();
 
-            applyFilter("all");
+            applyFilter();
         })
         .catch(err => {
             document.getElementById("status").textContent = err.message;
