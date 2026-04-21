@@ -63,6 +63,29 @@
             letter-spacing: 0;
         }
 
+        /* Scrape-now button row */
+        .scrape-now-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .scrape-now-row button { padding: 8px 18px; }
+        .scrape-now-row .scrape-status {
+            font-size: 11px;
+            font-style: italic;
+            color: var(--soft-text);
+            letter-spacing: 0.03em;
+        }
+        .scrape-now-row .scrape-status.running {
+            color: var(--pink);
+            font-style: italic;
+        }
+        .scrape-now-row .scrape-status.done {
+            color: #4a7c4a;
+        }
+
         .empty-state-small {
             padding: 20px;
             text-align: center;
@@ -215,6 +238,12 @@
             <div class="section-subtitle">every source configured, live stats from the latest scrape</div>
         </div>
         <div class="stat-bar" id="summary-bar"></div>
+        <div class="scrape-now-row">
+            <button id="scrape-now-btn">Run scrape now</button>
+            <span class="scrape-status" id="scrape-status">
+                Fires off a scrape immediately. Takes ~2&ndash;3 minutes.
+            </span>
+        </div>
         <div class="tabs" id="tabs"></div>
         <div id="panels"></div>
     </section>
@@ -554,7 +583,79 @@
         loadSourceRequests();
         loadKeywordSuggestions();
         if (sourceData) renderSourceFixes(sourceData);
+        wireScrapeNowButton(sourceData ? sourceData.generated_at : null);
     })();
+
+    // =========================================================
+    // Scrape-now button + progress polling
+    // =========================================================
+    function wireScrapeNowButton(baselineGeneratedAt) {
+        const btn = document.getElementById("scrape-now-btn");
+        const status = document.getElementById("scrape-status");
+        let pollTimer = null;
+
+        btn.addEventListener("click", async () => {
+            if (btn.disabled) return;
+            btn.disabled = true;
+            btn.textContent = "Scraping…";
+            status.className = "scrape-status running";
+            status.textContent = "Scrape started. Polling for completion…";
+
+            let resp;
+            try {
+                resp = await fetch("/api/scrape", { method: "POST" });
+            } catch (e) {
+                status.className = "scrape-status";
+                status.textContent = "Couldn't kick off scrape: " + e.message;
+                btn.disabled = false;
+                btn.textContent = "Run scrape now";
+                return;
+            }
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                status.className = "scrape-status";
+                status.textContent = err.error || "Scrape failed to start.";
+                btn.disabled = false;
+                btn.textContent = "Run scrape now";
+                return;
+            }
+
+            const startedAt = new Date();
+            const POLL_INTERVAL_MS = 15000;
+            const MAX_WAIT_MS = 10 * 60 * 1000;  // 10 min hard cap
+
+            const poll = async () => {
+                try {
+                    const r = await fetch("/feed.json", { cache: "no-store" });
+                    if (r.ok) {
+                        const data = await r.json();
+                        const gen = data.generated_at;
+                        if (gen && gen !== baselineGeneratedAt) {
+                            clearInterval(pollTimer);
+                            status.className = "scrape-status done";
+                            status.textContent = `Scrape complete at ${new Date(gen).toLocaleTimeString()}. Reloading…`;
+                            setTimeout(() => location.reload(), 1200);
+                            return;
+                        }
+                    }
+                } catch (e) { /* swallow; will retry */ }
+
+                const elapsed = Date.now() - startedAt.getTime();
+                const mins = Math.floor(elapsed / 60000);
+                const secs = Math.floor((elapsed % 60000) / 1000);
+                status.textContent = `Scraping… elapsed ${mins}m ${String(secs).padStart(2, "0")}s`;
+                if (elapsed > MAX_WAIT_MS) {
+                    clearInterval(pollTimer);
+                    status.className = "scrape-status";
+                    status.textContent = "Scrape took longer than 10 minutes; check Railway logs.";
+                    btn.disabled = false;
+                    btn.textContent = "Run scrape now";
+                }
+            };
+            pollTimer = setInterval(poll, POLL_INTERVAL_MS);
+            poll(); // kick once immediately for faster feedback
+        });
+    }
 </script>
 
 </body>
