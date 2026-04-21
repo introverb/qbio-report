@@ -208,17 +208,20 @@
         .accordion-section details summary {
             cursor: pointer;
             list-style: none;
-            color: var(--light-purple);
+            color: var(--dark-purple);
             font-weight: 700;
-            letter-spacing: 0.12em;
+            letter-spacing: 0.14em;
             text-transform: uppercase;
-            font-size: 11px;
-            padding: 8px 12px;
+            font-size: 14px;
+            padding: 12px 14px;
             border-radius: 3px;
             user-select: none;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
+        }
+        .accordion-section details summary::before {
+            font-size: 16px;
         }
         .accordion-section details summary::-webkit-details-marker { display: none; }
         .accordion-section details summary::before {
