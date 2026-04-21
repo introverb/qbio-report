@@ -1,6 +1,6 @@
 # QUBIE News — Media Director Handoff
 
-**Last updated:** 2026-04-20
+**Last updated:** 2026-04-21
 **Owner:** Olli (ollipayne182@gmail.com)
 **Status:** Live in production on Railway.
 
@@ -22,10 +22,10 @@ visit URLs and log in when asked.
 
 | URL | What it is | Public? |
 |---|---|---|
-| **https://web-production-2537b.up.railway.app/** | The Report (the main feed, with a search box at the top) | Yes — anyone can see it |
-| **https://web-production-2537b.up.railway.app/chatter** | Chatter (Reddit, Hacker News, Bluesky, etc.) | Yes — anyone can see it |
-| **https://web-production-2537b.up.railway.app/keywords** | Keywords admin (add / remove / weight) | No — password required |
-| **https://web-production-2537b.up.railway.app/sources** | Sources admin (view stats, submit source requests) | No — password required |
+| **https://qubiereport.up.railway.app/** | The Report (the main feed, with a search box at the top) | Yes — anyone can see it |
+| **https://qubiereport.up.railway.app/chatter** | Chatter (Reddit, Hacker News, Bluesky, etc.) | Yes — anyone can see it |
+| **https://qubiereport.up.railway.app/keywords** | Keywords admin (add / remove / weight) | No — password required |
+| **https://qubiereport.up.railway.app/sources** | Sources admin (view stats, submit source requests) | No — password required |
 
 ### Admin password
 
@@ -54,7 +54,7 @@ You don't need to "run the scraper" — it runs itself.
 
 ### A. Read the news
 
-Just visit **https://web-production-2537b.up.railway.app/** and scroll.
+Just visit **https://qubiereport.up.railway.app/** and scroll.
 No login needed. The page auto-refreshes each scrape cycle.
 
 A **search box** at the very top of the page indexes every article in the feed — type any phrase (multi-word = AND), results filter live.
@@ -192,4 +192,4 @@ Contact: **ollipayne182@gmail.com**
 | Submit source request | `/sources` → Source Requests tab | Yes (pw: `coherence`) |
 | Review source stats | `/sources` → any tier tab | Yes (pw: `coherence`) |
 
-Base URL: **https://web-production-2537b.up.railway.app/**
+Base URL: **https://qubiereport.up.railway.app/**
