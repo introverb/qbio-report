@@ -39,29 +39,59 @@ a:hover { color: var(--pink); border-bottom-color: var(--pink); }
     background: var(--cream-dim);
     border-bottom: 1px solid rgba(45, 27, 48, 0.2);
     padding: 10px 24px;
-    text-align: center;
     font-size: 11px;
     letter-spacing: 0.25em;
     text-transform: uppercase;
     font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.site-nav .nav-public,
+.site-nav .nav-admin {
+    display: flex;
+    align-items: center;
 }
 .site-nav a {
-    color: var(--dark-purple);
     text-decoration: none;
     border-bottom: none;
-    margin: 0 14px;
+    margin: 0 6px;
     padding: 4px 8px;
-}
-.site-nav a:hover { color: var(--pink); }
-.site-nav a.active {
-    color: var(--pink);
-    border-bottom: 2px solid var(--pink);
 }
 .site-nav .sep {
     color: rgba(45, 27, 48, 0.35);
-    padding: 0 6px;
+    padding: 0 2px;
     font-weight: 400;
 }
+
+/* Public group — primary color, sits on the left */
+.site-nav .nav-public a { color: var(--dark-purple); }
+.site-nav .nav-public a:hover { color: var(--pink); }
+.site-nav .nav-public a.active {
+    color: var(--pink);
+    border-bottom: 2px solid var(--pink);
+}
+
+/* Admin group — muted, inside a subtle box, sits on the right */
+.site-nav .nav-admin {
+    border: 1px solid rgba(45, 27, 48, 0.25);
+    border-radius: 3px;
+    padding: 2px 6px;
+    background: rgba(255, 255, 255, 0.15);
+}
+.site-nav .nav-admin a {
+    color: var(--light-purple);
+    opacity: 0.8;
+}
+.site-nav .nav-admin a:hover { color: var(--pink); opacity: 1; }
+.site-nav .nav-admin a.active {
+    color: var(--pink);
+    opacity: 1;
+    border-bottom: 2px solid var(--pink);
+}
+.site-nav .nav-admin .sep { color: rgba(125, 74, 110, 0.4); }
 
 /* ---- Admin page container ---- */
 .admin-page {

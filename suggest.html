@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUBIE News — Suggest</title>
+    <link rel="stylesheet" href="assets/shared.css">
+    <style>
+        .suggest-wrap {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 48px;
+            margin-top: 24px;
+        }
+        @media (max-width: 800px) {
+            .suggest-wrap { grid-template-columns: 1fr; gap: 36px; }
+        }
+        .suggest-col h2 {
+            font-family: "Chap", "Apercu Pro", sans-serif;
+            font-weight: 400;
+            font-size: 24px;
+            letter-spacing: 0.04em;
+            color: var(--dark-purple);
+            text-transform: uppercase;
+            margin: 0 0 6px;
+        }
+        .suggest-col .col-subtitle {
+            font-style: italic;
+            font-size: 12px;
+            color: var(--soft-text);
+            margin-bottom: 20px;
+            letter-spacing: 0.03em;
+        }
+
+        /* Current-items pane */
+        .current-box {
+            max-height: 280px;
+            overflow-y: auto;
+            border: 1px solid rgba(125, 74, 110, 0.3);
+            background: var(--cream-dim);
+            padding: 12px 16px;
+            border-radius: 3px;
+            margin-bottom: 24px;
+        }
+        .current-box::-webkit-scrollbar { width: 8px; }
+        .current-box::-webkit-scrollbar-track { background: transparent; }
+        .current-box::-webkit-scrollbar-thumb {
+            background: rgba(125, 74, 110, 0.45);
+            border-radius: 4px;
+        }
+        .current-box .loading { color: var(--soft-text); font-style: italic; padding: 20px; text-align: center; }
+
+        /* Sources list rows */
+        .src-row {
+            padding: 6px 0;
+            font-size: 12px;
+            line-height: 1.4;
+            border-bottom: 1px dotted rgba(45, 27, 48, 0.15);
+        }
+        .src-row:last-child { border: none; }
+        .src-row .name { font-weight: 700; color: var(--dark-purple); }
+        .src-row .meta { font-size: 10px; color: var(--light-purple); font-style: italic; }
+
+        /* Keywords as tags */
+        .kw-cloud { line-height: 2; }
+        .kw-cloud .kw-tag {
+            display: inline-block;
+            padding: 3px 8px;
+            margin: 2px 3px;
+            font-size: 12px;
+            color: var(--dark-purple);
+            background: var(--cream);
+            border: 1px solid var(--light-purple);
+            border-radius: 2px;
+            cursor: default;
+        }
+        .kw-cloud .kw-tag .kw-weight {
+            display: inline-block;
+            font-size: 9px;
+            background: var(--pink);
+            color: var(--near-black);
+            padding: 0 5px 1px;
+            border-radius: 2px;
+            margin-left: 5px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+        .kw-cloud .kw-tag .kw-weight::before { content: "×"; margin-right: 1px; }
+
+        /* Suggest forms */
+        .suggest-form {
+            background: var(--cream-dim);
+            border: 1px solid rgba(125, 74, 110, 0.3);
+            padding: 18px;
+            border-radius: 3px;
+        }
+        .suggest-form label {
+            display: block;
+            font-size: 10px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--light-purple);
+            margin: 10px 0 4px;
+        }
+        .suggest-form label:first-child { margin-top: 0; }
+        .suggest-form input[type="text"],
+        .suggest-form input[type="number"],
+        .suggest-form select,
+        .suggest-form textarea {
+            width: 100%;
+            font-family: inherit;
+            font-size: 14px;
+            padding: 8px 10px;
+            border: 1px solid var(--light-purple);
+            background: var(--cream);
+            color: var(--near-black);
+            border-radius: 2px;
+        }
+        .suggest-form input:focus, .suggest-form select:focus, .suggest-form textarea:focus {
+            outline: 2px solid var(--pink);
+            outline-offset: -2px;
+            border-color: var(--pink);
+        }
+        .suggest-form textarea { min-height: 56px; resize: vertical; }
+        .suggest-form .form-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .suggest-form .submit-row {
+            margin-top: 14px;
+            display: flex;
+            justify-content: flex-end;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="site-nav">
+    <div class="nav-public">
+        <a href="/">Report</a>
+        <span class="sep">·</span>
+        <a href="/chatter">Chatter</a>
+        <span class="sep">·</span>
+        <a href="/suggest" class="active">Suggest</a>
+    </div>
+    <div class="nav-admin">
+        <a href="/sources">Sources</a>
+        <span class="sep">·</span>
+        <a href="/keywords">Keywords</a>
+    </div>
+</nav>
+
+<main class="admin-page">
+    <h1>Suggest</h1>
+    <div class="subtitle">
+        &mdash; help shape the QUBIE feed: suggest sources and keywords for Olli to review &mdash;
+    </div>
+
+    <div class="flash" id="flash-info">
+        No login needed. See what's already indexed, then drop suggestions below.
+        Olli reviews everything submitted and decides what gets added.
+    </div>
+
+    <div id="flash-status"></div>
+
+    <div class="suggest-wrap">
+
+        <!-- ================= SOURCES ================= -->
+        <div class="suggest-col">
+            <h2>Sources</h2>
+            <div class="col-subtitle">Currently indexed (live)</div>
+            <div class="current-box" id="sources-box">
+                <div class="loading">Loading sources&hellip;</div>
+            </div>
+
+            <div class="suggest-form">
+                <label for="src-name">Source name <span style="color:#c55;">*</span></label>
+                <input type="text" id="src-name" placeholder="e.g. Biophysical Journal">
+
+                <div class="form-grid-2">
+                    <div>
+                        <label for="src-type">Type</label>
+                        <select id="src-type">
+                            <option value="">—</option>
+                            <option>RSS</option>
+                            <option>API</option>
+                            <option>Forum</option>
+                            <option>Social</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="src-priority">Priority</label>
+                        <select id="src-priority">
+                            <option>High</option>
+                            <option selected>Medium</option>
+                            <option>Low</option>
+                        </select>
+                    </div>
+                </div>
+
+                <label for="src-url">URL or endpoint</label>
+                <input type="text" id="src-url" placeholder="https://example.com/rss or r/subreddit_name">
+
+                <label for="src-notes">Why / notes</label>
+                <textarea id="src-notes" placeholder="Why this source? Anything you want Olli to know."></textarea>
+
+                <label for="src-submitter">Your name or handle (optional)</label>
+                <input type="text" id="src-submitter" placeholder="anonymous">
+
+                <div class="submit-row">
+                    <button id="src-submit">Submit source</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= KEYWORDS ================= -->
+        <div class="suggest-col">
+            <h2>Keywords</h2>
+            <div class="col-subtitle">Currently indexed (live) &mdash; weights shown as ×N</div>
+            <div class="current-box" id="kw-box">
+                <div class="loading">Loading keywords&hellip;</div>
+            </div>
+
+            <div class="suggest-form">
+                <label for="kw-phrase">Keyword or phrase <span style="color:#c55;">*</span></label>
+                <input type="text" id="kw-phrase" placeholder="e.g. microtubule coherence">
+
+                <div class="form-grid-2">
+                    <div>
+                        <label for="kw-weight">Suggested weight (1&ndash;10)</label>
+                        <input type="number" id="kw-weight" value="1" min="1" max="10">
+                    </div>
+                    <div>
+                        <label for="kw-submitter">Your name / handle (optional)</label>
+                        <input type="text" id="kw-submitter" placeholder="anonymous">
+                    </div>
+                </div>
+
+                <label for="kw-notes">Why / notes</label>
+                <textarea id="kw-notes" placeholder="Why this keyword? Any context for Olli."></textarea>
+
+                <div class="submit-row">
+                    <button id="kw-submit">Submit keyword</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<script>
+    const statusEl = document.getElementById("flash-status");
+    function showFlash(msg, isError) {
+        statusEl.innerHTML = `<div class="flash ${isError ? 'error' : ''}">${msg}</div>`;
+        setTimeout(() => { statusEl.innerHTML = ""; }, 5000);
+    }
+
+    function parseKeyword(str) {
+        const m = (str || "").match(/^(.*?)\s*\[(\d+)\]\s*$/);
+        if (m) return { phrase: m[1].trim(), weight: parseInt(m[2]) };
+        return { phrase: (str || "").trim(), weight: 1 };
+    }
+
+    // ---- Load current sources ----
+    async function loadSources() {
+        try {
+            const r = await fetch("/api/sources");
+            if (!r.ok) throw new Error("Couldn't load sources");
+            const data = await r.json();
+            const rows = [];
+            for (const tier of Object.keys(data.tiers || {}).sort()) {
+                for (const s of data.tiers[tier]) {
+                    rows.push(`
+                        <div class="src-row">
+                            <span class="name">${s.source_name}</span>
+                            <span class="meta">&middot; ${tier} &middot; ${s.category} &middot; ${s.target}</span>
+                        </div>`);
+                }
+            }
+            document.getElementById("sources-box").innerHTML =
+                rows.length ? rows.join("") : '<div class="loading">No sources found.</div>';
+        } catch (e) {
+            document.getElementById("sources-box").innerHTML =
+                `<div class="loading">${e.message}</div>`;
+        }
+    }
+
+    // ---- Load current keywords ----
+    async function loadKeywords() {
+        try {
+            const r = await fetch("/api/keywords");
+            if (!r.ok) throw new Error("Couldn't load keywords");
+            const data = await r.json();
+            const tags = (data.keywords || []).map(kw => {
+                const { phrase, weight } = parseKeyword(kw);
+                const badge = weight > 1 ? `<span class="kw-weight">${weight}</span>` : "";
+                return `<span class="kw-tag">${phrase}${badge}</span>`;
+            });
+            document.getElementById("kw-box").innerHTML =
+                `<div class="kw-cloud">${tags.join("")}</div>`;
+        } catch (e) {
+            document.getElementById("kw-box").innerHTML =
+                `<div class="loading">${e.message}</div>`;
+        }
+    }
+
+    // ---- Submit source ----
+    document.getElementById("src-submit").addEventListener("click", async () => {
+        const name = document.getElementById("src-name").value.trim();
+        if (!name) { showFlash("Source name is required.", true); return; }
+        const resp = await fetch("/api/suggest-source", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                source_name:    name,
+                type:           document.getElementById("src-type").value,
+                url:            document.getElementById("src-url").value,
+                why_notes:      document.getElementById("src-notes").value,
+                priority:       document.getElementById("src-priority").value,
+                submitted_by:   document.getElementById("src-submitter").value,
+            }),
+        });
+        if (resp.ok) {
+            ["src-name","src-url","src-notes","src-submitter"].forEach(id =>
+                document.getElementById(id).value = "");
+            document.getElementById("src-type").value = "";
+            showFlash(`Thanks! "${name}" has been submitted for Olli to review.`);
+        } else {
+            const err = await resp.json().catch(() => ({}));
+            showFlash(err.error || "Submission failed.", true);
+        }
+    });
+
+    // ---- Submit keyword ----
+    document.getElementById("kw-submit").addEventListener("click", async () => {
+        const phrase = document.getElementById("kw-phrase").value.trim();
+        if (!phrase) { showFlash("Keyword is required.", true); return; }
+        let weight = parseInt(document.getElementById("kw-weight").value) || 1;
+        if (weight < 1) weight = 1;
+        if (weight > 10) weight = 10;
+        const resp = await fetch("/api/suggest-keyword", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                phrase,
+                weight,
+                why_notes:    document.getElementById("kw-notes").value,
+                submitted_by: document.getElementById("kw-submitter").value,
+            }),
+        });
+        if (resp.ok) {
+            ["kw-phrase","kw-notes","kw-submitter"].forEach(id =>
+                document.getElementById(id).value = "");
+            document.getElementById("kw-weight").value = 1;
+            showFlash(`Thanks! "${phrase}" has been submitted for Olli to review.`);
+        } else {
+            const err = await resp.json().catch(() => ({}));
+            showFlash(err.error || "Submission failed.", true);
+        }
+    });
+
+    loadSources();
+    loadKeywords();
+</script>
+
+</body>
+</html>

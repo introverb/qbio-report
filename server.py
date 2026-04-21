@@ -132,6 +132,12 @@ def page_chatter():
     return send_from_directory(HERE, "chatter.html")
 
 
+@app.route("/suggest")
+def page_suggest():
+    """Public suggestion page for DAO members."""
+    return send_from_directory(HERE, "suggest.html")
+
+
 @app.route("/sources")
 @require_auth
 def page_sources():
@@ -183,8 +189,8 @@ def _write_keywords_lines(lines):
 
 
 @app.route("/api/keywords", methods=["GET"])
-@require_auth
 def api_list_keywords():
+    """Public read: DAO members can see current keywords (including weights)."""
     lines, keywords = _read_keywords_file()
     return jsonify({"keywords": keywords, "count": len(keywords)})
 
@@ -358,6 +364,99 @@ def api_add_source_request():
         print(f"WARN: failed to write source_requests_log.md: {e}")
 
     return jsonify({"ok": True, "logged_to": "source_requests_log.md"})
+
+
+# ----------------------------------------------------------------------------
+# Public suggestion endpoints (no auth) — for DAO members via /suggest
+# ----------------------------------------------------------------------------
+KW_SUGGEST_TAB = "Keyword Suggestions"
+
+
+def _ensure_kw_suggest_tab(wb):
+    """Create Keyword Suggestions tab if it doesn't exist yet."""
+    if KW_SUGGEST_TAB in wb.sheetnames:
+        return
+    ws = wb.create_sheet(KW_SUGGEST_TAB)
+    headers = ["Suggested Keyword", "Suggested Weight", "Why / Notes",
+               "Submitted By", "Submitted At", "Status"]
+    ws.append(headers)
+    ws.append(["e.g. microtubule coherence", "3",
+               "Growing relevance for Penrose-Hameroff work",
+               "jane@example.com", "2026-04-21T12:00:00", "Pending"])
+
+
+@app.route("/api/suggest-source", methods=["POST"])
+def api_suggest_source():
+    """Public: DAO member suggests a new source. Flows into Source Requests tab."""
+    data = request.get_json(force=True, silent=True) or {}
+    source_name = (data.get("source_name") or "").strip()
+    if not source_name:
+        return jsonify({"error": "Source name is required"}), 400
+
+    if not os.path.exists(XLSX_FILE):
+        return jsonify({"error": "System not ready (no sources workbook yet)"}), 503
+
+    submitted_by = (data.get("submitted_by") or "").strip() or "anonymous"
+    why_notes = (data.get("why_notes") or "").strip()
+    # Prefix the notes so Olli sees it came from the public form
+    prefixed_notes = f"[Public suggestion by {submitted_by}] {why_notes}".strip()
+
+    wb = load_workbook(XLSX_FILE)
+    if REQUESTS_TAB not in wb.sheetnames:
+        return jsonify({"error": "Requests tab missing"}), 500
+    ws = wb[REQUESTS_TAB]
+    payload = {
+        "source_name":     source_name,
+        "type":            (data.get("type") or "").strip(),
+        "url":             (data.get("url") or "").strip(),
+        "why_notes":       prefixed_notes,
+        "api_key_needed":  (data.get("api_key_needed") or "").strip() or "Unknown",
+        "priority":        (data.get("priority") or "").strip() or "Medium",
+        "status":          "Requested (public)",
+    }
+    ws.append([payload["source_name"], payload["type"], payload["url"],
+               payload["why_notes"], payload["api_key_needed"],
+               payload["priority"], payload["status"]])
+    wb.save(XLSX_FILE)
+
+    # Also append to the markdown log (same as MD submissions)
+    try:
+        _log_source_request(payload)
+    except Exception as e:
+        print(f"WARN: failed to write source_requests_log.md: {e}")
+
+    return jsonify({"ok": True})
+
+
+@app.route("/api/suggest-keyword", methods=["POST"])
+def api_suggest_keyword():
+    """Public: DAO member suggests a new keyword. Goes into Keyword Suggestions tab."""
+    data = request.get_json(force=True, silent=True) or {}
+    phrase = (data.get("phrase") or "").strip()
+    if not phrase:
+        return jsonify({"error": "Keyword is required"}), 400
+    if phrase.startswith("#"):
+        return jsonify({"error": "Keyword cannot start with '#'"}), 400
+
+    if not os.path.exists(XLSX_FILE):
+        return jsonify({"error": "System not ready (no sources workbook yet)"}), 503
+
+    weight = 1
+    try:
+        weight = max(1, min(10, int(data.get("weight") or 1)))
+    except (TypeError, ValueError):
+        weight = 1
+
+    why_notes = (data.get("why_notes") or "").strip()
+    submitted_by = (data.get("submitted_by") or "").strip() or "anonymous"
+    submitted_at = datetime.now().isoformat(timespec="seconds")
+
+    wb = load_workbook(XLSX_FILE)
+    _ensure_kw_suggest_tab(wb)
+    ws = wb[KW_SUGGEST_TAB]
+    ws.append([phrase, weight, why_notes, submitted_by, submitted_at, "Pending"])
+    wb.save(XLSX_FILE)
+    return jsonify({"ok": True})
 
 
 @app.route("/api/source-requests/<int:row_number>", methods=["DELETE"])

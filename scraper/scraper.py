@@ -849,7 +849,8 @@ def _fill_for_status(status):
     return None
 
 
-REQUESTS_TAB_NAME = "Source Requests"
+REQUESTS_TAB_NAME    = "Source Requests"
+KW_SUGGEST_TAB_NAME  = "Keyword Suggestions"
 AUTO_TAB_NAMES = [
     "Summary",
     "Tier 1 - RSS Feeds",
@@ -857,6 +858,7 @@ AUTO_TAB_NAMES = [
     "Tier 3a - Forums",
     "Tier 3b - Social",
 ]
+USER_TAB_NAMES = [REQUESTS_TAB_NAME, KW_SUGGEST_TAB_NAME]
 
 
 def _ensure_requests_tab(wb):
@@ -969,8 +971,14 @@ def write_sources_xlsx(path, unique_count):
     _ensure_requests_tab(wb)
 
     # Force the intended tab order every run.
-    desired_order = AUTO_TAB_NAMES + [REQUESTS_TAB_NAME]
-    wb._sheets = [wb[name] for name in desired_order if name in wb.sheetnames]
+    # Auto tabs first, then user tabs (Source Requests, Keyword Suggestions).
+    # Any other sheets that exist (e.g. created by the web server) come after.
+    desired_order = AUTO_TAB_NAMES + USER_TAB_NAMES
+    remaining = [name for name in wb.sheetnames if name not in desired_order]
+    wb._sheets = (
+        [wb[name] for name in desired_order if name in wb.sheetnames]
+        + [wb[name] for name in remaining]
+    )
 
     wb.save(path)
 

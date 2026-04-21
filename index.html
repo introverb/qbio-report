@@ -36,30 +36,37 @@
             line-height: 1.45;
         }
 
-        /* ---- Site nav (shared across Report / Sources / Keywords) ---- */
+        /* ---- Site nav: public group (left) + admin group in a box (right) ---- */
         .site-nav {
             background: var(--cream-dim);
             border-bottom: 1px solid rgba(45, 27, 48, 0.2);
             padding: 10px 24px;
-            text-align: center;
             font-size: 11px;
             letter-spacing: 0.25em;
             text-transform: uppercase;
             font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
         }
-        .site-nav a {
-            color: var(--dark-purple);
-            text-decoration: none;
-            margin: 0 14px;
-            padding: 4px 8px;
-            border-bottom: none;
+        .site-nav .nav-public, .site-nav .nav-admin { display: flex; align-items: center; }
+        .site-nav a { text-decoration: none; border-bottom: none; margin: 0 6px; padding: 4px 8px; }
+        .site-nav .sep { color: rgba(45, 27, 48, 0.35); padding: 0 2px; font-weight: 400; }
+        .site-nav .nav-public a { color: var(--dark-purple); }
+        .site-nav .nav-public a:hover { color: var(--pink); }
+        .site-nav .nav-public a.active { color: var(--pink); border-bottom: 2px solid var(--pink); }
+        .site-nav .nav-admin {
+            border: 1px solid rgba(45, 27, 48, 0.25);
+            border-radius: 3px;
+            padding: 2px 6px;
+            background: rgba(255, 255, 255, 0.15);
         }
-        .site-nav a:hover { color: var(--pink); }
-        .site-nav a.active {
-            color: var(--pink);
-            border-bottom: 2px solid var(--pink);
-        }
-        .site-nav .sep { color: rgba(45, 27, 48, 0.35); padding: 0 6px; font-weight: 400; }
+        .site-nav .nav-admin a { color: var(--light-purple); opacity: 0.8; }
+        .site-nav .nav-admin a:hover { color: var(--pink); opacity: 1; }
+        .site-nav .nav-admin a.active { color: var(--pink); opacity: 1; border-bottom: 2px solid var(--pink); }
+        .site-nav .nav-admin .sep { color: rgba(125, 74, 110, 0.4); }
 
         .page {
             max-width: 820px;
@@ -105,6 +112,13 @@
             text-transform: uppercase;
             color: var(--dark-purple);
             font-weight: 700;
+        }
+        .masthead .schedule {
+            font-size: 11px;
+            font-style: italic;
+            color: var(--soft-text);
+            margin-top: 8px;
+            letter-spacing: 0.02em;
         }
 
         /* ---------- Recent Stories (chronological, 2-col per side) ---------- */
@@ -594,13 +608,18 @@
 <body>
 
 <nav class="site-nav">
-    <a href="/" class="active">Report</a>
-    <span class="sep">·</span>
-    <a href="/chatter">Chatter</a>
-    <span class="sep">·</span>
-    <a href="/sources">Sources</a>
-    <span class="sep">·</span>
-    <a href="/keywords">Keywords</a>
+    <div class="nav-public">
+        <a href="/" class="active">Report</a>
+        <span class="sep">·</span>
+        <a href="/chatter">Chatter</a>
+        <span class="sep">·</span>
+        <a href="/suggest">Suggest</a>
+    </div>
+    <div class="nav-admin">
+        <a href="/sources">Sources</a>
+        <span class="sep">·</span>
+        <a href="/keywords">Keywords</a>
+    </div>
 </nav>
 
 <div class="page">
@@ -609,6 +628,7 @@
         <div class="title">QUBIE NEWS</div>
         <div class="subtitle">&mdash; the quantum biology headline aggregator &mdash;</div>
         <div class="dateline" id="dateline">Loading&hellip;</div>
+        <div class="schedule">feed refreshes twice daily at 08:00 &amp; 18:00 UTC</div>
     </header>
 
     <div id="status" class="status">Loading feed&hellip;</div>

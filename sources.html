@@ -47,18 +47,69 @@
             width: 100%;
         }
         .request-form textarea { min-height: 50px; resize: vertical; }
+
+        /* Popped-out Source Requests block */
+        .requests-block {
+            margin-top: 56px;
+            padding-top: 40px;
+            border-top: 2px solid var(--dark-purple);
+        }
+        .requests-block .requests-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        .requests-block h2 {
+            font-family: "Chap", "Apercu Pro", sans-serif;
+            font-weight: 400;
+            font-size: 30px;
+            letter-spacing: 0.06em;
+            color: var(--dark-purple);
+            text-transform: uppercase;
+            margin: 0 0 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+        }
+        .requests-block h2::before,
+        .requests-block h2::after {
+            content: "";
+            display: inline-block;
+            width: 22px;
+            height: 25px;
+            background: url("assets/logo-icon.svg") no-repeat center / contain;
+        }
+        .requests-block .requests-subtitle {
+            font-style: italic;
+            font-size: 12px;
+            color: var(--soft-text);
+            letter-spacing: 0.03em;
+        }
+        .requests-block .requests-subtitle a {
+            color: var(--light-purple);
+            border-bottom: 1px solid var(--light-purple);
+        }
+        .requests-block .requests-subtitle a:hover {
+            color: var(--pink);
+            border-bottom-color: var(--pink);
+        }
     </style>
 </head>
 <body>
 
 <nav class="site-nav">
-    <a href="/">Report</a>
-    <span class="sep">·</span>
-    <a href="/chatter">Chatter</a>
-    <span class="sep">·</span>
-    <a href="/sources" class="active">Sources</a>
-    <span class="sep">·</span>
-    <a href="/keywords">Keywords</a>
+    <div class="nav-public">
+        <a href="/">Report</a>
+        <span class="sep">·</span>
+        <a href="/chatter">Chatter</a>
+        <span class="sep">·</span>
+        <a href="/suggest">Suggest</a>
+    </div>
+    <div class="nav-admin">
+        <a href="/sources" class="active">Sources</a>
+        <span class="sep">·</span>
+        <a href="/keywords">Keywords</a>
+    </div>
 </nav>
 
 <main class="admin-page">
@@ -70,6 +121,17 @@
     <div class="tabs" id="tabs"></div>
 
     <div id="panels"></div>
+
+    <!-- Source Requests block: popped out of the tabs for visibility -->
+    <section class="requests-block" id="requests-block">
+        <div class="requests-header">
+            <h2>Source Requests</h2>
+            <div class="requests-subtitle">
+                &mdash; requests you (or DAO members via <a href="/suggest">/suggest</a>) have filed. Olli actions these manually. &mdash;
+            </div>
+        </div>
+        <div id="panel-requests"></div>
+    </section>
 </main>
 
 <script>
@@ -89,7 +151,6 @@
         { id: "tier-2",   label: "Tier 2 — APIs" },
         { id: "tier-3a",  label: "Tier 3a — Forums" },
         { id: "tier-3b",  label: "Tier 3b — Social" },
-        { id: "requests", label: "Source Requests", editable: true },
     ];
 
     function showFlash(msg, isError, target) {
@@ -311,6 +372,9 @@
         const panelsEl = document.getElementById("panels");
         panelsEl.innerHTML = TAB_ORDER.map(t =>
             `<div class="tab-panel" id="panel-${t.id}"></div>`).join("");
+        // Note: #panel-requests lives OUTSIDE of #panels (popped out into its
+        // own always-visible block below the tabs), so it's not toggled by
+        // the tab switching logic.
 
         let data;
         try {
