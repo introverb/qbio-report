@@ -9,6 +9,43 @@
         .tab-panel { display: none; }
         .tab-panel.active { display: block; }
 
+        /* How-to-use intro block */
+        .admin-intro {
+            background: var(--cream-dim);
+            border-left: 3px solid var(--pink);
+            padding: 16px 22px;
+            border-radius: 3px;
+            margin-bottom: 48px;
+        }
+        .admin-intro-head {
+            font-size: 10px;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--pink);
+            margin-bottom: 10px;
+        }
+        .admin-intro ul {
+            margin: 0;
+            padding-left: 20px;
+            line-height: 1.6;
+        }
+        .admin-intro li { margin-bottom: 4px; font-size: 13px; }
+        .admin-intro li:last-child { margin-bottom: 0; }
+        .admin-intro a {
+            color: var(--dark-purple);
+            text-decoration: none;
+            border-bottom: 1px solid var(--dark-purple);
+        }
+        .admin-intro a:hover { color: var(--pink); border-bottom-color: var(--pink); }
+        .admin-intro code {
+            font-family: Consolas, monospace;
+            font-size: 12px;
+            background: var(--cream);
+            padding: 1px 5px;
+            border-radius: 2px;
+        }
+
         /* Section headers */
         .section {
             margin-top: 56px;
@@ -231,6 +268,18 @@
 
     <div id="flash-status"></div>
 
+    <!-- ====== How to use this page ====== -->
+    <div class="admin-intro">
+        <div class="admin-intro-head">How this page works</div>
+        <ul>
+            <li>Four sections below: <b>Source Overview</b> (live stats) &rarr; <b>Source Requests</b> queue &rarr; <b>Keyword Changes</b> queue &rarr; <b>Source Fixes</b> (broken sources).</li>
+            <li><b>Push</b> a source request to auto-apply it (works for RSS feeds &amp; subreddits). Complex requests (new APIs) need Olli &mdash; the button is disabled on those.</li>
+            <li><b>Apply</b> a keyword request to save it to <code>keywords.txt</code>, or use the <b>Quick add</b> form to add a keyword directly. <b>Decline</b> dismisses without applying.</li>
+            <li>Scrapes run automatically at <b>08:00</b> and <b>18:00 UTC</b>. Use <b>Run scrape now</b> for an immediate refresh (~2&ndash;3 min).</li>
+            <li>DAO members submit new sources &amp; keyword weight-changes at <a href="/suggest">/suggest</a> (no login required). They land in the queues here.</li>
+        </ul>
+    </div>
+
     <!-- ====== Section 1: Source Overview (tabs) ====== -->
     <section class="section" style="margin-top:0; padding-top:0; border-top:none;">
         <div class="section-header">
@@ -241,7 +290,7 @@
         <div class="scrape-now-row">
             <button id="scrape-now-btn">Run scrape now</button>
             <span class="scrape-status" id="scrape-status">
-                Fires off a scrape immediately. Takes ~2&ndash;3 minutes.
+                Fires off a scrape immediately. Takes ~2&ndash;3 minutes. Costs Olli an additional ~$0.03 in Anthropic API calls (new blurbs only; cached ones are free).
             </span>
         </div>
         <div class="tabs" id="tabs"></div>
