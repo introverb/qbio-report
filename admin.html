@@ -196,6 +196,101 @@
             margin-bottom: 10px;
         }
 
+        /* Accordion at the bottom of the page */
+        .accordion-section {
+            margin-top: 64px;
+            padding-top: 24px;
+            border-top: 1px dotted rgba(45, 27, 48, 0.3);
+        }
+        .accordion-section details {
+            font-size: 12px;
+        }
+        .accordion-section details summary {
+            cursor: pointer;
+            list-style: none;
+            color: var(--light-purple);
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-size: 11px;
+            padding: 8px 12px;
+            border-radius: 3px;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .accordion-section details summary::-webkit-details-marker { display: none; }
+        .accordion-section details summary::before {
+            content: "▸";
+            color: var(--pink);
+            transition: transform 0.15s;
+            display: inline-block;
+        }
+        .accordion-section details[open] summary::before {
+            transform: rotate(90deg);
+        }
+        .accordion-section details summary:hover {
+            background: rgba(45, 27, 48, 0.04);
+            color: var(--dark-purple);
+        }
+        .accordion-section .accordion-body {
+            background: var(--cream-dim);
+            padding: 20px 24px;
+            border-radius: 3px;
+            margin-top: 10px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .accordion-section .accordion-body h4 {
+            font-family: "Chap", "Apercu Pro", sans-serif;
+            font-weight: 400;
+            font-size: 14px;
+            letter-spacing: 0.08em;
+            color: var(--dark-purple);
+            text-transform: uppercase;
+            margin: 20px 0 8px;
+        }
+        .accordion-section .accordion-body h4:first-child { margin-top: 0; }
+        .accordion-section .accordion-body p { margin: 8px 0; }
+        .accordion-section .accordion-body ul,
+        .accordion-section .accordion-body ol {
+            margin: 6px 0 10px;
+            padding-left: 22px;
+        }
+        .accordion-section .accordion-body li { margin-bottom: 3px; }
+        .accordion-section .accordion-body code {
+            font-family: Consolas, monospace;
+            font-size: 12px;
+            background: var(--cream);
+            padding: 1px 5px;
+            border-radius: 2px;
+        }
+        .accordion-section .accordion-body table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 12px;
+        }
+        .accordion-section .accordion-body th,
+        .accordion-section .accordion-body td {
+            text-align: left;
+            padding: 6px 10px;
+            border-bottom: 1px solid rgba(45, 27, 48, 0.15);
+            vertical-align: top;
+        }
+        .accordion-section .accordion-body th {
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--dark-purple);
+            font-weight: 700;
+        }
+        .accordion-section .accordion-body .warn {
+            color: #c55;
+            font-weight: 700;
+        }
+
         /* Source fixes list */
         .fix-row {
             padding: 10px 14px;
@@ -332,6 +427,94 @@
             <div class="section-subtitle">sources currently in ERROR state &mdash; each needs dev attention</div>
         </div>
         <div id="source-fixes-list"></div>
+    </section>
+
+    <!-- ====== Accordion: DNS / custom-domain setup (collapsed by default) ====== -->
+    <section class="accordion-section">
+        <details>
+            <summary>Custom domain setup &mdash; how to point <code>qubie.quantumbiologydao.xyz</code> at this site</summary>
+            <div class="accordion-body">
+                <p><i>This needs to happen once, by whoever manages DNS for quantumbiologydao.xyz. ~15 min of work + up to 1 hour of waiting.</i></p>
+
+                <h4>What's happening, plainly</h4>
+                <p>Right now QUBIE News lives at a Railway URL. We want a DAO-branded URL instead. The way this works:</p>
+                <ol>
+                    <li>Railway tells us: &ldquo;if you want this domain to point at us, add this record in DNS.&rdquo;</li>
+                    <li>The DNS admin adds a <b>CNAME record</b> (an alias saying &ldquo;this subdomain is really at that Railway address&rdquo;).</li>
+                    <li>Railway detects the DNS change, auto-provisions a free SSL certificate, and the new URL works.</li>
+                </ol>
+                <p>You don't need to move the site. You don't need to touch any files. You just add one DNS record.</p>
+
+                <h4>Step 1 — Get the Railway CNAME target <i>(Olli does this)</i></h4>
+                <ol>
+                    <li>Open Railway &rarr; the <code>qbio-report</code> project &rarr; click the service.</li>
+                    <li>Click <b>Settings</b> &rarr; scroll to <b>Networking</b> &rarr; <b>Public Networking</b>.</li>
+                    <li>Click <b>Add Custom Domain</b>.</li>
+                    <li>Enter: <code>qubie.quantumbiologydao.xyz</code>.</li>
+                    <li>Railway displays a <b>CNAME target</b> &mdash; looks like <code>xyz.up.railway.app</code>. <b>Copy this value.</b> Send it to the DNS admin.</li>
+                </ol>
+
+                <h4>Step 2 — Add the DNS record <i>(DNS admin does this)</i></h4>
+                <p>Wherever DNS for <code>quantumbiologydao.xyz</code> is managed, find the DNS / DNS Settings / DNS Records area, then add a single new record:</p>
+                <table>
+                    <thead>
+                        <tr><th>Field <i>(name varies by platform)</i></th><th>Value</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Type</td><td><code>CNAME</code></td></tr>
+                        <tr><td>Host / Name / Subdomain</td><td><code>qubie</code> <i>(not the full domain &mdash; just the prefix)</i></td></tr>
+                        <tr><td>Value / Target / Points to / Data</td><td><i>the CNAME target Railway gave us in Step 1</i></td></tr>
+                        <tr><td>TTL</td><td>default / auto</td></tr>
+                        <tr><td>Proxy status <i>(Cloudflare only)</i></td><td><b class="warn">OFF</b> &mdash; &ldquo;DNS only&rdquo; / gray cloud</td></tr>
+                    </tbody>
+                </table>
+                <p>Save the record.</p>
+
+                <h4>Where to find DNS settings on common platforms</h4>
+                <ul>
+                    <li><b>Squarespace</b> &mdash; Settings &rarr; Domains &rarr; [your domain] &rarr; DNS Settings &rarr; Custom Records.</li>
+                    <li><b>Wix</b> &mdash; Domains &rarr; manage the domain &rarr; Advanced &rarr; DNS Records.</li>
+                    <li><b>GoDaddy</b> &mdash; My Products &rarr; DNS &rarr; Manage Zones &rarr; Add record.</li>
+                    <li><b>Namecheap</b> &mdash; Domain List &rarr; Manage &rarr; Advanced DNS &rarr; Add New Record.</li>
+                    <li><b>Cloudflare</b> &mdash; DNS &rarr; Records &rarr; Add record. <span class="warn">Set it to &ldquo;DNS only&rdquo; (gray cloud), not &ldquo;Proxied&rdquo; (orange cloud)</span> &mdash; Railway needs direct DNS to provision SSL.</li>
+                    <li><b>Google Domains</b> <i>(now migrated to Squarespace)</i> &mdash; see Squarespace above.</li>
+                    <li><b>Route 53 / other</b> &mdash; look for &ldquo;CNAME record set&rdquo; or &ldquo;new resource record.&rdquo;</li>
+                </ul>
+
+                <h4>Step 3 — Wait & verify</h4>
+                <ul>
+                    <li>DNS typically propagates in <b>5&ndash;30 minutes</b>. Sometimes longer.</li>
+                    <li>Railway <b>auto-provisions</b> an SSL cert once it sees the DNS change (usually within ~5 min after propagation).</li>
+                    <li>In Railway, the custom-domain row flips from <b>Pending</b> to <b>Active</b> when ready.</li>
+                    <li>Visit <code>https://qubie.quantumbiologydao.xyz</code> &mdash; should load QUBIE News with a green padlock.</li>
+                </ul>
+
+                <h4>Troubleshooting</h4>
+                <table>
+                    <thead><tr><th>Symptom</th><th>Likely cause / fix</th></tr></thead>
+                    <tbody>
+                        <tr><td>Still &ldquo;Pending&rdquo; after 1 hour</td><td>DNS didn't propagate. Check at <b>dnschecker.org</b> — type <code>qubie.quantumbiologydao.xyz</code>, choose CNAME. If no rows show, the record is wrong.</td></tr>
+                        <tr><td>Browser shows SSL error</td><td>Railway is still provisioning the cert &mdash; wait 5&ndash;10 min.</td></tr>
+                        <tr><td>Cloudflare says &ldquo;Domain ambiguous&rdquo;</td><td>The orange-cloud (Proxied) setting is on. Toggle to gray-cloud (DNS only).</td></tr>
+                        <tr><td>&ldquo;Conflicting record&rdquo; when adding</td><td>A prior <code>qubie</code> record exists. Delete the old one, then add the new CNAME.</td></tr>
+                    </tbody>
+                </table>
+
+                <h4>Things to avoid</h4>
+                <ul>
+                    <li><span class="warn">Don't use an A record</span> (IP address) &mdash; Railway's IPs change.</li>
+                    <li><span class="warn">Don't use a URL-redirect / forward</span> &mdash; breaks SSL and hides the real address.</li>
+                    <li><span class="warn">Don't stack CNAMEs</span> (e.g., <code>qubie</code> &rarr; <code>somewhere-else</code> &rarr; Railway) &mdash; keep it one hop.</li>
+                </ul>
+
+                <h4>After it works</h4>
+                <ul>
+                    <li>Give your MD the new URL: <code>https://qubie.quantumbiologydao.xyz</code>.</li>
+                    <li>Update any existing bookmarks.</li>
+                    <li>The Railway URL keeps working indefinitely alongside it (no rush to retire it).</li>
+                </ul>
+            </div>
+        </details>
     </section>
 </main>
 
