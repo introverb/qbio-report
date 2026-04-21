@@ -355,7 +355,14 @@
             el.innerHTML = '<div class="empty-state-small">No pending source requests.</div>';
             return;
         }
-        el.innerHTML = requests.map(r => `
+        el.innerHTML = requests.map(r => {
+            const type = (r.type || "").toLowerCase();
+            const pushable = (type === "rss" || type === "forum");
+            const pushHint = pushable
+                ? "Push this request into the runtime config (next scrape picks it up)"
+                : "This request type needs dev review — paste it to Claude instead";
+            const pushBtn = `<button data-push="${r.row_number}" ${pushable ? "" : "disabled style='opacity:0.4;cursor:not-allowed;'"} title="${pushHint}">Push</button>`;
+            return `
             <div class="request-card">
                 <div class="rc-header">
                     <span class="rc-title">${r.source_name}</span>
@@ -368,15 +375,32 @@
                 </div>
                 ${r.why_notes ? `<div class="rc-notes">${r.why_notes}</div>` : ""}
                 <div class="rc-actions">
-                    <button class="danger" data-row="${r.row_number}">Dismiss</button>
+                    <button class="danger" data-dismiss="${r.row_number}">Dismiss</button>
+                    ${pushBtn}
                 </div>
-            </div>`).join("");
-        el.querySelectorAll("button[data-row]").forEach(btn => {
+            </div>`;
+        }).join("");
+
+        el.querySelectorAll("button[data-dismiss]").forEach(btn => {
             btn.addEventListener("click", async () => {
                 if (!confirm("Dismiss this source request?")) return;
-                const r = await fetch(`/api/source-requests/${btn.dataset.row}`, { method: "DELETE" });
+                const r = await fetch(`/api/source-requests/${btn.dataset.dismiss}`, { method: "DELETE" });
                 if (r.ok) { showFlash("Dismissed."); loadSourceRequests(); }
                 else      { showFlash("Dismiss failed.", true); }
+            });
+        });
+
+        el.querySelectorAll("button[data-push]").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const row = btn.dataset.push;
+                const r = await fetch(`/api/source-requests/${row}/push`, { method: "POST" });
+                const d = await r.json().catch(() => ({}));
+                if (r.ok) {
+                    showFlash(`Pushed to ${d.applied_to}. Next scrape will include it.`);
+                    loadSourceRequests();
+                } else {
+                    showFlash(d.error || "Push failed.", true);
+                }
             });
         });
     }

@@ -83,6 +83,47 @@ STACK_EXCHANGE = [
     ("chemistry", "quantum biology"),
 ]
 
+# --- Merge in runtime sources config (pushed via /admin's "Push" button) ---
+# Admins can push new RSS feeds or subreddits through the UI; those get
+# appended to sources_config.json on the volume. We merge them here so the
+# scraper picks them up on the very next run.
+def _merge_runtime_sources():
+    global RSS_FEEDS, REDDIT_SUBREDDITS
+    path = SOURCES_CONFIG_FILE
+    if not os.path.exists(path):
+        return
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            cfg = json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"[runtime-sources] couldn't parse {path}: {e}")
+        return
+
+    added_feeds = 0
+    for item in cfg.get("rss_feeds", []):
+        name = (item.get("name") or "").strip()
+        url  = (item.get("url") or "").strip()
+        cat  = (item.get("category") or "news").strip()
+        if name and url:
+            RSS_FEEDS.append((name, url, cat))
+            added_feeds += 1
+
+    added_subs = 0
+    existing_subs_lower = {s.lower() for s in REDDIT_SUBREDDITS}
+    for sub in cfg.get("reddit_subreddits", []):
+        s = (sub or "").strip().lstrip("r/").lstrip("/r/")
+        if s and s.lower() not in existing_subs_lower:
+            REDDIT_SUBREDDITS.append(s)
+            existing_subs_lower.add(s.lower())
+            added_subs += 1
+
+    if added_feeds or added_subs:
+        print(f"[runtime-sources] merged from {path}: "
+              f"+{added_feeds} RSS feed(s), +{added_subs} subreddit(s)")
+
+
+_merge_runtime_sources()
+
 # How many keywords to OR together into a single API call.
 # (Avoids URL-length limits; PubMed/arXiv/EuropePMC all handle chunked queries fine.)
 KEYWORD_CHUNK_SIZE = 10
@@ -96,6 +137,10 @@ OUTPUT_FILE   = os.path.join(DATA_DIR, "feed.json")
 XLSX_FILE     = os.path.join(DATA_DIR, "QBIO-Report-Sources.xlsx")
 SOURCES_JSON  = os.path.join(DATA_DIR, "sources.json")
 KEYWORDS_FILE = os.path.join(DATA_DIR, "keywords.txt")
+# User-pushed sources (runtime overrides). The server's Admin page writes here
+# when someone clicks "Push" on a source request. Merged with hardcoded
+# RSS_FEEDS / REDDIT_SUBREDDITS at scrape time.
+SOURCES_CONFIG_FILE = os.path.join(DATA_DIR, "sources_config.json")
 # Fallback to bundled keywords.txt if the data dir doesn't have one yet
 # (first run on a fresh volume).
 if not os.path.exists(KEYWORDS_FILE):

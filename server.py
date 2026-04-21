@@ -372,6 +372,48 @@ def api_add_source_request():
 
 
 # ----------------------------------------------------------------------------
+# Runtime sources config — where /admin's "Push" button writes
+# ----------------------------------------------------------------------------
+SOURCES_CONFIG_FILE = os.path.join(DATA_DIR, "sources_config.json")
+
+
+def _load_sources_config():
+    if not os.path.exists(SOURCES_CONFIG_FILE):
+        return {"rss_feeds": [], "reddit_subreddits": []}
+    try:
+        with open(SOURCES_CONFIG_FILE, "r", encoding="utf-8") as f:
+            cfg = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        cfg = {}
+    cfg.setdefault("rss_feeds", [])
+    cfg.setdefault("reddit_subreddits", [])
+    return cfg
+
+
+def _save_sources_config(cfg):
+    with open(SOURCES_CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+
+
+_SUBREDDIT_URL_RE = _re.compile(r"reddit\.com/r/([A-Za-z0-9_]+)", _re.IGNORECASE)
+
+
+def _extract_subreddit(name_or_url):
+    """Pull a subreddit name from a URL or a bare 'r/foo' / 'foo' string."""
+    s = (name_or_url or "").strip()
+    if not s:
+        return None
+    m = _SUBREDDIT_URL_RE.search(s)
+    if m:
+        return m.group(1)
+    # bare "r/foo" or "/r/foo"
+    s_stripped = s.lstrip("/").lstrip("r/").lstrip()
+    if s_stripped and "/" not in s_stripped and " " not in s_stripped and "." not in s_stripped:
+        return s_stripped
+    return None
+
+
+# ----------------------------------------------------------------------------
 # Public suggestion endpoints (no auth) — for DAO members via /suggest
 # ----------------------------------------------------------------------------
 KW_SUGGEST_TAB = "Keyword Suggestions"
@@ -587,6 +629,70 @@ def api_decline_kw_suggestion(row_number):
     ws.delete_rows(row_number, 1)
     wb.save(XLSX_FILE)
     return jsonify({"ok": True})
+
+
+@app.route("/api/source-requests/<int:row_number>/push", methods=["POST"])
+@require_auth
+def api_push_source_request(row_number):
+    """Try to auto-apply a source request by writing to sources_config.json.
+    Simple RSS + subreddit requests are auto-applicable. Complex API/social
+    requests return 400 with a reason explaining that dev review is needed."""
+    if row_number < 2:
+        return jsonify({"error": "Cannot push header row"}), 400
+    if not os.path.exists(XLSX_FILE):
+        return jsonify({"error": "Workbook missing"}), 404
+
+    wb = load_workbook(XLSX_FILE)
+    if REQUESTS_TAB not in wb.sheetnames:
+        return jsonify({"error": "Requests tab missing"}), 404
+    ws = wb[REQUESTS_TAB]
+    if row_number > ws.max_row:
+        return jsonify({"error": "Row out of range"}), 404
+
+    source_name = (ws.cell(row=row_number, column=1).value or "").strip()
+    type_       = (ws.cell(row=row_number, column=2).value or "").strip().lower()
+    url_target  = (ws.cell(row=row_number, column=3).value or "").strip()
+
+    if not source_name:
+        return jsonify({"error": "Row has no source name"}), 400
+
+    cfg = _load_sources_config()
+    applied_to = None
+
+    if type_ == "rss":
+        if not url_target or not url_target.lower().startswith(("http://", "https://")):
+            return jsonify({"error": "RSS request has no valid URL. Edit the request or push manually."}), 400
+        cfg["rss_feeds"].append({
+            "name":     source_name,
+            "url":      url_target,
+            "category": "news",  # default category; admin can re-categorize later
+        })
+        applied_to = "RSS feeds"
+
+    elif type_ == "forum":
+        sub = _extract_subreddit(url_target) or _extract_subreddit(source_name)
+        if not sub:
+            return jsonify({
+                "error": "Forum request doesn't look like a Reddit subreddit "
+                         "(expected URL like reddit.com/r/X or 'r/X'). "
+                         "For Hacker News or Stack Exchange additions, Claude needs to wire them up."
+            }), 400
+        existing = {s.lower() for s in cfg["reddit_subreddits"]}
+        if sub.lower() in existing:
+            return jsonify({"error": f"r/{sub} is already in the runtime subreddit list."}), 400
+        cfg["reddit_subreddits"].append(sub)
+        applied_to = f"Reddit subreddits (r/{sub})"
+
+    else:
+        return jsonify({
+            "error": f"'{type_ or 'unknown'}' requests need dev review. Paste the request details to Claude."
+        }), 400
+
+    _save_sources_config(cfg)
+    # Remove the pushed row from the queue
+    ws.delete_rows(row_number, 1)
+    wb.save(XLSX_FILE)
+    return jsonify({"ok": True, "applied_to": applied_to})
 
 
 @app.route("/api/source-requests/<int:row_number>", methods=["DELETE"])
