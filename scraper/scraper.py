@@ -49,10 +49,11 @@ RSS_FEEDS = [
     ("arXiv — Quantitative Biology",  "https://rss.arxiv.org/rss/q-bio",                                     "preprint"),
     ("bioRxiv — Biophysics",          "http://connect.biorxiv.org/biorxiv_xml.php?subject=biophysics",       "preprint"),
     ("bioRxiv — Biochemistry",        "http://connect.biorxiv.org/biorxiv_xml.php?subject=biochemistry",     "preprint"),
-    ("ChemRxiv",                      "https://chemrxiv.org/engage/chemrxiv/public-api/v1/items/rss",        "preprint"),
+    # Dropped: ChemRxiv and Royal Society Interface (both Cloudflare 403).
+    # Their papers are still indexed via Europe PMC (ChemRxiv) and PubMed (RSIF),
+    # both of which we already query — so coverage isn't lost.
     ("Nature Physics",                "https://www.nature.com/nphys.rss",                                    "paper"),
     ("Nature Chemistry",              "https://www.nature.com/nchem.rss",                                    "paper"),
-    ("Royal Society Interface",       "https://royalsocietypublishing.org/action/showFeed?jc=rsif&type=etoc&feed=rss", "paper"),
     ("Nature",                        "https://www.nature.com/nature.rss",                                   "paper"),
     ("Science Magazine",              "https://www.science.org/action/showFeed?type=etoc&feed=rss&jc=science","paper"),
     ("PNAS",                          "https://www.pnas.org/action/showFeed?type=etoc&feed=rss&jc=pnas",     "paper"),
@@ -153,6 +154,10 @@ REQUEST_TIMEOUT = 20
 USER_AGENT      = "QBIO-Report/1.0 (contact: ollipayne182@gmail.com)"
 HEADERS         = {"User-Agent": USER_AGENT}
 API_DELAY       = 0.4
+
+# Reddit requires a distinctive, app-identifying User-Agent. They block
+# generic UAs and cloud-provider IPs unless requests are OAuth-authenticated.
+REDDIT_UA       = "QUBIE-News-scraper/1.0 (contact: ollipayne182@gmail.com)"
 
 MAX_PER_CALL = 50
 
@@ -499,17 +504,76 @@ def fetch_europepmc(keywords):
 # FETCHER: Reddit
 # ============================================================================
 
+# Reddit blocks unauthenticated requests from cloud provider IPs (like
+# Railway's). We use Client Credentials OAuth — register an app at
+# reddit.com/prefs/apps and set REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET.
+# Token is cached in-process so we authenticate once per scrape run.
+_REDDIT_TOKEN_CACHE = {"token": None, "expires_at": 0}
+
+
+def _get_reddit_token():
+    """Fetch a Reddit OAuth token via client-credentials grant. Returns None if
+    credentials aren't configured or the auth call fails."""
+    client_id     = os.environ.get("REDDIT_CLIENT_ID")
+    client_secret = os.environ.get("REDDIT_CLIENT_SECRET")
+    if not client_id or not client_secret:
+        return None
+
+    now = time.time()
+    if _REDDIT_TOKEN_CACHE["token"] and now < _REDDIT_TOKEN_CACHE["expires_at"]:
+        return _REDDIT_TOKEN_CACHE["token"]
+
+    try:
+        r = requests.post(
+            "https://www.reddit.com/api/v1/access_token",
+            auth=(client_id, client_secret),
+            data={"grant_type": "client_credentials"},
+            headers={"User-Agent": REDDIT_UA},
+            timeout=REQUEST_TIMEOUT,
+        )
+        if r.status_code != 200:
+            print(f"    [reddit-oauth] token fetch HTTP {r.status_code}: {r.text[:160]}")
+            return None
+        data = r.json()
+        token = data.get("access_token")
+        expires_in = int(data.get("expires_in", 3600))
+        if token:
+            _REDDIT_TOKEN_CACHE["token"] = token
+            _REDDIT_TOKEN_CACHE["expires_at"] = now + expires_in - 60  # refresh 60s early
+        return token
+    except Exception as e:
+        print(f"    [reddit-oauth] token fetch error: {e}")
+        return None
+
+
 def fetch_reddit(subreddit, keywords):
+    """Pull recent posts from a subreddit. Uses OAuth when REDDIT_CLIENT_ID +
+    REDDIT_CLIENT_SECRET are set (needed on Railway since Reddit blocks
+    cloud-IP unauth'd requests); falls back to the public JSON endpoint
+    otherwise (works from most developer machines)."""
     print(f"  Reddit: r/{subreddit} ...")
     error = ""
     posts_seen = 0
     articles = []
+
+    token = _get_reddit_token()
+    if token:
+        url = f"https://oauth.reddit.com/r/{subreddit}/new"
+        headers = {"User-Agent": REDDIT_UA, "Authorization": f"Bearer {token}"}
+    else:
+        url = f"https://www.reddit.com/r/{subreddit}/new.json"
+        headers = {"User-Agent": REDDIT_UA}
+
     try:
         r = requests.get(
-            f"https://www.reddit.com/r/{subreddit}/new.json",
-            params={"limit": MAX_PER_CALL},
-            timeout=REQUEST_TIMEOUT, headers=HEADERS,
+            url, params={"limit": MAX_PER_CALL},
+            timeout=REQUEST_TIMEOUT, headers=headers,
         )
+        if r.status_code != 200:
+            raise Exception(f"HTTP {r.status_code}")
+        ctype = r.headers.get("Content-Type", "")
+        if "application/json" not in ctype:
+            raise Exception(f"Non-JSON response (content-type: {ctype[:60]}) — likely bot-blocked or rate-limited")
         children = r.json().get("data", {}).get("children", [])
         posts_seen = len(children)
         for child in children:
@@ -526,9 +590,10 @@ def fetch_reddit(subreddit, keywords):
         error = str(e)
         print(f"    ERROR: {error}")
 
+    notes = "OAuth (REDDIT_CLIENT_ID/SECRET set)" if token else "Unauthenticated (will fail on cloud IPs)"
     record_stats("Tier 3a", "Reddit", f"r/{subreddit}", "forums",
-                 len(articles), posts_seen, error)
-    print(f"    -> {len(articles)} matched (of {posts_seen} posts)")
+                 len(articles), posts_seen, error, notes=notes)
+    print(f"    -> {len(articles)} matched (of {posts_seen} posts) [{notes}]")
     return articles
 
 
