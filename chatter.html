@@ -205,6 +205,10 @@
             color: var(--light-purple);
             letter-spacing: 0.05em;
         }
+        /* 0-item sources: muted but still interactive (in case they produce hits later) */
+        .source-picker-row label.empty { opacity: 0.5; }
+        .source-picker-row label.empty:hover { opacity: 0.75; background: var(--cream-dim); }
+        .source-picker-row label.empty .label-count { color: var(--soft-text); }
         .filter-row button {
             background: transparent;
             border: 1px solid var(--light-purple);
@@ -570,7 +574,23 @@
         else label.textContent = `Sources: ${picked}/${total}`;
     }
 
-    function buildSourcePickerList() {
+    // Map a row from /api/sources (tier tabs) to the same normalized-source key
+    // we use on the feed side, so configured sources and feed-derived sources merge.
+    function configuredSourceKey(row) {
+        const name   = row.source_name || "";
+        const target = row.target || "";
+        if (name === "Reddit") return target ? `Reddit \u00b7 ${target}` : null;  // "Reddit · r/quantumbiology"
+        if (name.startsWith("Hacker News")) return "Hacker News";
+        if (name === "Stack Exchange") {
+            // target format from scraper: "biology: quantum" — we want "Stack Exchange · biology"
+            const site = (target.split(":")[0] || "").trim();
+            return site ? `Stack Exchange \u00b7 ${site}` : null;
+        }
+        if (name === "Bluesky") return "Bluesky";
+        return null;  // not a chatter source we care about
+    }
+
+    async function buildSourcePickerList() {
         // Count items per normalized source (from the full corpus, not the
         // current filter — keeps counts stable when users change filters)
         const counts = {};
@@ -578,17 +598,36 @@
             const key = normalizeSource(a.source);
             counts[key] = (counts[key] || 0) + 1;
         }
+
+        // Also pull all CONFIGURED chatter sources from /api/sources so silent
+        // ones (0 items this scrape) still appear, grayed out.
+        try {
+            const r = await fetch("/api/sources");
+            if (r.ok) {
+                const data = await r.json();
+                const tiers = data.tiers || {};
+                const configuredRows = (tiers["Tier 3a"] || []).concat(tiers["Tier 3b"] || []);
+                for (const row of configuredRows) {
+                    const key = configuredSourceKey(row);
+                    if (key && !(key in counts)) counts[key] = 0;
+                }
+            }
+        } catch (e) { /* fall back to feed-only sources */ }
+
         const sortedKeys = Object.keys(counts).sort();
         allSourcesSet = new Set(sortedKeys);
-        selectedSources = new Set(sortedKeys); // start with all selected
+        selectedSources = new Set(sortedKeys);  // default: all selected
 
         const list = document.getElementById("source-picker-list");
-        list.innerHTML = sortedKeys.map(key => `
-            <label>
-                <input type="checkbox" data-src="${encodeURIComponent(key)}" checked>
-                <span class="label-name">${key}</span>
-                <span class="label-count">${counts[key]}</span>
-            </label>`).join("");
+        list.innerHTML = sortedKeys.map(key => {
+            const cls = counts[key] === 0 ? "empty" : "";
+            return `
+                <label class="${cls}" title="${counts[key] === 0 ? 'Configured but no items in this scrape' : ''}">
+                    <input type="checkbox" data-src="${encodeURIComponent(key)}" checked>
+                    <span class="label-name">${key}</span>
+                    <span class="label-count">${counts[key]}</span>
+                </label>`;
+        }).join("");
         list.querySelectorAll('input[type="checkbox"]').forEach(cb => {
             cb.addEventListener("change", () => {
                 const src = decodeURIComponent(cb.dataset.src);
@@ -648,7 +687,7 @@
             if (!r.ok) throw new Error("NO FEED.JSON — scraper hasn't run yet.");
             return r.json();
         })
-        .then(data => {
+        .then(async (data) => {
             const articles = data.articles || [];
             allItems = articles
                 .filter(isChatter)
@@ -661,7 +700,7 @@
                 `Feed generated ${formatTimestamp(data.generated_at)}`;
             document.getElementById("status").remove();
 
-            buildSourcePickerList();
+            await buildSourcePickerList();
             applyFilter();
         })
         .catch(err => {
