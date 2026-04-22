@@ -57,7 +57,10 @@ _seed_volume()
 # Admin pages redirect unauthed users to /login; admin APIs return 401 JSON.
 # ============================================================================
 
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "coherence")
+# Admin password for /admin. MUST be set as an env var in production.
+# The placeholder below only exists so the server can start locally for
+# development without env vars; it is NOT a valid production password.
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD") or "please-set-ADMIN_PASSWORD-env-var"
 # Note: app.secret_key is set a few lines below, right after app is created.
 
 
@@ -81,9 +84,10 @@ LOG_SENTINEL = "<!-- NEW_ENTRIES_BELOW -->\n\n"
 PORT = int(os.environ.get("PORT", 8000))
 
 app = Flask(__name__, static_folder=HERE, static_url_path="")
-# Sign session cookies with a secret derived from the password so rotating
-# the password invalidates existing sessions. Override via FLASK_SECRET_KEY.
-app.secret_key = os.environ.get("FLASK_SECRET_KEY") or (ADMIN_PASSWORD + "-qbio-session-salt")
+# Session cookies are signed with this secret. MUST be set as an env var in
+# production — the placeholder fallback is only for local dev so the server
+# can boot without env vars. Rotating FLASK_SECRET_KEY invalidates all sessions.
+app.secret_key = os.environ.get("FLASK_SECRET_KEY") or "please-set-FLASK_SECRET_KEY-env-var"
 
 
 # ============================================================================
