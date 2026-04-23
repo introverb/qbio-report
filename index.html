@@ -365,6 +365,7 @@
         .badge-news     { background: var(--pink);         color: var(--near-black); }
         .badge-forums   { background: transparent;         color: var(--dark-purple); border: 1px solid var(--dark-purple); }
         .badge-social   { background: transparent;         color: var(--light-purple); border: 1px solid var(--light-purple); }
+        .badge-video    { background: var(--cream);        color: var(--dark-purple); border: 1px solid var(--dark-purple); }
 
         /* ---------- Status / empty ---------- */
         .status {
@@ -621,6 +622,8 @@
         <span class="sep">·</span>
         <a href="/chatter">Chatter</a>
         <span class="sep">·</span>
+        <a href="/video">Video</a>
+        <span class="sep">·</span>
         <a href="/suggest">Suggest</a>
     </div>
     <div class="nav-admin">
@@ -773,7 +776,8 @@
     function categoryLabel(cat) {
         const labels = {
             "paper": "Paper", "preprint": "Preprint",
-            "news": "News",   "forums": "Forum",  "social": "Social"
+            "news": "News",   "forums": "Forum",  "social": "Social",
+            "video": "Video"
         };
         return labels[cat] || cat;
     }

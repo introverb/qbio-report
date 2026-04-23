@@ -256,6 +256,7 @@ table.data td.mono { font-family: monospace; font-size: 11px; color: var(--soft-
 .badge-news     { background: var(--pink);         color: var(--near-black); }
 .badge-forums   { background: transparent; color: var(--dark-purple); border: 1px solid var(--dark-purple); }
 .badge-social   { background: transparent; color: var(--light-purple); border: 1px solid var(--light-purple); }
+.badge-video    { background: var(--cream); color: var(--dark-purple); border: 1px solid var(--dark-purple); }
 
 /* ---- Keyword tag (on the Keywords page) ---- */
 .kw-tag {

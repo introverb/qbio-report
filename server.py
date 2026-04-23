@@ -136,6 +136,11 @@ def page_chatter():
     return send_from_directory(HERE, "chatter.html")
 
 
+@app.route("/video")
+def page_video():
+    return send_from_directory(HERE, "video.html")
+
+
 @app.route("/suggest")
 def page_suggest():
     """Public suggestion page for DAO members."""

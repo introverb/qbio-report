@@ -87,6 +87,16 @@ STACK_EXCHANGE = [
     ("chemistry", "quantum biology"),
 ]
 
+# --- YouTube channels (Tier 4) -----------------------------------------
+# Each entry: (channel_display_name, channel_id). The channel ID starts with
+# "UC" and can be found at youtube.com/channel/UC... or by visiting the
+# channel's About page on YT. Channel RSS is unauth'd and unlimited.
+YOUTUBE_CHANNELS = [
+    ("The Royal Institution", "UCYeF244yNGuFefuFKqxIAXw"),
+    ("Sabine Hossenfelder",   "UC1yNl2E66ZzKApQdRuTQ4tw"),
+    ("PBS Space Time",        "UC7_gcs09iThXybpVgjHZ_7g"),
+]
+
 # --- Merge in runtime sources config (pushed via /admin's "Push" button) ---
 # Admins can push new RSS feeds or subreddits through the UI; those get
 # appended to sources_config.json on the volume. We merge them here so the
@@ -279,7 +289,8 @@ def parse_date_to_iso(date_str):
     return ""
 
 
-def make_article(title, link, source, category, date, score, matched, summary):
+def make_article(title, link, source, category, date, score, matched, summary, thumbnail=""):
+    """`thumbnail` is an optional URL (populated for videos)."""
     return {
         "title":             title,
         "link":              link,
@@ -290,6 +301,7 @@ def make_article(title, link, source, category, date, score, matched, summary):
         "score":             score,
         "matched_keywords":  matched,
         "summary":           summary[:500] if summary else "",
+        "thumbnail":         thumbnail or "",
     }
 
 
@@ -662,6 +674,133 @@ def fetch_openalex(keywords):
                  notes=f"Chunked into {len(list(chunk_list(keywords, KEYWORD_CHUNK_SIZE)))} API calls")
     print(f"    -> {len(all_articles)} matched (of {total_seen} results across chunks)")
     return all_articles
+
+
+# ============================================================================
+# FETCHER: YouTube Data API — keyword search across all of YouTube
+# ============================================================================
+# Requires YOUTUBE_API_KEY env var. Free quota: 10,000 units/day; search.list
+# costs 100 units per call. With our chunked keyword approach that's ~5 calls
+# per scrape = 500 units = well under quota.
+
+def fetch_youtube_api(keywords):
+    """Keyword-search videos on YouTube via the Data API v3."""
+    api_key = os.environ.get("YOUTUBE_API_KEY")
+    if not api_key:
+        print("  API: YouTube search ... skipped (no YOUTUBE_API_KEY set)")
+        record_stats("Tier 4", "YouTube Data API", "search.list",
+                     "video", 0, 0, "",
+                     notes="Skipped — get a free key at console.cloud.google.com")
+        return []
+
+    print("  API: YouTube search ...")
+    all_articles = []
+    error = ""
+    total_seen = 0
+    seen_links = set()
+
+    for chunk in chunk_list(keywords, KEYWORD_CHUNK_SIZE):
+        query = " ".join(chunk)
+        try:
+            r = requests.get(
+                "https://www.googleapis.com/youtube/v3/search",
+                params={
+                    "key": api_key,
+                    "q": query,
+                    "part": "snippet",
+                    "type": "video",
+                    "maxResults": 50,        # YT API max per page
+                    "order": "date",
+                    "relevanceLanguage": "en",
+                    "safeSearch": "none",
+                },
+                timeout=REQUEST_TIMEOUT, headers=HEADERS,
+            )
+            if r.status_code != 200:
+                raise Exception(f"HTTP {r.status_code}: {r.text[:160]}")
+            items = r.json().get("items", []) or []
+        except Exception as e:
+            error = str(e)
+            print(f"    ERROR: {error}")
+            break
+        total_seen += len(items)
+        for item in items:
+            video_id = (item.get("id") or {}).get("videoId", "")
+            snip     = item.get("snippet") or {}
+            if not video_id: continue
+            link = f"https://www.youtube.com/watch?v={video_id}"
+            if link in seen_links: continue
+            seen_links.add(link)
+
+            title       = snip.get("title", "")
+            desc        = snip.get("description", "")
+            channel     = snip.get("channelTitle", "")
+            published   = snip.get("publishedAt", "")
+            thumbs      = snip.get("thumbnails") or {}
+            thumb_url   = ((thumbs.get("high") or thumbs.get("medium") or thumbs.get("default")) or {}).get("url", "")
+            score, matched = score_article(title, desc, keywords)
+            if score > 0:
+                source_name = f"YouTube · {channel}" if channel else "YouTube"
+                all_articles.append(make_article(
+                    title, link, source_name, "video", published, score, matched, desc,
+                    thumbnail=thumb_url,
+                ))
+        time.sleep(API_DELAY)
+
+    record_stats("Tier 4", "YouTube Data API",
+                 "https://www.googleapis.com/youtube/v3/search",
+                 "video", len(all_articles), total_seen, error,
+                 notes=f"Chunked into {len(list(chunk_list(keywords, KEYWORD_CHUNK_SIZE)))} API calls (~100 quota units each)")
+    print(f"    -> {len(all_articles)} matched (of {total_seen} videos across chunks)")
+    return all_articles
+
+
+# ============================================================================
+# FETCHER: YouTube channel RSS — follow specific creators (free, no auth)
+# ============================================================================
+
+def fetch_youtube_channel(channel_name, channel_id, keywords):
+    """Fetch a specific YouTube channel's RSS feed."""
+    print(f"  YouTube RSS: {channel_name} ...")
+    url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
+    error = ""
+    entries_count = 0
+    articles = []
+    try:
+        response = requests.get(url, timeout=REQUEST_TIMEOUT, headers=HEADERS)
+        if response.status_code >= 400:
+            raise Exception(f"HTTP {response.status_code}")
+        feed = feedparser.parse(response.content)
+        entries_count = len(feed.entries)
+        for entry in feed.entries[:MAX_PER_CALL]:
+            title = clean_html(getattr(entry, "title", ""))
+            link  = getattr(entry, "link", "")
+            date  = getattr(entry, "published", "") or getattr(entry, "updated", "")
+            # YouTube RSS: description is under media_description or summary
+            desc  = clean_html(getattr(entry, "summary", "") or "")
+            # Thumbnail: media:thumbnail
+            thumb = ""
+            mthumbs = getattr(entry, "media_thumbnail", None)
+            if mthumbs and isinstance(mthumbs, list) and mthumbs:
+                thumb = mthumbs[0].get("url", "")
+            elif not thumb and "yt_videoid" in getattr(entry, "keys", lambda: [])():
+                thumb = f"https://i.ytimg.com/vi/{entry['yt_videoid']}/hqdefault.jpg"
+            score, matched = score_article(title, desc, keywords)
+            if score > 0:
+                articles.append(make_article(
+                    title, link, f"YouTube · {channel_name}", "video",
+                    date, score, matched, desc,
+                    thumbnail=thumb,
+                ))
+    except Exception as e:
+        error = str(e)
+        print(f"    ERROR: {error}")
+
+    record_stats("Tier 4", "YouTube (RSS)", channel_name, "video",
+                 len(articles), entries_count, error,
+                 notes=f"channel_id: {channel_id}")
+    print(f"    -> {len(articles)} matched (of {entries_count} videos)")
+    return articles
 
 
 # ============================================================================
@@ -1329,6 +1468,14 @@ def main():
     # -- Tier 3b: Social --
     print("[Tier 3b] Social")
     all_articles.extend(fetch_bluesky(keywords))
+    print()
+
+    # -- Tier 4: Video --
+    print("[Tier 4] Video")
+    all_articles.extend(fetch_youtube_api(keywords))
+    for channel_name, channel_id in YOUTUBE_CHANNELS:
+        all_articles.extend(fetch_youtube_channel(channel_name, channel_id, keywords))
+        time.sleep(API_DELAY)
     print()
 
     # -- Deduplicate by title --

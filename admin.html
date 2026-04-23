@@ -351,6 +351,8 @@
         <span class="sep">·</span>
         <a href="/chatter">Chatter</a>
         <span class="sep">·</span>
+        <a href="/video">Video</a>
+        <span class="sep">·</span>
         <a href="/suggest">Suggest</a>
     </div>
     <div class="nav-admin">
@@ -467,6 +469,7 @@
         { key: "Tier 2",  label: "Search APIs" },
         { key: "Tier 3a", label: "Forums" },
         { key: "Tier 3b", label: "Social" },
+        { key: "Tier 4",  label: "Video" },
     ];
     const TAB_ORDER = [
         { id: "summary",  label: "Summary" },
@@ -474,6 +477,7 @@
         { id: "tier-2",   label: "Tier 2 — APIs" },
         { id: "tier-3a",  label: "Tier 3a — Forums" },
         { id: "tier-3b",  label: "Tier 3b — Social" },
+        { id: "tier-4",   label: "Tier 4 — Video" },
     ];
 
     const statusEl = document.getElementById("flash-status");
@@ -742,7 +746,7 @@
 
         // Summary + tier tabs
         document.getElementById("panel-summary").innerHTML = renderSummary(data);
-        const tierIds = ["tier-1", "tier-2", "tier-3a", "tier-3b"];
+        const tierIds = ["tier-1", "tier-2", "tier-3a", "tier-3b", "tier-4"];
         TIER_KEYS.forEach((t, i) => {
             document.getElementById(`panel-${tierIds[i]}`).innerHTML =
                 renderTier((data.tiers || {})[t.key] || []);
