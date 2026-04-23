@@ -49,6 +49,9 @@ RSS_FEEDS = [
     ("arXiv — Quantitative Biology",  "https://rss.arxiv.org/rss/q-bio",                                     "preprint"),
     ("bioRxiv — Biophysics",          "http://connect.biorxiv.org/biorxiv_xml.php?subject=biophysics",       "preprint"),
     ("bioRxiv — Biochemistry",        "http://connect.biorxiv.org/biorxiv_xml.php?subject=biochemistry",     "preprint"),
+    ("bioRxiv — Molecular Biology",   "http://connect.biorxiv.org/biorxiv_xml.php?subject=molecular_biology","preprint"),
+    ("bioRxiv — Systems Biology",     "http://connect.biorxiv.org/biorxiv_xml.php?subject=systems_biology",  "preprint"),
+    ("bioRxiv — Neuroscience",        "http://connect.biorxiv.org/biorxiv_xml.php?subject=neuroscience",     "preprint"),
     # Dropped: ChemRxiv and Royal Society Interface (both Cloudflare 403).
     # Their papers are still indexed via Europe PMC (ChemRxiv) and PubMed (RSIF),
     # both of which we already query — so coverage isn't lost.
@@ -123,8 +126,6 @@ def _merge_runtime_sources():
               f"+{added_feeds} RSS feed(s), +{added_subs} subreddit(s)")
 
 
-_merge_runtime_sources()
-
 # How many keywords to OR together into a single API call.
 # (Avoids URL-length limits; PubMed/arXiv/EuropePMC all handle chunked queries fine.)
 KEYWORD_CHUNK_SIZE = 10
@@ -148,6 +149,9 @@ if not os.path.exists(KEYWORDS_FILE):
     bundled = os.path.join(HERE, "keywords.txt")
     if os.path.exists(bundled):
         KEYWORDS_FILE = bundled
+
+# Now that SOURCES_CONFIG_FILE is defined, actually merge any runtime overrides.
+_merge_runtime_sources()
 
 # --- Request settings ----------------------------------------------------
 REQUEST_TIMEOUT = 20
@@ -494,6 +498,166 @@ def fetch_europepmc(keywords):
 
     record_stats("Tier 2", "Europe PMC",
                  "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+                 "paper", len(all_articles), total_seen, error,
+                 notes=f"Chunked into {len(list(chunk_list(keywords, KEYWORD_CHUNK_SIZE)))} API calls")
+    print(f"    -> {len(all_articles)} matched (of {total_seen} results across chunks)")
+    return all_articles
+
+
+# ============================================================================
+# FETCHER: Semantic Scholar (~200M papers, free API, no key required)
+# ============================================================================
+
+def fetch_semantic_scholar(keywords):
+    """Search Semantic Scholar for papers matching our keywords.
+    Without an API key, their public tier is very aggressively rate-limited
+    from cloud IPs (~0 reliable results per scrape). Gated on env var
+    SEMANTIC_SCHOLAR_API_KEY; skip entirely if not set.
+    Apply for a free key: https://www.semanticscholar.org/product/api#api-key-form
+    """
+    api_key = os.environ.get("SEMANTIC_SCHOLAR_API_KEY")
+    if not api_key:
+        print("  API: Semantic Scholar ... skipped (no SEMANTIC_SCHOLAR_API_KEY set)")
+        record_stats("Tier 2", "Semantic Scholar",
+                     "https://api.semanticscholar.org/graph/v1/paper/search",
+                     "paper", 0, 0, "",
+                     notes="Skipped — apply for free API key at semanticscholar.org/product/api")
+        return []
+
+    print("  API: Semantic Scholar ...")
+    all_articles = []
+    error = ""
+    total_seen = 0
+    seen_links = set()
+    headers_with_key = {**HEADERS, "x-api-key": api_key}
+
+    for chunk in chunk_list(keywords, KEYWORD_CHUNK_SIZE):
+        # Semantic Scholar's `query` is natural-language relevance search; join
+        # chunk phrases with spaces and let their ranker sort it out.
+        query = " ".join(chunk)
+        try:
+            r = requests.get(
+                "https://api.semanticscholar.org/graph/v1/paper/search",
+                params={
+                    "query": query,
+                    "limit": MAX_PER_CALL,
+                    "fields": "title,abstract,url,externalIds,publicationDate,venue,year",
+                },
+                timeout=REQUEST_TIMEOUT, headers=headers_with_key,
+            )
+            if r.status_code == 429:
+                print(f"    rate-limited, backing off")
+                time.sleep(5)
+                continue
+            if r.status_code != 200:
+                raise Exception(f"HTTP {r.status_code}")
+            results = r.json().get("data", []) or []
+        except Exception as e:
+            error = str(e)
+            print(f"    ERROR: {error}")
+            break
+        total_seen += len(results)
+        for item in results:
+            title    = item.get("title") or ""
+            abstract = item.get("abstract") or ""
+            ext_ids  = item.get("externalIds") or {}
+            # Prefer DOI > arXiv > S2 URL
+            link = ""
+            if ext_ids.get("DOI"):
+                link = f"https://doi.org/{ext_ids['DOI']}"
+            elif ext_ids.get("ArXiv"):
+                link = f"https://arxiv.org/abs/{ext_ids['ArXiv']}"
+            elif item.get("url"):
+                link = item["url"]
+            if not link or link in seen_links:
+                continue
+            seen_links.add(link)
+            date  = item.get("publicationDate") or (str(item["year"]) + "-01-01" if item.get("year") else "")
+            venue = item.get("venue") or ""
+            score, matched = score_article(title, abstract, keywords)
+            if score > 0:
+                source_name = f"Semantic Scholar · {venue}" if venue else "Semantic Scholar"
+                all_articles.append(make_article(title, link, source_name, "paper", date, score, matched, abstract))
+        time.sleep(API_DELAY * 3)  # Stricter rate limit without API key
+
+    record_stats("Tier 2", "Semantic Scholar",
+                 "https://api.semanticscholar.org/graph/v1/paper/search",
+                 "paper", len(all_articles), total_seen, error,
+                 notes=f"Chunked into {len(list(chunk_list(keywords, KEYWORD_CHUNK_SIZE)))} API calls")
+    print(f"    -> {len(all_articles)} matched (of {total_seen} results across chunks)")
+    return all_articles
+
+
+# ============================================================================
+# FETCHER: OpenAlex (250M+ scholarly works, free API, no key)
+# ============================================================================
+
+def _reconstruct_abstract(inverted_index):
+    """OpenAlex returns abstracts as {word: [positions]} — rebuild the string."""
+    if not inverted_index:
+        return ""
+    try:
+        words_at = {}
+        for word, positions in inverted_index.items():
+            for p in positions:
+                words_at[p] = word
+        return " ".join(words_at[i] for i in sorted(words_at))
+    except Exception:
+        return ""
+
+
+def fetch_openalex(keywords):
+    """Search OpenAlex for works matching our keywords. Free, no key needed."""
+    print("  API: OpenAlex ...")
+    all_articles = []
+    error = ""
+    total_seen = 0
+    seen_links = set()
+
+    for chunk in chunk_list(keywords, KEYWORD_CHUNK_SIZE):
+        query = " ".join(chunk)
+        try:
+            r = requests.get(
+                "https://api.openalex.org/works",
+                params={
+                    "search": query,
+                    "per-page": MAX_PER_CALL,
+                    "sort": "publication_date:desc",
+                    # Email in `mailto` puts us in OpenAlex's "polite pool" (faster)
+                    "mailto": "ollipayne182@gmail.com",
+                },
+                timeout=REQUEST_TIMEOUT, headers=HEADERS,
+            )
+            if r.status_code != 200:
+                raise Exception(f"HTTP {r.status_code}")
+            results = r.json().get("results", []) or []
+        except Exception as e:
+            error = str(e)
+            print(f"    ERROR: {error}")
+            break
+        total_seen += len(results)
+        for item in results:
+            title    = item.get("title") or item.get("display_name") or ""
+            abstract = _reconstruct_abstract(item.get("abstract_inverted_index"))
+            doi      = item.get("doi") or ""
+            # doi is already a URL like "https://doi.org/10.xxxx"
+            link     = doi or item.get("id") or ""
+            if not link or link in seen_links:
+                continue
+            seen_links.add(link)
+            date = item.get("publication_date") or (
+                str(item["publication_year"]) + "-01-01" if item.get("publication_year") else ""
+            )
+            primary_loc = item.get("primary_location") or {}
+            venue = (primary_loc.get("source") or {}).get("display_name", "") if primary_loc else ""
+            score, matched = score_article(title, abstract, keywords)
+            if score > 0:
+                source_name = f"OpenAlex · {venue}" if venue else "OpenAlex"
+                all_articles.append(make_article(title, link, source_name, "paper", date, score, matched, abstract))
+        time.sleep(API_DELAY)
+
+    record_stats("Tier 2", "OpenAlex",
+                 "https://api.openalex.org/works",
                  "paper", len(all_articles), total_seen, error,
                  notes=f"Chunked into {len(list(chunk_list(keywords, KEYWORD_CHUNK_SIZE)))} API calls")
     print(f"    -> {len(all_articles)} matched (of {total_seen} results across chunks)")
@@ -1147,6 +1311,8 @@ def main():
     all_articles.extend(fetch_pubmed(keywords))
     all_articles.extend(fetch_arxiv_api(keywords))
     all_articles.extend(fetch_europepmc(keywords))
+    all_articles.extend(fetch_semantic_scholar(keywords))
+    all_articles.extend(fetch_openalex(keywords))
     print()
 
     # -- Tier 3a: Forums --
