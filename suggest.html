@@ -6,6 +6,43 @@
     <title>QUBIE News — Suggest</title>
     <link rel="stylesheet" href="assets/shared.css">
     <style>
+        /* How-to-contribute intro block (mirrors /admin's intro styling) */
+        .suggest-intro {
+            background: var(--cream-dim);
+            border-left: 3px solid var(--pink);
+            padding: 18px 24px;
+            border-radius: 3px;
+            margin: 0 0 40px;
+        }
+        .suggest-intro-head {
+            font-size: 11px;
+            letter-spacing: 0.28em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--pink);
+            margin-bottom: 12px;
+        }
+        .suggest-intro ul {
+            margin: 0;
+            padding-left: 22px;
+            line-height: 1.65;
+        }
+        .suggest-intro li { margin-bottom: 6px; font-size: 14px; }
+        .suggest-intro li:last-child { margin-bottom: 0; }
+        .suggest-intro code {
+            font-family: Consolas, monospace;
+            font-size: 12px;
+            background: var(--cream);
+            padding: 1px 5px;
+            border-radius: 2px;
+        }
+        .suggest-intro a {
+            color: var(--dark-purple);
+            text-decoration: none;
+            border-bottom: 1px solid var(--dark-purple);
+        }
+        .suggest-intro a:hover { color: var(--pink); border-bottom-color: var(--pink); }
+
         .suggest-wrap {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -237,9 +274,15 @@
         &mdash; help shape the QUBIE feed: suggest sources and keywords for Olli to review &mdash;
     </div>
 
-    <div class="flash" id="flash-info">
-        No login needed. See what's already indexed, then drop suggestions below.
-        Olli reviews everything submitted and decides what gets added.
+    <div class="suggest-intro">
+        <div class="suggest-intro-head">How to contribute</div>
+        <ul>
+            <li><b>QUBIE News is built by the DAO.</b> Anyone can suggest new sources (journals, preprints, YouTube channels, forums) or new keywords &mdash; <b>no login required.</b></li>
+            <li><b>Sources</b> are where we look. <b>Keywords</b> are what we consider relevant. Each keyword has a weight <b>1&ndash;10</b>: higher = article mentioning it ranks higher in the feed. Currently <code>quantum biology</code> and <code>radical pair</code> are core terms worth weighting heavily.</li>
+            <li><b>Check before suggesting.</b> Sources we already pull from are in the <b>left column</b> below; keywords already in the scoring system are in the <b>right cloud</b>. If it's already there, no need to re-add.</li>
+            <li><b>Click any existing keyword tag</b> to request a weight change &mdash; e.g. if you think <code>cryptochrome</code> should count for more, click it, pick a new weight, submit with your reasoning.</li>
+            <li><b>Suggest anything missing</b> via the two forms below. Olli reviews everything in the admin queue. Approved changes take effect on the <b>next scrape</b> (within 12 hours, or sooner if Olli triggers a manual one).</li>
+        </ul>
     </div>
 
     <div id="flash-status"></div>
