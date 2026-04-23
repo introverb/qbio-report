@@ -798,7 +798,7 @@ def _start_scheduler():
     # Qubie lives in LA — run the cron on Pacific time so scrapes fire at the
     # same local hour year-round (no DST drift).
     scheduler = BackgroundScheduler(timezone="America/Los_Angeles", daemon=True)
-    hours_str = os.environ.get("SCRAPE_HOURS", "1,11")
+    hours_str = os.environ.get("SCRAPE_HOURS", "7,16")
     for h in [h.strip() for h in hours_str.split(",") if h.strip()]:
         try:
             scheduler.add_job(run_scrape_sync, CronTrigger(hour=int(h), minute=0),
