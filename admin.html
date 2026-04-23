@@ -123,6 +123,39 @@
             color: #4a7c4a;
         }
 
+        /* Progress bar — appears below the button row while a scrape is running */
+        .scrape-progress {
+            display: none;
+            width: 100%;
+            max-width: 520px;
+            margin: 6px 0 24px;
+        }
+        .scrape-progress.visible { display: block; }
+        .scrape-progress-track {
+            width: 100%;
+            height: 10px;
+            background: var(--cream-dim);
+            border: 1px solid rgba(45, 27, 48, 0.18);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .scrape-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--light-purple), var(--pink));
+            transition: width 0.35s ease-out;
+        }
+        .scrape-progress-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            letter-spacing: 0.05em;
+            color: var(--soft-text);
+            margin-top: 4px;
+            font-family: Consolas, monospace;
+        }
+        .scrape-progress-meta .now { color: var(--dark-purple); font-style: italic; }
+
         .empty-state-small {
             padding: 20px;
             text-align: center;
@@ -392,6 +425,13 @@
             <span class="scrape-status" id="scrape-status">
                 Fires off a scrape immediately. Takes ~2&ndash;3 minutes. Costs Olli an additional ~$0.03.
             </span>
+        </div>
+        <div class="scrape-progress" id="scrape-progress">
+            <div class="scrape-progress-track"><div class="scrape-progress-fill" id="scrape-progress-fill"></div></div>
+            <div class="scrape-progress-meta">
+                <span id="scrape-progress-counts">0 / 0</span>
+                <span class="now" id="scrape-progress-current">&hellip;</span>
+            </div>
         </div>
         <div class="tabs" id="tabs"></div>
         <div id="panels"></div>
@@ -769,9 +809,22 @@
     // Scrape-now button + progress polling
     // =========================================================
     function wireScrapeNowButton(baselineGeneratedAt) {
-        const btn = document.getElementById("scrape-now-btn");
+        const btn    = document.getElementById("scrape-now-btn");
         const status = document.getElementById("scrape-status");
-        let pollTimer = null;
+        const bar    = document.getElementById("scrape-progress");
+        const fill   = document.getElementById("scrape-progress-fill");
+        const counts = document.getElementById("scrape-progress-counts");
+        const nowEl  = document.getElementById("scrape-progress-current");
+        let progressTimer = null;
+        let feedTimer     = null;
+
+        function showBar()  { bar.classList.add("visible"); }
+        function hideBar()  { bar.classList.remove("visible"); }
+        function setBar(pct, done, total, currentLabel) {
+            fill.style.width = Math.max(0, Math.min(100, pct)) + "%";
+            counts.textContent = `${done} / ${total}  ·  ${pct}%`;
+            nowEl.textContent = currentLabel ? `now: ${currentLabel}` : "";
+        }
 
         btn.addEventListener("click", async () => {
             if (btn.disabled) return;
@@ -779,6 +832,8 @@
             btn.textContent = "Scraping…";
             status.className = "scrape-status running";
             status.textContent = "Scrape started. Polling for completion…";
+            setBar(0, 0, 0, "starting…");
+            showBar();
 
             let resp;
             try {
@@ -788,6 +843,7 @@
                 status.textContent = "Couldn't kick off scrape: " + e.message;
                 btn.disabled = false;
                 btn.textContent = "Run scrape now";
+                hideBar();
                 return;
             }
             if (!resp.ok) {
@@ -796,43 +852,70 @@
                 status.textContent = err.error || "Scrape failed to start.";
                 btn.disabled = false;
                 btn.textContent = "Run scrape now";
+                hideBar();
                 return;
             }
 
-            const startedAt = new Date();
-            const POLL_INTERVAL_MS = 15000;
+            const startedAt = Date.now();
             const MAX_WAIT_MS = 10 * 60 * 1000;  // 10 min hard cap
 
-            const poll = async () => {
+            function markComplete(generatedAtIso) {
+                clearInterval(progressTimer); progressTimer = null;
+                clearInterval(feedTimer);     feedTimer     = null;
+                setBar(100, 0, 0, "done");   // counts filled by last progress tick
+                status.className = "scrape-status done";
+                const timeStr = generatedAtIso
+                    ? new Date(generatedAtIso).toLocaleTimeString("en-US", { timeZone: "America/Los_Angeles", timeZoneName: "short" })
+                    : "";
+                status.textContent = `Scrape complete${timeStr ? ` at ${timeStr}` : ""}. Reloading…`;
+                setTimeout(() => location.reload(), 1200);
+            }
+
+            // Fine-grained progress poll (1.5s)
+            const pollProgress = async () => {
+                try {
+                    const r = await fetch("/api/scrape-progress", { cache: "no-store" });
+                    if (!r.ok) return;
+                    const p = await r.json();
+                    if (!p.total) return; // progress file not written yet
+                    setBar(p.percent || 0, p.done || 0, p.total || 0, p.current || "");
+                    if (!p.running && p.finished_at) markComplete(null);
+                } catch (_) { /* swallow */ }
+            };
+
+            // Elapsed timer + timeout watchdog + feed.json fallback (5s)
+            const pollFeed = async () => {
                 try {
                     const r = await fetch("/feed.json", { cache: "no-store" });
                     if (r.ok) {
                         const data = await r.json();
                         const gen = data.generated_at;
                         if (gen && gen !== baselineGeneratedAt) {
-                            clearInterval(pollTimer);
-                            status.className = "scrape-status done";
-                            status.textContent = `Scrape complete at ${new Date(gen).toLocaleTimeString("en-US", { timeZone: "America/Los_Angeles", timeZoneName: "short" })}. Reloading…`;
-                            setTimeout(() => location.reload(), 1200);
+                            markComplete(gen);
                             return;
                         }
                     }
-                } catch (e) { /* swallow; will retry */ }
+                } catch (_) { /* swallow */ }
 
-                const elapsed = Date.now() - startedAt.getTime();
+                const elapsed = Date.now() - startedAt;
                 const mins = Math.floor(elapsed / 60000);
                 const secs = Math.floor((elapsed % 60000) / 1000);
                 status.textContent = `Scraping… elapsed ${mins}m ${String(secs).padStart(2, "0")}s`;
                 if (elapsed > MAX_WAIT_MS) {
-                    clearInterval(pollTimer);
+                    clearInterval(progressTimer); progressTimer = null;
+                    clearInterval(feedTimer);     feedTimer     = null;
                     status.className = "scrape-status";
                     status.textContent = "Scrape took longer than 10 minutes; check Railway logs.";
                     btn.disabled = false;
                     btn.textContent = "Run scrape now";
+                    hideBar();
                 }
             };
-            pollTimer = setInterval(poll, POLL_INTERVAL_MS);
-            poll(); // kick once immediately for faster feedback
+
+            progressTimer = setInterval(pollProgress, 1500);
+            feedTimer     = setInterval(pollFeed, 5000);
+            pollProgress();
+            pollFeed();
         });
     }
 </script>

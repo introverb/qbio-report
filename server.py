@@ -172,6 +172,36 @@ def serve_feed():
     return send_from_directory(DATA_DIR, "feed.json")
 
 
+SCRAPE_PROGRESS_FILE = os.path.join(DATA_DIR, "scrape_progress.json")
+
+
+@app.route("/api/scrape-progress", methods=["GET"])
+def api_scrape_progress():
+    """Return the current scrape progress (written by scraper after each source).
+    No-auth — polled by /admin during a scrape. Returns {running, done, total,
+    percent, current, started_at, finished_at} or {running: false} if no file."""
+    if not os.path.exists(SCRAPE_PROGRESS_FILE):
+        return jsonify({"running": False})
+    try:
+        with open(SCRAPE_PROGRESS_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f) or {}
+    except (json.JSONDecodeError, OSError):
+        return jsonify({"running": False})
+    total   = int(data.get("total") or 0)
+    done    = int(data.get("done") or 0)
+    percent = int(round(100 * done / total)) if total else 0
+    finished = bool(data.get("finished_at"))
+    return jsonify({
+        "running":      not finished,
+        "done":         done,
+        "total":        total,
+        "percent":      percent,
+        "current":      data.get("current") or "",
+        "started_at":   data.get("started_at"),
+        "finished_at": data.get("finished_at"),
+    })
+
+
 @app.route("/sources.json")
 def serve_sources_json():
     if not os.path.exists(SOURCES_JSON):

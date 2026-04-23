@@ -151,6 +151,9 @@ OUTPUT_FILE   = os.path.join(DATA_DIR, "feed.json")
 XLSX_FILE     = os.path.join(DATA_DIR, "QBIO-Report-Sources.xlsx")
 SOURCES_JSON  = os.path.join(DATA_DIR, "sources.json")
 KEYWORDS_FILE = os.path.join(DATA_DIR, "keywords.txt")
+# Progress file: updated after each source so the admin UI can render a
+# real progress bar while the scrape is running. Cleared/replaced each run.
+SCRAPE_PROGRESS_FILE = os.path.join(DATA_DIR, "scrape_progress.json")
 # User-pushed sources (runtime overrides). The server's Admin page writes here
 # when someone clicks "Push" on a source request. Merged with hardcoded
 # RSS_FEEDS / REDDIT_SUBREDDITS at scrape time.
@@ -185,6 +188,47 @@ MAX_PER_CALL = 50
 # Each row: {tier, source_name, target, category, matched, total, status, error, notes}
 
 STATS_ROWS = []
+
+
+# ============================================================================
+# PROGRESS TRACKING (for the admin UI progress bar)
+# ============================================================================
+# Updated after each source. The server exposes /api/scrape-progress, the
+# admin page polls every 1.5s while scraping.
+
+PROGRESS = {
+    "done":         0,
+    "total":        0,
+    "current":      "",
+    "started_at":   None,
+    "finished_at":  None,
+}
+
+def _progress_write():
+    try:
+        with open(SCRAPE_PROGRESS_FILE, "w", encoding="utf-8") as f:
+            json.dump(PROGRESS, f)
+    except Exception as e:
+        print(f"  [progress] write failed: {e}")
+
+def progress_init(total):
+    PROGRESS["total"]        = total
+    PROGRESS["done"]         = 0
+    PROGRESS["current"]      = "starting"
+    PROGRESS["started_at"]   = datetime.now().isoformat(timespec="seconds")
+    PROGRESS["finished_at"]  = None
+    _progress_write()
+
+def progress_tick(label):
+    PROGRESS["done"]    += 1
+    PROGRESS["current"] = label
+    _progress_write()
+
+def progress_finish():
+    PROGRESS["done"]         = PROGRESS["total"]
+    PROGRESS["current"]      = "done"
+    PROGRESS["finished_at"]  = datetime.now().isoformat(timespec="seconds")
+    _progress_write()
 
 def record_stats(tier, source_name, target, category, matched, total, error="", notes=""):
     """Record a per-source result for the xlsx output."""
@@ -1443,45 +1487,67 @@ def main():
 
     all_articles = []
 
+    # Total = every source-fetch call + 1 "finalizing" step at the end.
+    total_steps = (
+        len(RSS_FEEDS)
+        + 5  # pubmed, arxiv, europepmc, semantic scholar, openalex
+        + len(REDDIT_SUBREDDITS)
+        + 1  # hackernews
+        + len(STACK_EXCHANGE)
+        + 1  # bluesky
+        + 1  # youtube API
+        + len(YOUTUBE_CHANNELS)
+        + 1  # finalizing (dedupe + blurbs + write)
+    )
+    progress_init(total_steps)
+
     # -- Tier 1: RSS Feeds --
     print("[Tier 1] RSS Feeds")
     for name, url, category in RSS_FEEDS:
         all_articles.extend(fetch_rss(name, url, category, keywords))
+        progress_tick(f"RSS: {name}")
         time.sleep(API_DELAY)
     print()
 
     # -- Tier 2: Search APIs (chunked, uses ALL keywords) --
     print("[Tier 2] Search APIs")
-    all_articles.extend(fetch_pubmed(keywords))
-    all_articles.extend(fetch_arxiv_api(keywords))
-    all_articles.extend(fetch_europepmc(keywords))
-    all_articles.extend(fetch_semantic_scholar(keywords))
-    all_articles.extend(fetch_openalex(keywords))
+    all_articles.extend(fetch_pubmed(keywords));           progress_tick("PubMed")
+    all_articles.extend(fetch_arxiv_api(keywords));        progress_tick("arXiv API")
+    all_articles.extend(fetch_europepmc(keywords));        progress_tick("Europe PMC")
+    all_articles.extend(fetch_semantic_scholar(keywords)); progress_tick("Semantic Scholar")
+    all_articles.extend(fetch_openalex(keywords));         progress_tick("OpenAlex")
     print()
 
     # -- Tier 3a: Forums --
     print("[Tier 3a] Forums")
     for sub in REDDIT_SUBREDDITS:
         all_articles.extend(fetch_reddit(sub, keywords))
+        progress_tick(f"Reddit r/{sub}")
         time.sleep(API_DELAY)
-    all_articles.extend(fetch_hackernews(keywords))
+    all_articles.extend(fetch_hackernews(keywords)); progress_tick("Hacker News")
     for site, q in STACK_EXCHANGE:
         all_articles.extend(fetch_stack_exchange(site, q, keywords))
+        progress_tick(f"Stack: {site}")
         time.sleep(API_DELAY)
     print()
 
     # -- Tier 3b: Social --
     print("[Tier 3b] Social")
-    all_articles.extend(fetch_bluesky(keywords))
+    all_articles.extend(fetch_bluesky(keywords)); progress_tick("Bluesky")
     print()
 
     # -- Tier 4: Video --
     print("[Tier 4] Video")
-    all_articles.extend(fetch_youtube_api(keywords))
+    all_articles.extend(fetch_youtube_api(keywords)); progress_tick("YouTube API")
     for channel_name, channel_id in YOUTUBE_CHANNELS:
         all_articles.extend(fetch_youtube_channel(channel_name, channel_id, keywords))
+        progress_tick(f"YouTube: {channel_name}")
         time.sleep(API_DELAY)
     print()
+
+    # -- Finalize: dedupe, sort, blurbs, write --
+    PROGRESS["current"] = "finalizing (dedup + blurbs + write)"
+    _progress_write()
 
     # -- Deduplicate by title --
     seen = set()
@@ -1525,6 +1591,8 @@ def main():
     print(f"  Wrote: {out_path}")
     print(f"  Wrote: {xlsx_path}")
     print("=" * 60)
+
+    progress_finish()
 
 
 if __name__ == "__main__":
