@@ -71,13 +71,13 @@
 
         /* Current-items pane */
         .current-box {
-            max-height: 280px;
+            max-height: 220px;
             overflow-y: auto;
             border: 1px solid rgba(125, 74, 110, 0.3);
             background: var(--cream-dim);
             padding: 12px 16px;
             border-radius: 3px;
-            margin-bottom: 24px;
+            margin-bottom: 18px;
         }
         .current-box::-webkit-scrollbar { width: 8px; }
         .current-box::-webkit-scrollbar-track { background: transparent; }
@@ -86,6 +86,48 @@
             border-radius: 4px;
         }
         .current-box .loading { color: var(--soft-text); font-style: italic; padding: 20px; text-align: center; }
+
+        /* Category sub-header above each sources box */
+        .sources-subhead {
+            font-size: 10px;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--light-purple);
+            margin: 20px 0 6px;
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+        }
+        .sources-subhead:first-child { margin-top: 0; }
+        .sources-subhead .count {
+            font-size: 10px;
+            font-weight: 400;
+            font-style: italic;
+            color: var(--soft-text);
+            letter-spacing: 0.05em;
+        }
+
+        /* "Already indexed" block heading above the browse boxes */
+        .browse-heading {
+            margin-top: 32px;
+            margin-bottom: 10px;
+        }
+        .browse-heading .t {
+            font-family: "Chap", "Apercu Pro", sans-serif;
+            font-weight: 400;
+            font-size: 18px;
+            letter-spacing: 0.06em;
+            color: var(--dark-purple);
+            text-transform: uppercase;
+        }
+        .browse-heading .s {
+            font-style: italic;
+            font-size: 12px;
+            color: var(--soft-text);
+            letter-spacing: 0.03em;
+            margin-top: 2px;
+        }
 
         /* Sources list rows */
         .src-row {
@@ -281,9 +323,10 @@
         <ul>
             <li><b>QUBIE News is built by the DAO.</b> Anyone can suggest new sources (journals, preprints, YouTube channels, forums) or new keywords &mdash; <b>no login required.</b></li>
             <li><b>Sources</b> are where we look. <b>Keywords</b> are what we consider relevant. Each keyword has a weight <b>1&ndash;10</b>: higher = article mentioning it ranks higher in the feed. Currently <code>quantum biology</code> and <code>radical pair</code> are core terms worth weighting heavily.</li>
-            <li><b>Check before suggesting.</b> Sources we already pull from are in the <b>left column</b> below; keywords already in the scoring system are in the <b>right cloud</b>. If it's already there, no need to re-add.</li>
+            <li><b>Submit via the forms below.</b> Sources land on the left, keywords on the right.</li>
+            <li><b>Check before suggesting.</b> Under each form, the <i>Already Indexed</i> panel shows what's currently in rotation &mdash; sources are grouped by <b>Research</b>, <b>Chatter</b>, and <b>Video</b>. If it's already there, no need to re-add.</li>
             <li><b>Click any existing keyword tag</b> to request a weight change &mdash; e.g. if you think <code>cryptochrome</code> should count for more, click it, pick a new weight, submit with your reasoning.</li>
-            <li><b>Suggest anything missing</b> via the two forms below. Olli reviews everything in the admin queue. Approved changes take effect on the <b>next scrape</b> (within 12 hours, or sooner if Olli triggers a manual one).</li>
+            <li>Olli reviews everything in the admin queue. Approved changes take effect on the <b>next scrape</b> (within 12 hours, or sooner if Olli triggers a manual one).</li>
         </ul>
     </div>
 
@@ -294,12 +337,8 @@
         <!-- ================= SOURCES ================= -->
         <div class="suggest-col">
             <h2>Sources</h2>
-            <div class="col-subtitle">Currently indexed (live)</div>
-            <div class="current-box" id="sources-box">
-                <div class="loading">Loading sources&hellip;</div>
-            </div>
+            <div class="col-subtitle">Suggest a new source &mdash; Olli reviews everything</div>
 
-            <h3 class="form-header">Request New Source</h3>
             <div class="suggest-form">
                 <label for="src-name">Source name <span style="color:#c55;">*</span></label>
                 <input type="text" id="src-name" placeholder="e.g. Biophysical Journal">
@@ -313,6 +352,7 @@
                             <option>API</option>
                             <option>Forum</option>
                             <option>Social</option>
+                            <option>Video</option>
                             <option>Other</option>
                         </select>
                     </div>
@@ -339,20 +379,42 @@
                     <button id="src-submit">Submit source</button>
                 </div>
             </div>
+
+            <div class="browse-heading">
+                <div class="t">Already Indexed</div>
+                <div class="s">browse before suggesting &mdash; grouped by where the results show up</div>
+            </div>
+
+            <div class="sources-subhead">
+                <span>Research (Report)</span>
+                <span class="count" id="sources-count-research">&hellip;</span>
+            </div>
+            <div class="current-box" id="sources-box-research">
+                <div class="loading">Loading&hellip;</div>
+            </div>
+
+            <div class="sources-subhead">
+                <span>Chatter</span>
+                <span class="count" id="sources-count-chatter">&hellip;</span>
+            </div>
+            <div class="current-box" id="sources-box-chatter">
+                <div class="loading">Loading&hellip;</div>
+            </div>
+
+            <div class="sources-subhead">
+                <span>Video</span>
+                <span class="count" id="sources-count-video">&hellip;</span>
+            </div>
+            <div class="current-box" id="sources-box-video">
+                <div class="loading">Loading&hellip;</div>
+            </div>
         </div>
 
         <!-- ================= KEYWORDS ================= -->
         <div class="suggest-col">
             <h2>Keywords</h2>
-            <div class="col-subtitle">
-                Currently indexed (live) &mdash; weights shown as ×N.<br>
-                <b>Click any tag</b> to request a weight change.
-            </div>
-            <div class="current-box" id="kw-box">
-                <div class="loading">Loading keywords&hellip;</div>
-            </div>
+            <div class="col-subtitle">Suggest a new keyword, or click any existing tag to request a weight change</div>
 
-            <h3 class="form-header">Request New Keyword</h3>
             <div class="suggest-form">
                 <label for="kw-phrase">Keyword or phrase <span style="color:#c55;">*</span></label>
                 <input type="text" id="kw-phrase" placeholder="e.g. microtubule coherence">
@@ -374,6 +436,14 @@
                 <div class="submit-row">
                     <button id="kw-submit">Submit keyword</button>
                 </div>
+            </div>
+
+            <div class="browse-heading">
+                <div class="t">Already Indexed</div>
+                <div class="s">weights shown as ×N &mdash; click any tag to request a weight change</div>
+            </div>
+            <div class="current-box" id="kw-box">
+                <div class="loading">Loading keywords&hellip;</div>
             </div>
         </div>
 
@@ -415,27 +485,56 @@
         return { phrase: (str || "").trim(), weight: 1 };
     }
 
-    // ---- Load current sources ----
+    // ---- Load current sources, grouped by where they show up in the site ----
+    // Research (Report) = papers, preprints, news
+    // Chatter           = forums, social
+    // Video             = video
+    const BUCKETS = {
+        research: { cats: new Set(["paper", "preprint", "news"]), rows: [] },
+        chatter:  { cats: new Set(["forums", "social"]),          rows: [] },
+        video:    { cats: new Set(["video"]),                     rows: [] },
+    };
     async function loadSources() {
         try {
             const r = await fetch("/api/sources");
             if (!r.ok) throw new Error("Couldn't load sources");
             const data = await r.json();
-            const rows = [];
+            // Reset
+            for (const b of Object.values(BUCKETS)) b.rows = [];
+
             for (const tier of Object.keys(data.tiers || {}).sort()) {
                 for (const s of data.tiers[tier]) {
-                    rows.push(`
+                    const row = `
                         <div class="src-row">
                             <span class="name">${s.source_name}</span>
                             <span class="meta">&middot; ${tier} &middot; ${s.category} &middot; ${s.target}</span>
-                        </div>`);
+                        </div>`;
+                    let placed = false;
+                    for (const [key, bucket] of Object.entries(BUCKETS)) {
+                        if (bucket.cats.has(s.category)) {
+                            bucket.rows.push(row);
+                            placed = true;
+                            break;
+                        }
+                    }
+                    // Unknown category → drop into research by default
+                    if (!placed) BUCKETS.research.rows.push(row);
                 }
             }
-            document.getElementById("sources-box").innerHTML =
-                rows.length ? rows.join("") : '<div class="loading">No sources found.</div>';
+
+            for (const [key, bucket] of Object.entries(BUCKETS)) {
+                const box   = document.getElementById(`sources-box-${key}`);
+                const count = document.getElementById(`sources-count-${key}`);
+                box.innerHTML = bucket.rows.length
+                    ? bucket.rows.join("")
+                    : '<div class="loading">None yet.</div>';
+                count.textContent = `${bucket.rows.length} source${bucket.rows.length === 1 ? "" : "s"}`;
+            }
         } catch (e) {
-            document.getElementById("sources-box").innerHTML =
-                `<div class="loading">${e.message}</div>`;
+            for (const key of Object.keys(BUCKETS)) {
+                const box = document.getElementById(`sources-box-${key}`);
+                if (box) box.innerHTML = `<div class="loading">${e.message}</div>`;
+            }
         }
     }
 

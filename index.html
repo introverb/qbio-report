@@ -515,82 +515,6 @@
             background: rgba(125, 74, 110, 0.7);
         }
 
-        /* ---------- Chatter section (preview on the Report) ---------- */
-        .chatter-section {
-            max-width: 1100px;
-            margin: 20px auto 60px;
-            padding: 0 24px;
-        }
-        .chatter-label {
-            text-align: center;
-            font-weight: 700;
-            font-size: 11px;
-            letter-spacing: 0.4em;
-            color: var(--light-purple);
-            text-transform: uppercase;
-            margin-bottom: 8px;
-        }
-        .chatter-subtitle {
-            text-align: center;
-            font-style: italic;
-            color: var(--soft-text);
-            font-size: 12px;
-            margin-bottom: 36px;
-            letter-spacing: 0.03em;
-        }
-        .chatter-items {
-            column-count: 2;
-            column-gap: 40px;
-        }
-        @media (max-width: 680px) { .chatter-items { column-count: 1; } }
-        .chatter-item {
-            break-inside: avoid;
-            margin-bottom: 22px;
-            padding-left: 18px;
-            border-left: 2px solid rgba(125, 74, 110, 0.35);
-        }
-        .chatter-item .headline {
-            font-style: italic;
-            font-size: 15px;
-            line-height: 1.4;
-            color: var(--near-black);
-            margin-bottom: 6px;
-        }
-        .chatter-item .headline a {
-            color: inherit;
-            text-decoration: none;
-        }
-        .chatter-item .headline a:hover { color: var(--pink); }
-        .chatter-item .headline mark.kw-hit {
-            background: rgba(213, 125, 178, 0.3);
-            color: inherit;
-            padding: 0 2px;
-            border-radius: 2px;
-            font-weight: 700;
-            font-style: normal;
-        }
-        .chatter-item .attribution {
-            font-size: 11px;
-            color: var(--light-purple);
-            font-style: italic;
-            letter-spacing: 0.03em;
-        }
-        .chatter-item .attribution::before { content: "— "; }
-        .chatter-more {
-            text-align: center;
-            margin-top: 28px;
-            font-size: 11px;
-            letter-spacing: 0.25em;
-            text-transform: uppercase;
-            font-weight: 700;
-        }
-        .chatter-more a {
-            color: var(--light-purple);
-            text-decoration: none;
-            border-bottom: 1px solid var(--light-purple);
-            padding-bottom: 2px;
-        }
-        .chatter-more a:hover { color: var(--pink); border-bottom-color: var(--pink); }
 
         /* ---------- Footer ---------- */
         footer {
@@ -659,8 +583,6 @@
 <div class="page-wide">
     <div id="recent-container"></div>
 </div>
-
-<div id="chatter-container"></div>
 
 <div class="page-wide">
     <div id="filed-container"></div>
@@ -916,9 +838,7 @@
                 .slice()
                 .sort((a, b) => (b.date_iso || "").localeCompare(a.date_iso || ""));
 
-            // Chatter preview: top 10 most recent chatter items, max 2 per source
-            const chatterAll     = articles.filter(isChatter);
-            const chatterPreview = capPerSource(chatterAll, 2).slice(0, 10);
+            // Chatter no longer previewed on the homepage — see /chatter for all of it.
 
             // --- Render helpers ---
             const blurbHtml = (a) => a.blurb ? `<div class="blurb">${a.blurb}</div>` : "";
@@ -1055,31 +975,6 @@
                 doSearch("");
             })();
 
-            // --- Chatter preview section (forums + social, playful) ---
-            const renderChatter = (a) => {
-                const when = a.date_iso ? formatArticleDate(a.date_iso) : "";
-                const bits = [a.source];
-                if (when) bits.push(when);
-                const snippet = extractSnippet(a);
-                return `
-                    <div class="chatter-item">
-                        <div class="headline">
-                            <a href="${a.link}" target="_blank" title="${stripHtml(a.title)}">${snippet}</a>
-                        </div>
-                        <div class="attribution">${bits.join(" · ")}</div>
-                    </div>`;
-            };
-            if (chatterPreview.length) {
-                document.getElementById("chatter-container").innerHTML = `
-                    <section class="chatter-section">
-                        <div class="chatter-label">Chatter &middot; From the Field</div>
-                        <div class="chatter-subtitle">overheard in forums, social, and elsewhere</div>
-                        <div class="chatter-items">${chatterPreview.map(renderChatter).join("")}</div>
-                        <div class="chatter-more">
-                            <a href="/chatter">See all chatter &rarr;</a>
-                        </div>
-                    </section>`;
-            }
         })
         .catch(err => {
             document.getElementById("status").textContent = err.message;
