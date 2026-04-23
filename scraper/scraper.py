@@ -92,9 +92,11 @@ STACK_EXCHANGE = [
 # "UC" and can be found at youtube.com/channel/UC... or by visiting the
 # channel's About page on YT. Channel RSS is unauth'd and unlimited.
 YOUTUBE_CHANNELS = [
-    ("The Royal Institution", "UCYeF244yNGuFefuFKqxIAXw"),
-    ("Sabine Hossenfelder",   "UC1yNl2E66ZzKApQdRuTQ4tw"),
-    ("PBS Space Time",        "UC7_gcs09iThXybpVgjHZ_7g"),
+    # Initial 3 channels (Royal Institution / Sabine / PBS Space Time) were
+    # broad physics/science creators — the keyword filter dropped 100% of
+    # their videos. Leaving this list empty for now; Tier 4 relies on the
+    # keyword-search API alone. Add quantum-biology-specific creators here
+    # as we find them (tuple: (display_name, channel_id starting with "UC")).
 ]
 
 # --- Merge in runtime sources config (pushed via /admin's "Push" button) ---
@@ -700,7 +702,10 @@ def fetch_youtube_api(keywords):
     seen_links = set()
 
     for chunk in chunk_list(keywords, KEYWORD_CHUNK_SIZE):
-        query = " ".join(chunk)
+        # YouTube's `q` supports `|` as OR and `""` for phrase matching.
+        # Space-joining phrases would make YT require ALL words simultaneously
+        # (0 results). OR-joining quoted phrases surfaces videos matching any.
+        query = " | ".join(f'"{kw}"' if " " in kw else kw for kw in chunk)
         try:
             r = requests.get(
                 "https://www.googleapis.com/youtube/v3/search",

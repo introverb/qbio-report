@@ -765,13 +765,15 @@ def _start_scheduler():
         print("[scheduler] apscheduler not installed; skipping schedule.")
         return
 
-    scheduler = BackgroundScheduler(timezone="UTC", daemon=True)
-    hours_str = os.environ.get("SCRAPE_HOURS", "8,18")
+    # Qubie lives in LA — run the cron on Pacific time so scrapes fire at the
+    # same local hour year-round (no DST drift).
+    scheduler = BackgroundScheduler(timezone="America/Los_Angeles", daemon=True)
+    hours_str = os.environ.get("SCRAPE_HOURS", "1,11")
     for h in [h.strip() for h in hours_str.split(",") if h.strip()]:
         try:
             scheduler.add_job(run_scrape_sync, CronTrigger(hour=int(h), minute=0),
                               id=f"scrape-{h}", replace_existing=True)
-            print(f"[scheduler] scrape scheduled at {h}:00 UTC daily")
+            print(f"[scheduler] scrape scheduled at {h}:00 PT daily")
         except ValueError:
             print(f"[scheduler] invalid hour {h!r}, skipping")
     scheduler.start()

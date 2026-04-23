@@ -364,17 +364,18 @@
 </footer>
 
 <script>
+    const TZ = "America/Los_Angeles";
     function formatDateline(iso) {
         if (!iso) return "";
         const d = new Date(iso);
-        const date = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "2-digit", year: "numeric" });
-        const time = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+        const date = d.toLocaleDateString("en-US", { timeZone: TZ, weekday: "short", month: "short", day: "2-digit", year: "numeric" });
+        const time = d.toLocaleTimeString("en-US", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hour12: false, timeZoneName: "short" });
         return `${date} · ${time}`.toUpperCase();
     }
     function formatTimestamp(iso) {
         if (!iso) return "";
         const d = new Date(iso);
-        return d.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+        return d.toLocaleString("en-US", { timeZone: TZ, month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
     }
     function formatArticleDate(iso) {
         if (!iso) return "";
@@ -385,7 +386,7 @@
         if (hours < 1)  return "< 1h ago";
         if (hours < 24) return `${Math.round(hours)}h ago`;
         if (hours < 48) return "yesterday";
-        return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        return d.toLocaleDateString("en-US", { timeZone: TZ, month: "short", day: "numeric", year: "numeric" });
     }
     function escapeHtml(s) {
         return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
