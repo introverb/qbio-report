@@ -290,31 +290,31 @@ table.data td.mono { font-family: monospace; font-size: 11px; color: var(--soft-
 }
 
 /* ---- Save (bookmark) button — appears on every feed item ---- */
-.save-btn {
+button.save-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 26px;
     height: 26px;
     cursor: pointer;
-    transition: transform 0.1s, color 0.15s;
+    transition: transform 0.1s;
     color: var(--pink);
-    border: none;
-    background: transparent;
-    padding: 0;
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0;
     flex-shrink: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    box-shadow: none;
+    outline: none;
 }
-.save-btn:hover { transform: scale(1.12); }
-.save-btn svg { width: 16px; height: 20px; display: block; }
-.save-btn svg path {
-    stroke: var(--pink);
-    stroke-width: 1.8;
-    stroke-linejoin: round;
-    stroke-linecap: round;
-    fill: none;
-    transition: fill 0.15s;
-}
-.save-btn.filled svg path { fill: var(--pink); }
-.save-btn.logged-out svg path { stroke: var(--light-purple); }
-.save-btn.logged-out:hover { transform: scale(1.04); }
-.save-btn.busy { opacity: 0.55; pointer-events: none; }
+button.save-btn:hover { transform: scale(1.12); }
+button.save-btn:focus { outline: none; }
+button.save-btn:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; border-radius: 3px; }
+button.save-btn svg { width: 16px; height: 20px; display: block; overflow: visible; }
+/* Stroke + fill are also set inline by saves.js for robustness, but these
+   CSS rules act as the styling floor when JS hasn't synced yet. */
+button.save-btn svg path { transition: fill 0.15s; }
+button.save-btn.busy { opacity: 0.55; pointer-events: none; }
+button.save-btn.logged-out:hover { transform: scale(1.04); }

@@ -15,15 +15,45 @@
 // Logged-in users get filled-on-click toggle behavior, syncing with the API.
 
 (function () {
+    // Inject our own button styles at load time. Most feed pages have inline
+    // <style> blocks instead of importing shared.css, so we can't rely on
+    // shared.css being present. Self-contained = robust.
+    if (!document.getElementById("qbio-save-btn-styles")) {
+        const s = document.createElement("style");
+        s.id = "qbio-save-btn-styles";
+        s.textContent = `
+            button.save-btn {
+                display: inline-flex; align-items: center; justify-content: center;
+                width: 26px; height: 26px; cursor: pointer; padding: 0; margin: 0;
+                border: none !important; background: transparent !important;
+                box-shadow: none; outline: none;
+                -webkit-appearance: none; appearance: none;
+                transition: transform 0.1s; flex-shrink: 0;
+            }
+            button.save-btn:hover { transform: scale(1.12); }
+            button.save-btn.busy { opacity: 0.55; pointer-events: none; }
+            button.save-btn.logged-out:hover { transform: scale(1.04); }
+            button.save-btn:focus { outline: none; }
+            button.save-btn:focus-visible { outline: 2px solid #D57DB2; outline-offset: 2px; border-radius: 3px; }
+            button.save-btn svg { width: 16px; height: 20px; display: block; overflow: visible; }
+            button.save-btn svg path { transition: fill 0.15s; }
+        `;
+        document.head.appendChild(s);
+    }
+
     let SAVED_LINKS = new Set();
     let LOGGED_IN   = false;
     const ARTICLES  = new Map(); // link -> full article object
 
-    // Bookmark SVG (24x24 viewBox, classic bookmark shape with rounded corners).
-    // Pink stroke by default; .filled adds a pink fill via CSS.
+    // Bookmark SVG. Inline-styled for robustness so it renders even if
+    // shared.css hasn't loaded yet or got cached. Stroke is pink; the .filled
+    // class swaps fill via CSS — but we also set fill="none" inline so the
+    // unfilled state never depends on CSS specificity.
     window.QBIO_SAVES_BOOKMARK_SVG =
-        '<svg viewBox="0 0 24 24" aria-hidden="true">' +
-        '<path d="M6 3.5 a1 1 0 0 1 1 -1 h10 a1 1 0 0 1 1 1 v17.5 l-6 -3.6 l-6 3.6 z"/>' +
+        '<svg viewBox="0 0 24 24" width="16" height="20" aria-hidden="true" style="display:block;overflow:visible;">' +
+        '<path d="M6 3 H18 V21 L12 17 L6 21 Z" ' +
+        'stroke="#D57DB2" stroke-width="1.8" stroke-linejoin="round" ' +
+        'stroke-linecap="round" fill="none" />' +
         '</svg>';
 
     function syncIconState(btn) {
@@ -37,6 +67,14 @@
             !LOGGED_IN ? "Log in to save"
                        : (filled ? "Saved · click to remove" : "Save to your library")
         );
+        // Belt-and-suspenders: also set the SVG fill inline. The bookmark SVG
+        // ships with fill="none" inlined for robustness, which would otherwise
+        // outweigh any CSS .filled rule.
+        const path = btn.querySelector("svg path");
+        if (path) {
+            path.setAttribute("fill", filled ? "#D57DB2" : "none");
+            path.setAttribute("stroke", LOGGED_IN ? "#D57DB2" : "#7D4A6E");
+        }
     }
 
     function syncAllIcons() {
