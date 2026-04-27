@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUBIE News &mdash; Twitter / X</title>
+    <link rel="stylesheet" href="/assets/shared.css">
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        main.coming-soon {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 24px;
+            text-align: center;
+            max-width: 720px;
+            margin: 0 auto;
+        }
+        .cs-eyebrow {
+            font-size: 11px;
+            letter-spacing: 0.4em;
+            color: var(--light-purple);
+            text-transform: uppercase;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        .cs-title {
+            font-family: "Chap", "Apercu Pro", sans-serif;
+            font-weight: 400;
+            font-size: 56px;
+            letter-spacing: 0.04em;
+            color: var(--dark-purple);
+            text-transform: uppercase;
+            line-height: 1;
+            margin: 0 0 14px;
+        }
+        @media (max-width: 600px) {
+            .cs-title { font-size: 40px; }
+        }
+        .cs-subtitle {
+            font-style: italic;
+            font-size: 14px;
+            color: var(--soft-text);
+            letter-spacing: 0.04em;
+            margin-bottom: 48px;
+        }
+        .cs-card {
+            background: var(--cream-dim);
+            border-left: 3px solid var(--pink);
+            padding: 24px 28px;
+            border-radius: 3px;
+            text-align: left;
+            font-size: 14px;
+            line-height: 1.55;
+            max-width: 560px;
+            width: 100%;
+        }
+        .cs-card-head {
+            font-size: 11px;
+            letter-spacing: 0.28em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--pink);
+            margin-bottom: 12px;
+        }
+        .cs-card p { margin: 0 0 12px; }
+        .cs-card p:last-child { margin: 0; }
+        .cs-card a {
+            color: var(--dark-purple);
+            font-weight: 700;
+            text-decoration: none;
+            border-bottom: 1px solid var(--dark-purple);
+        }
+        .cs-card a:hover { color: var(--pink); border-bottom-color: var(--pink); }
+        .cs-meta {
+            margin-top: 28px;
+            font-size: 11px;
+            color: var(--soft-text);
+            font-style: italic;
+            letter-spacing: 0.04em;
+        }
+        footer {
+            margin-top: auto;
+            text-align: center;
+            font-size: 10px;
+            color: var(--soft-text);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            padding: 24px 16px 28px;
+        }
+        footer a {
+            color: var(--dark-purple);
+            text-decoration: none;
+            border-bottom: 1px solid var(--dark-purple);
+        }
+        footer a:hover { color: var(--pink); border-bottom-color: var(--pink); }
+        footer .copyright { font-style: italic; margin-top: 8px; letter-spacing: 0.08em; }
+    </style>
+</head>
+<body>
+
+<nav class="site-nav">
+    <div class="nav-public">
+        <a href="/">Report</a>
+        <span class="sep">·</span>
+        <a href="/chatter">Chatter</a>
+        <span class="sep">·</span>
+        <a href="/video">Video</a>
+        <span class="sep">·</span>
+        <a href="/twitter" class="active">Twitter</a>
+        <span class="sep">·</span>
+        <a href="/suggest">Suggest</a>
+    </div>
+    <div class="nav-admin" id="user-nav-slot">
+        <a href="/login">Log in</a>
+    </div>
+</nav>
+
+<main class="coming-soon">
+    <div class="cs-eyebrow">&bull; Coming soon &bull;</div>
+    <h1 class="cs-title">QUBIE Twitter</h1>
+    <div class="cs-subtitle">&mdash; the Twitter/X corner of the quantum biology conversation &mdash;</div>
+
+    <div class="cs-card">
+        <div class="cs-card-head">What we're waiting on</div>
+        <p>
+            Twitter/X gated their API in 2023. The cheapest paid tier that
+            actually returns recent posts is <b>$200/month</b>. Until the DAO
+            decides to swing that, this page sits in queue.
+        </p>
+        <p>
+            Bluesky is doing a lot of the QBIO conversation lift in the
+            meantime &mdash; you can already see those posts on
+            <a href="/chatter">/chatter</a>.
+        </p>
+        <p>
+            If you have ideas for sourcing Twitter/X content without the paid
+            API (curated lists from DAO members, RSS-style mirrors, etc.),
+            drop a note on <a href="/suggest">/suggest</a>.
+        </p>
+    </div>
+
+    <div class="cs-meta">scaffolding pre-built &mdash; flip the switch when budget clears</div>
+</main>
+
+<footer>
+    <a href="https://quantumbiologydao.xyz" target="_blank">quantumbiologydao.xyz</a>
+    <div class="copyright">&copy; Quantum Biology DAO</div>
+</footer>
+
+<script src="/assets/user-nav.js?v=4"></script>
+
+</body>
+</html>
