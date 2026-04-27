@@ -498,6 +498,30 @@
             font-style: italic;
             line-height: 1.4;
         }
+        /* Most-saved attribution row (only shown in default empty-search state) */
+        .search-results .search-item .saved-attr {
+            font-size: 10px;
+            letter-spacing: 0.06em;
+            color: var(--light-purple);
+            margin-top: 4px;
+            font-style: italic;
+        }
+        .search-results .search-item .saved-attr a {
+            color: var(--dark-purple);
+            text-decoration: none;
+            font-weight: 700;
+            font-style: normal;
+            border-bottom: 1px solid var(--light-purple);
+            padding-bottom: 1px;
+        }
+        .search-results .search-item .saved-attr a:hover { color: var(--pink); border-bottom-color: var(--pink); }
+        .search-results .saved-empty {
+            text-align: center;
+            color: var(--soft-text);
+            font-style: italic;
+            padding: 40px 20px;
+            line-height: 1.5;
+        }
         .search-results .empty-row {
             text-align: center;
             color: var(--soft-text);
@@ -580,14 +604,14 @@
 </div>
 
 <section class="search-section" id="search-section">
-    <div class="search-label">Search the Feed</div>
-    <div class="search-subtitle">&mdash; every article indexed, no scrape needed &mdash;</div>
+    <div class="search-label" id="search-label">Saved by the DAO</div>
+    <div class="search-subtitle" id="search-subtitle">&mdash; what users have starred &middot; last 30 days &mdash;</div>
     <div class="search-input-wrap">
         <input type="search" id="search-input"
-               placeholder="Search titles, summaries, keywords, blurbs&hellip;"
+               placeholder="Search the full feed&hellip; (titles, summaries, keywords, blurbs)"
                autocomplete="off" disabled>
     </div>
-    <div class="search-stats" id="search-stats">Loading the index&hellip;</div>
+    <div class="search-stats" id="search-stats">Loading&hellip;</div>
     <div class="search-results" id="search-results"></div>
 </section>
 
@@ -940,11 +964,12 @@
                 // Precompute haystacks once
                 indexed.forEach(a => { a._hay = buildHaystack(a); });
 
-                const renderItem = (a) => {
+                const renderItem = (a, attribution) => {
                     const when  = a.date_iso ? formatArticleDate(a.date_iso) : "";
                     const badge = `<span class="badge badge-${a.source_category}">${categoryLabel(a.source_category)}</span>`;
                     const blurbLine = a.blurb ? `<div class="blurb">${a.blurb}</div>` : "";
                     const dateBit   = when ? `<span>&middot; ${when}</span>` : "";
+                    const attrLine  = attribution ? `<div class="saved-attr">${attribution}</div>` : "";
                     return `
                         <div class="search-item">
                             ${saveBtnHtml(a)}
@@ -957,21 +982,77 @@
                                 ${dateBit}
                             </div>
                             ${blurbLine}
+                            ${attrLine}
                         </div>`;
                 };
 
+                // Section-header text differs between modes (saved vs search)
+                const labelEl    = document.getElementById("search-label");
+                const subtitleEl = document.getElementById("search-subtitle");
+                function setMode(mode) {
+                    if (mode === "search") {
+                        labelEl.textContent    = "Search the Feed";
+                        subtitleEl.innerHTML   = "&mdash; every article indexed, no scrape needed &mdash;";
+                    } else {
+                        labelEl.textContent    = "Saved by the DAO";
+                        subtitleEl.innerHTML   = "&mdash; what users have starred &middot; last 30 days &mdash;";
+                    }
+                }
+
+                // Render the empty-search default: "Most Saved" by the DAO,
+                // with attribution to the latest saver. Pulls from /api/saves/most.
+                async function renderMostSaved() {
+                    setMode("saved");
+                    try {
+                        const r = await fetch("/api/saves/most?limit=20", { cache: "no-store" });
+                        if (!r.ok) throw new Error("couldn't load saves");
+                        const data = await r.json();
+                        const items = data.items || [];
+                        if (!items.length) {
+                            stats.textContent = `${indexed.length} articles indexed · type to search`;
+                            results.innerHTML = `
+                                <div class="saved-empty">
+                                    Nothing saved yet. Be the first &mdash; click the bookmark icon on any feed item.<br>
+                                    <span style="font-size:11px;">(or type above to search the full feed of ${indexed.length} articles.)</span>
+                                </div>`;
+                            return;
+                        }
+                        stats.textContent = `${items.length} item${items.length === 1 ? "" : "s"} saved by the DAO`;
+                        const html = items.map(item => {
+                            // Synthesize an article-shaped object for renderItem
+                            const a = {
+                                title: item.title, link: item.link, summary: item.summary,
+                                blurb: item.blurb, source: item.source,
+                                source_category: item.source_category, date_iso: item.date_iso,
+                            };
+                            const others = item.save_count > 1 ? ` · saved by ${item.save_count} DAO members` : "";
+                            const userLink = item.latest_saver
+                                ? `<a href="/u/${encodeURIComponent(item.latest_saver)}">@${item.latest_saver}</a>`
+                                : "<span>anonymous</span>";
+                            const attr = `Latest save: ${userLink}${others}`;
+                            return renderItem(a, attr);
+                        }).join("");
+                        results.innerHTML = html;
+                        results.scrollTop = 0;
+                        if (window.qbioRefreshSaveIcons) window.qbioRefreshSaveIcons();
+                    } catch (e) {
+                        stats.textContent = `${indexed.length} articles indexed · type to search`;
+                        results.innerHTML = `<div class="saved-empty">${e.message}</div>`;
+                    }
+                }
+
                 const doSearch = (raw) => {
                     const q = (raw || "").trim().toLowerCase();
-                    let matches;
                     if (!q) {
-                        matches = indexed;
-                        stats.textContent = `${indexed.length} articles indexed`;
-                    } else {
-                        const terms = q.split(/\s+/).filter(Boolean);
-                        matches = indexed.filter(a => terms.every(t => a._hay.includes(t)));
-                        stats.textContent =
-                            `${matches.length} match${matches.length === 1 ? "" : "es"} for "${raw.trim()}"`;
+                        // Empty query — show Most Saved instead of dumping all articles.
+                        renderMostSaved();
+                        return;
                     }
+                    setMode("search");
+                    const terms = q.split(/\s+/).filter(Boolean);
+                    const matches = indexed.filter(a => terms.every(t => a._hay.includes(t)));
+                    stats.textContent =
+                        `${matches.length} match${matches.length === 1 ? "" : "es"} for "${raw.trim()}"`;
 
                     if (!matches.length) {
                         results.innerHTML =
@@ -979,7 +1060,7 @@
                         return;
                     }
                     const toShow = matches.slice(0, MAX_RENDER);
-                    let html = toShow.map(renderItem).join("");
+                    let html = toShow.map(a => renderItem(a)).join("");
                     if (matches.length > MAX_RENDER) {
                         html += `<div class="empty-row">Showing first ${MAX_RENDER} of ${matches.length}. Refine your search to see more.</div>`;
                     }
@@ -993,7 +1074,7 @@
                     clearTimeout(searchTimer);
                     searchTimer = setTimeout(() => doSearch(e.target.value), 150);
                 });
-                // Escape clears the search
+                // Escape clears the search → returns to Most Saved
                 input.addEventListener("keydown", (e) => {
                     if (e.key === "Escape") {
                         input.value = "";
@@ -1002,7 +1083,7 @@
                 });
 
                 input.disabled = false;
-                doSearch("");
+                doSearch("");  // initial render = Most Saved
             })();
 
         })
