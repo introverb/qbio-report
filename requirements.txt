@@ -6,3 +6,4 @@ python-dotenv
 flask
 apscheduler
 gunicorn
+bcrypt

@@ -26,6 +26,8 @@ from functools import wraps
 from flask import Flask, Response, jsonify, redirect, request, send_from_directory, session, abort
 from openpyxl import load_workbook
 
+import db  # SQLite layer for users + saves
+
 # --- Paths ------------------------------------------------------------------
 # Locally: files live next to server.py
 # On Railway: DATA_DIR points to the persistent volume so user edits + scrape
@@ -52,6 +54,13 @@ def _seed_volume():
 
 _seed_volume()
 
+# Initialize the SQLite DB (users + saves). Idempotent.
+db.init_db()
+print(f"[db] qubie.db ready at {db.DB_PATH}")
+if db.BOOTSTRAP_ADMIN_USERNAME:
+    print(f"[db] bootstrap admin username: '{db.BOOTSTRAP_ADMIN_USERNAME}' "
+          f"(first matching signup will be promoted)")
+
 # ============================================================================
 # Auth — cookie-based session with a password-only login form.
 # Admin pages redirect unauthed users to /login; admin APIs return 401 JSON.
@@ -64,13 +73,53 @@ ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD") or "please-set-ADMIN_PASSWORD-
 # Note: app.secret_key is set a few lines below, right after app is created.
 
 
+def _current_user():
+    """Return the current logged-in user dict, or None.
+    Honors both the new user_id session and the legacy 'authed' flag (the
+    legacy flag means the bearer typed the ADMIN_PASSWORD; treat as admin)."""
+    uid = session.get("user_id")
+    if uid:
+        u = db.get_user_by_id(uid)
+        if u:
+            return u
+        # Stale session referencing a deleted user — clear it
+        session.pop("user_id", None)
+    if session.get("authed"):
+        # Legacy ADMIN_PASSWORD path — synthesize a transient "admin" identity
+        # so existing code that just needs is_admin keeps working.
+        return {"id": 0, "username": "_legacy_admin", "is_admin": True,
+                "bio": "", "avatar_url": "", "created_at": "",
+                "_legacy": True}
+    return None
+
+
+def is_admin() -> bool:
+    u = _current_user()
+    return bool(u and u.get("is_admin"))
+
+
 def require_auth(f):
+    """Allow either: new logged-in user OR legacy ADMIN_PASSWORD session.
+    Existing /admin pages route through here — those pages additionally check
+    is_admin() to gate admin-only operations."""
     @wraps(f)
     def decorated(*args, **kwargs):
-        if session.get("authed"):
+        if _current_user():
             return f(*args, **kwargs)
         if request.path.startswith("/api/"):
             return jsonify({"error": "Login required"}), 401
+        return redirect(f"/login?next={request.path}")
+    return decorated
+
+
+def require_admin(f):
+    """Stricter than require_auth — must be is_admin."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if is_admin():
+            return f(*args, **kwargs)
+        if request.path.startswith("/api/"):
+            return jsonify({"error": "Admin access required"}), 403
         return redirect(f"/login?next={request.path}")
     return decorated
 
@@ -101,23 +150,79 @@ def page_report():
 
 @app.route("/login", methods=["GET", "POST"])
 def page_login():
-    """Password-only admin login form. Sets a session cookie on success."""
+    """Login form. Accepts username + password (new) OR legacy
+    ADMIN_PASSWORD-only (kept active during the transition so Olli is never
+    locked out — to be removed in a follow-up commit once the new auth is
+    confirmed working)."""
     nxt = request.args.get("next") or request.form.get("next") or "/"
-    # Normalize to a same-site path to avoid open-redirect abuse
     if not (isinstance(nxt, str) and nxt.startswith("/")):
         nxt = "/"
 
     error = ""
     if request.method == "POST":
-        pw = (request.form.get("password") or "").strip()
-        if pw == ADMIN_PASSWORD:
-            session["authed"] = True
-            session.permanent = True
-            return redirect(nxt)
-        error = "Wrong password."
+        username = (request.form.get("username") or "").strip()
+        pw       = (request.form.get("password") or "").strip()
 
-    # Render the login page with the current next param + any error
+        if username:
+            # New path: username + password
+            user = db.authenticate(username, pw)
+            if user:
+                session.clear()
+                session["user_id"] = user["id"]
+                session.permanent = True
+                return redirect(nxt)
+            error = "Wrong username or password."
+        else:
+            # Legacy path: ADMIN_PASSWORD only (no username field).
+            # Kept until new auth is verified; will be removed.
+            if pw and pw == ADMIN_PASSWORD:
+                session.clear()
+                session["authed"] = True
+                session.permanent = True
+                return redirect(nxt)
+            error = "Wrong password."
+
     with open(os.path.join(HERE, "login.html"), "r", encoding="utf-8") as f:
+        html = f.read()
+    next_query = f'?next={nxt}' if nxt and nxt != "/" else ""
+    html = html.replace("{{NEXT_QUERY}}", next_query)
+    html = html.replace("{{ERROR_MESSAGE}}", error)
+    return html
+
+
+@app.route("/signup", methods=["GET", "POST"])
+def page_signup():
+    """Open signup. Username + password. The first user matching the
+    BOOTSTRAP_ADMIN_USERNAME env var is auto-promoted to admin."""
+    nxt = request.args.get("next") or request.form.get("next") or "/"
+    if not (isinstance(nxt, str) and nxt.startswith("/")):
+        nxt = "/"
+
+    error = ""
+    if request.method == "POST":
+        username  = (request.form.get("username") or "").strip()
+        password  = (request.form.get("password") or "").strip()
+        password2 = (request.form.get("password2") or "").strip()
+
+        err = db.validate_username(username)
+        if err: error = err
+        if not error:
+            err = db.validate_password(password)
+            if err: error = err
+        if not error and password != password2:
+            error = "Passwords don't match."
+
+        if not error:
+            try:
+                user = db.create_user(username, password)
+                session.clear()
+                session["user_id"] = user["id"]
+                session.permanent = True
+                return redirect(nxt)
+            except ValueError as e:
+                error = str(e)
+
+    with open(os.path.join(HERE, "signup.html"), "r", encoding="utf-8") as f:
         html = f.read()
     next_query = f'?next={nxt}' if nxt and nxt != "/" else ""
     html = html.replace("{{NEXT_QUERY}}", next_query)
@@ -127,8 +232,146 @@ def page_login():
 
 @app.route("/logout")
 def page_logout():
-    session.pop("authed", None)
+    session.clear()
     return redirect("/")
+
+
+# ============================================================================
+# User profile pages + APIs
+# ============================================================================
+
+@app.route("/me")
+def page_me():
+    user = _current_user()
+    if not user or user.get("_legacy"):
+        return redirect("/login?next=/me")
+    return redirect(f"/u/{user['username']}")
+
+
+@app.route("/u/<username>")
+def page_profile(username):
+    return send_from_directory(HERE, "profile.html")
+
+
+@app.route("/api/me", methods=["GET"])
+def api_me():
+    """Return the current user's public profile, or {logged_in: False}."""
+    user = _current_user()
+    if not user:
+        return jsonify({"logged_in": False})
+    if user.get("_legacy"):
+        # Legacy admin session — no real user account.
+        return jsonify({
+            "logged_in": True,
+            "legacy_admin": True,
+            "username":  "_legacy_admin",
+            "is_admin":  True,
+        })
+    return jsonify({
+        "logged_in": True,
+        "id":         user["id"],
+        "username":   user["username"],
+        "bio":        user["bio"],
+        "avatar_url": user["avatar_url"],
+        "is_admin":   user["is_admin"],
+        "created_at": user["created_at"],
+    })
+
+
+@app.route("/api/users/<username>", methods=["GET"])
+def api_user_profile(username):
+    """Public profile lookup."""
+    user = db.get_user_by_username(username)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    saves = db.list_user_saves(user["id"])
+    return jsonify({
+        "username":   user["username"],
+        "bio":        user["bio"],
+        "avatar_url": user["avatar_url"],
+        "is_admin":   user["is_admin"],
+        "created_at": user["created_at"],
+        "save_count": len(saves),
+        "saves":      saves,
+    })
+
+
+@app.route("/api/me/profile", methods=["POST"])
+def api_update_profile():
+    """Update the current user's bio/avatar_url."""
+    user = _current_user()
+    if not user or user.get("_legacy"):
+        return jsonify({"error": "Login required"}), 401
+    data = request.get_json(force=True, silent=True) or {}
+    bio        = (data.get("bio") or "").strip()[:500]
+    avatar_url = (data.get("avatar_url") or "").strip()[:500]
+    # Light sanity-check on avatar_url
+    if avatar_url and not (avatar_url.startswith("http://") or avatar_url.startswith("https://")):
+        return jsonify({"error": "Avatar URL must start with http:// or https://"}), 400
+    db.update_profile(user["id"], bio=bio, avatar_url=avatar_url)
+    return jsonify({"ok": True})
+
+
+# ============================================================================
+# Saves API
+# ============================================================================
+
+@app.route("/api/saves", methods=["POST"])
+def api_save_article():
+    """Save an article snapshot for the current user. Idempotent — saving
+    the same link twice returns the existing save id."""
+    user = _current_user()
+    if not user or user.get("_legacy"):
+        return jsonify({"error": "Login required"}), 401
+    data = request.get_json(force=True, silent=True) or {}
+    if not (data.get("link") or "").strip():
+        return jsonify({"error": "link is required"}), 400
+    save_id = db.add_save(user["id"], data)
+    return jsonify({"ok": True, "save_id": save_id})
+
+
+@app.route("/api/saves", methods=["DELETE"])
+def api_unsave_article():
+    """Unsave by article link. Body: {link: ...}"""
+    user = _current_user()
+    if not user or user.get("_legacy"):
+        return jsonify({"error": "Login required"}), 401
+    data = request.get_json(force=True, silent=True) or {}
+    link = (data.get("link") or "").strip()
+    if not link:
+        return jsonify({"error": "link is required"}), 400
+    removed = db.remove_save(user["id"], link)
+    return jsonify({"ok": True, "removed": removed})
+
+
+@app.route("/api/saves/me", methods=["GET"])
+def api_my_saved_links():
+    """Return just the set of links the current user has saved — used by
+    the bookmark icons to know which are filled vs hollow."""
+    user = _current_user()
+    if not user or user.get("_legacy"):
+        return jsonify({"logged_in": False, "links": []})
+    return jsonify({
+        "logged_in": True,
+        "links":     list(db.list_user_saved_links(user["id"])),
+    })
+
+
+@app.route("/api/saves/most", methods=["GET"])
+def api_most_saved():
+    """Top saved articles in the last 30 days, with last-saver attribution."""
+    try:
+        window = int(request.args.get("window") or 30)
+    except (TypeError, ValueError):
+        window = 30
+    try:
+        limit = int(request.args.get("limit") or 10)
+    except (TypeError, ValueError):
+        limit = 10
+    return jsonify({
+        "window_days": window,
+        "items":       db.most_saved(window_days=window, limit=limit),
+    })
 
 
 @app.route("/chatter")

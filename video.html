@@ -318,8 +318,8 @@
         <span class="sep">·</span>
         <a href="/suggest">Suggest</a>
     </div>
-    <div class="nav-admin">
-        <a href="/admin">Admin</a>
+    <div class="nav-admin" id="user-nav-slot">
+        <a href="/login">Log in</a>
     </div>
 </nav>
 
@@ -361,8 +361,10 @@
     <div id="footer-timestamp">Feed generated&hellip;</div>
     <div style="margin-top:6px;"><a href="https://quantumbiologydao.xyz" target="_blank">quantumbiologydao.xyz</a></div>
     <div class="copyright">&copy; Quantum Biology DAO</div>
+    <div id="footer-admin-link" style="margin-top:14px;font-size:9px;letter-spacing:0.15em;opacity:0.55;"></div>
 </footer>
 
+<script src="/assets/user-nav.js"></script>
 <script>
     const TZ = "America/Los_Angeles";
     function formatDateline(iso) {

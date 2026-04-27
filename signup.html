@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QUBIE News — Sign in</title>
+    <title>QUBIE News — Create account</title>
     <style>
         @font-face { font-family: "Apercu Pro"; src: url("assets/fonts/apercu_regular_pro.otf") format("opentype"); font-weight: 400; font-style: normal; font-display: swap; }
         @font-face { font-family: "Apercu Pro"; src: url("assets/fonts/apercu_bold_pro.otf") format("opentype"); font-weight: 700; font-style: normal; font-display: swap; }
@@ -53,7 +53,7 @@
             font-style: italic;
             font-size: 12px;
             color: var(--soft-text);
-            margin: 0 0 48px;
+            margin: 0 0 36px;
             letter-spacing: 0.05em;
         }
 
@@ -77,22 +77,6 @@
             outline: 2px solid var(--pink);
             outline-offset: -2px;
         }
-        form button { align-self: stretch; }
-        .switcher {
-            margin-top: 16px;
-            font-size: 12px;
-            color: var(--soft-text);
-            font-style: italic;
-        }
-        .switcher a {
-            color: var(--dark-purple);
-            text-decoration: none;
-            border-bottom: 1px solid var(--dark-purple);
-            font-style: normal;
-            font-weight: 700;
-            margin-left: 4px;
-        }
-        .switcher a:hover { color: var(--pink); border-bottom-color: var(--pink); }
         button {
             font-family: inherit;
             font-weight: 700;
@@ -112,6 +96,14 @@
             color: var(--near-black);
         }
 
+        .helper {
+            font-size: 11px;
+            color: var(--soft-text);
+            text-align: left;
+            line-height: 1.4;
+            margin: -2px 2px 4px;
+        }
+
         .error {
             color: #c55;
             font-size: 13px;
@@ -119,6 +111,22 @@
             margin-top: 10px;
             min-height: 20px;
         }
+
+        .switcher {
+            margin-top: 16px;
+            font-size: 12px;
+            color: var(--soft-text);
+            font-style: italic;
+        }
+        .switcher a {
+            color: var(--dark-purple);
+            text-decoration: none;
+            border-bottom: 1px solid var(--dark-purple);
+            font-style: normal;
+            font-weight: 700;
+            margin-left: 4px;
+        }
+        .switcher a:hover { color: var(--pink); border-bottom-color: var(--pink); }
 
         .back {
             margin-top: 36px;
@@ -140,17 +148,23 @@
 
 <div class="login-card">
     <div class="title">QUBIE News</div>
-    <div class="subtitle">&mdash; sign in &mdash;</div>
+    <div class="subtitle">&mdash; create your DAO account &mdash;</div>
 
-    <form method="POST" action="/login{{NEXT_QUERY}}">
-        <input type="text" name="username" placeholder="Username" autofocus autocomplete="username">
-        <input type="password" name="password" placeholder="Password" required autocomplete="current-password">
-        <button type="submit">Sign in</button>
+    <form method="POST" action="/signup{{NEXT_QUERY}}">
+        <input type="text" name="username" placeholder="Username" autofocus autocomplete="username" required>
+        <div class="helper">2&ndash;24 characters &middot; letters, numbers, _ or -</div>
+
+        <input type="password" name="password" placeholder="Password" autocomplete="new-password" required>
+        <div class="helper">at least 8 characters</div>
+
+        <input type="password" name="password2" placeholder="Confirm password" autocomplete="new-password" required>
+
+        <button type="submit">Create account</button>
     </form>
     <div class="error">{{ERROR_MESSAGE}}</div>
 
     <div class="switcher">
-        New here? <a href="/signup{{NEXT_QUERY}}">Create an account</a>
+        Already have an account? <a href="/login{{NEXT_QUERY}}">Sign in</a>
     </div>
 
     <div class="back"><a href="/">&larr; Back to the Report</a></div>

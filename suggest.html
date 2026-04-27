@@ -307,8 +307,8 @@
         <span class="sep">·</span>
         <a href="/suggest" class="active">Suggest</a>
     </div>
-    <div class="nav-admin">
-        <a href="/admin">Admin</a>
+    <div class="nav-admin" id="user-nav-slot">
+        <a href="/login">Log in</a>
     </div>
 </nav>
 
@@ -472,6 +472,7 @@
     </div>
 </div>
 
+<script src="/assets/user-nav.js"></script>
 <script>
     const statusEl = document.getElementById("flash-status");
     function showFlash(msg, isError) {

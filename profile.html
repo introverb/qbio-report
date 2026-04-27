@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUBIE News — Profile</title>
+    <link rel="stylesheet" href="/assets/shared.css">
+    <style>
+        .profile-header {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+            margin-bottom: 36px;
+            flex-wrap: wrap;
+        }
+        .avatar {
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            background: var(--cream-dim);
+            border: 2px solid var(--light-purple);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: "Chap", "Apercu Pro", sans-serif;
+            font-size: 42px;
+            color: var(--dark-purple);
+            text-transform: uppercase;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .profile-meta { flex: 1 1 280px; }
+        .profile-username {
+            font-family: "Chap", "Apercu Pro", sans-serif;
+            font-weight: 400;
+            font-size: 32px;
+            letter-spacing: 0.04em;
+            color: var(--dark-purple);
+            margin: 0 0 4px;
+            text-transform: uppercase;
+        }
+        .profile-username .admin-tag {
+            display: inline-block;
+            background: var(--pink);
+            color: var(--near-black);
+            font-family: "Apercu Pro", sans-serif;
+            font-weight: 700;
+            font-size: 9px;
+            padding: 2px 7px 1px;
+            border-radius: 2px;
+            margin-left: 10px;
+            letter-spacing: 0.15em;
+            vertical-align: middle;
+        }
+        .profile-since {
+            font-style: italic;
+            font-size: 12px;
+            color: var(--soft-text);
+            letter-spacing: 0.04em;
+            margin-bottom: 12px;
+        }
+        .profile-bio {
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--soft-text);
+            white-space: pre-wrap;
+            margin-top: 6px;
+        }
+        .profile-bio.empty { font-style: italic; }
+        .profile-actions { margin-top: 14px; }
+        .profile-actions button { margin-right: 6px; font-size: 11px; padding: 6px 14px; }
+
+        .saves-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            border-bottom: 1px solid rgba(45, 27, 48, 0.2);
+            padding-bottom: 8px;
+            margin-bottom: 18px;
+        }
+        .saves-header h2 {
+            font-family: "Chap", "Apercu Pro", sans-serif;
+            font-weight: 400;
+            font-size: 24px;
+            letter-spacing: 0.04em;
+            color: var(--dark-purple);
+            text-transform: uppercase;
+            margin: 0;
+        }
+        .saves-header .count {
+            font-size: 11px;
+            font-style: italic;
+            color: var(--soft-text);
+        }
+        .saves-list { list-style: none; padding: 0; margin: 0; }
+        .save-item {
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(45, 27, 48, 0.12);
+        }
+        .save-item:last-child { border: none; }
+        .save-item .title { font-weight: 700; font-size: 14px; line-height: 1.35; margin-bottom: 4px; }
+        .save-item .title a { color: var(--dark-purple); text-decoration: none; border: none; }
+        .save-item .title a:hover { color: var(--pink); }
+        .save-item .meta {
+            font-size: 11px;
+            color: var(--light-purple);
+            font-style: italic;
+            letter-spacing: 0.03em;
+        }
+        .save-item .blurb {
+            font-size: 13px;
+            color: var(--soft-text);
+            margin-top: 4px;
+            line-height: 1.45;
+        }
+
+        /* Edit-profile modal */
+        .edit-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(45, 27, 48, 0.35);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .edit-modal.open { display: flex; }
+        .edit-panel {
+            background: var(--cream);
+            border: 1px solid var(--dark-purple);
+            border-radius: 4px;
+            padding: 24px;
+            max-width: 480px;
+            width: calc(100% - 48px);
+        }
+        .edit-panel h3 {
+            font-family: "Chap", "Apercu Pro", sans-serif;
+            font-weight: 400;
+            font-size: 22px;
+            letter-spacing: 0.04em;
+            color: var(--dark-purple);
+            text-transform: uppercase;
+            margin: 0 0 16px;
+        }
+        .edit-panel label {
+            display: block;
+            font-size: 10px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--light-purple);
+            margin: 12px 0 4px;
+        }
+        .edit-panel input, .edit-panel textarea {
+            width: 100%;
+            font-family: inherit;
+            font-size: 14px;
+            padding: 8px 10px;
+            border: 1px solid var(--light-purple);
+            background: var(--cream);
+            color: var(--near-black);
+            border-radius: 2px;
+        }
+        .edit-panel textarea { min-height: 100px; resize: vertical; }
+        .edit-panel .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+
+        .empty-saves {
+            color: var(--soft-text);
+            font-style: italic;
+            padding: 30px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="site-nav">
+    <div class="nav-public">
+        <a href="/">Report</a>
+        <span class="sep">·</span>
+        <a href="/chatter">Chatter</a>
+        <span class="sep">·</span>
+        <a href="/video">Video</a>
+        <span class="sep">·</span>
+        <a href="/suggest">Suggest</a>
+    </div>
+    <div class="nav-admin" id="user-nav-slot">
+        <a href="/login">Log in</a>
+    </div>
+</nav>
+
+<main class="admin-page">
+    <div id="profile-content">
+        <div class="empty-state">Loading profile&hellip;</div>
+    </div>
+</main>
+
+<div class="edit-modal" id="edit-modal">
+    <div class="edit-panel">
+        <h3>Edit Profile</h3>
+        <label for="edit-avatar">Avatar URL</label>
+        <input type="text" id="edit-avatar" placeholder="https://&hellip;">
+        <div style="font-size:11px;color:var(--soft-text);margin-top:4px;font-style:italic;">
+            Paste any image URL (your Discord avatar, Gravatar, etc). Leave blank for the default.
+        </div>
+
+        <label for="edit-bio">Bio</label>
+        <textarea id="edit-bio" placeholder="Tell the DAO who you are."></textarea>
+
+        <div class="actions">
+            <button class="secondary" id="edit-cancel">Cancel</button>
+            <button id="edit-save">Save</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const TZ = "America/Los_Angeles";
+    function escapeHtml(s) {
+        return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+    function formatDate(iso) {
+        if (!iso) return "";
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return "";
+        return d.toLocaleDateString("en-US", { timeZone: TZ, month: "short", day: "numeric", year: "numeric" });
+    }
+    function categoryLabel(cat) {
+        const labels = { paper: "Paper", preprint: "Preprint", news: "News",
+                         forums: "Forum", social: "Social", video: "Video" };
+        return labels[cat] || (cat || "Article");
+    }
+
+    function avatarHtml(user) {
+        if (user.avatar_url) {
+            return `<img src="${escapeHtml(user.avatar_url)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${escapeHtml(user.username[0]||'?')}'}))">`;
+        }
+        return `<span>${escapeHtml((user.username || '?')[0])}</span>`;
+    }
+
+    // Read username from URL: /u/<username>
+    const username = decodeURIComponent(location.pathname.replace(/^\/u\//, "").split("/")[0] || "");
+
+    let viewedUser = null;
+    let me = null;
+
+    async function loadAll() {
+        const [meR, profileR] = await Promise.all([
+            fetch("/api/me", { cache: "no-store" }),
+            fetch(`/api/users/${encodeURIComponent(username)}`, { cache: "no-store" }),
+        ]);
+        me = meR.ok ? await meR.json() : { logged_in: false };
+        renderUserNav(me);
+        if (!profileR.ok) {
+            document.getElementById("profile-content").innerHTML = `
+                <h1>Not found</h1>
+                <p class="empty-saves">No user named "${escapeHtml(username)}".</p>`;
+            return;
+        }
+        viewedUser = await profileR.json();
+        render();
+    }
+
+    function renderUserNav(me) {
+        const slot = document.getElementById("user-nav-slot");
+        if (me.logged_in && !me.legacy_admin) {
+            const adminLink = me.is_admin ? `<span class="sep">·</span><a href="/admin">Admin</a>` : "";
+            slot.innerHTML = `
+                <a href="/u/${encodeURIComponent(me.username)}">@${escapeHtml(me.username)}</a>
+                ${adminLink}
+                <span class="sep">·</span>
+                <a href="/logout">Log out</a>`;
+        } else if (me.logged_in && me.legacy_admin) {
+            slot.innerHTML = `<a href="/admin">Admin</a><span class="sep">·</span><a href="/logout">Log out</a>`;
+        } else {
+            slot.innerHTML = `<a href="/login">Log in</a>`;
+        }
+    }
+
+    function render() {
+        const u = viewedUser;
+        const isMe = me.logged_in && !me.legacy_admin && me.username && me.username.toLowerCase() === u.username.toLowerCase();
+        const adminTag = u.is_admin ? '<span class="admin-tag">Admin</span>' : "";
+        const since = u.created_at ? `member since ${formatDate(u.created_at)}` : "";
+        const bioHtml = u.bio
+            ? `<div class="profile-bio">${escapeHtml(u.bio)}</div>`
+            : `<div class="profile-bio empty">${isMe ? "You haven't added a bio yet." : "(no bio)"}</div>`;
+
+        const editButton = isMe
+            ? `<div class="profile-actions"><button id="edit-btn" class="secondary">Edit profile</button></div>`
+            : "";
+
+        const savesHtml = u.saves.length
+            ? u.saves.map(renderSave).join("")
+            : `<div class="empty-saves">${isMe ? "You haven't saved anything yet. Click the bookmark on any feed item." : "No saves yet."}</div>`;
+
+        document.getElementById("profile-content").innerHTML = `
+            <div class="profile-header">
+                <div class="avatar">${avatarHtml(u)}</div>
+                <div class="profile-meta">
+                    <h1 class="profile-username">@${escapeHtml(u.username)}${adminTag}</h1>
+                    <div class="profile-since">${since}</div>
+                    ${bioHtml}
+                    ${editButton}
+                </div>
+            </div>
+
+            <div class="saves-header">
+                <h2>Saves</h2>
+                <div class="count">${u.save_count} ${u.save_count === 1 ? "item" : "items"}</div>
+            </div>
+            <div class="saves-list">${savesHtml}</div>`;
+
+        if (isMe) {
+            document.getElementById("edit-btn").addEventListener("click", openEditModal);
+        }
+    }
+
+    function renderSave(s) {
+        const dateBit = s.date_iso ? formatDate(s.date_iso) : "";
+        const meta = [s.source, dateBit].filter(Boolean).join(" · ");
+        const cat = s.source_category;
+        const badge = cat ? `<span class="badge badge-${cat}" style="margin-right:8px;">${categoryLabel(cat)}</span>` : "";
+        return `
+            <div class="save-item">
+                <div class="title">${badge}<a href="${escapeHtml(s.link)}" target="_blank" rel="noopener">${escapeHtml(s.title)}</a></div>
+                <div class="meta">${escapeHtml(meta)}</div>
+                ${s.blurb ? `<div class="blurb">${escapeHtml(s.blurb)}</div>` : ""}
+            </div>`;
+    }
+
+    // ---------- Edit profile modal ----------
+    const modal = document.getElementById("edit-modal");
+    function openEditModal() {
+        document.getElementById("edit-avatar").value = viewedUser.avatar_url || "";
+        document.getElementById("edit-bio").value    = viewedUser.bio || "";
+        modal.classList.add("open");
+    }
+    function closeEditModal() { modal.classList.remove("open"); }
+    document.getElementById("edit-cancel").addEventListener("click", closeEditModal);
+    modal.addEventListener("click", (e) => { if (e.target === modal) closeEditModal(); });
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && modal.classList.contains("open")) closeEditModal();
+    });
+
+    document.getElementById("edit-save").addEventListener("click", async () => {
+        const body = {
+            avatar_url: document.getElementById("edit-avatar").value,
+            bio:        document.getElementById("edit-bio").value,
+        };
+        const r = await fetch("/api/me/profile", {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify(body),
+        });
+        if (r.ok) {
+            closeEditModal();
+            loadAll();
+        } else {
+            const err = await r.json().catch(() => ({}));
+            alert(err.error || "Save failed.");
+        }
+    });
+
+    loadAll();
+</script>
+
+</body>
+</html>
