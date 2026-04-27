@@ -81,6 +81,16 @@ def _current_user():
     if uid:
         u = db.get_user_by_id(uid)
         if u:
+            # Auto-promote to admin if username matches BOOTSTRAP_ADMIN_USERNAME
+            # and they aren't already an admin. Handles the case where the env
+            # var was set after the user signed up.
+            if (db.BOOTSTRAP_ADMIN_USERNAME and
+                u.get("username", "").lower() == db.BOOTSTRAP_ADMIN_USERNAME and
+                not u.get("is_admin")):
+                db.set_admin(u["id"], True)
+                u["is_admin"] = True
+                print(f"[auth] auto-promoted '{u['username']}' to admin "
+                      f"(matches BOOTSTRAP_ADMIN_USERNAME)")
             return u
         # Stale session referencing a deleted user — clear it
         session.pop("user_id", None)

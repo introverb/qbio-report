@@ -190,6 +190,14 @@ def _get_user_with_hash(username: str) -> dict | None:
         return dict(row) if row else None
 
 
+def set_admin(user_id: int, is_admin: bool = True):
+    """Toggle the admin flag on a user."""
+    with connect() as conn:
+        conn.execute("UPDATE users SET is_admin = ? WHERE id = ?",
+                     (1 if is_admin else 0, user_id))
+        conn.commit()
+
+
 def update_profile(user_id: int, bio: str = None, avatar_url: str = None):
     """Update profile fields. Pass None to skip a field."""
     fields, values = [], []
