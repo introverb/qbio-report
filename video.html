@@ -199,7 +199,24 @@
         .video-card {
             display: flex;
             flex-direction: column;
+            position: relative;
         }
+        .video-card .save-btn {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            z-index: 2;
+            background: rgba(238, 232, 223, 0.85);
+            backdrop-filter: blur(2px);
+            border-radius: 50%;
+        }
+        .archive-item { position: relative; }
+        .archive-item .save-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+        }
+        .archive-item .title { padding-right: 28px; }
         .video-card .thumb-wrap {
             position: relative;
             aspect-ratio: 16 / 9;
@@ -365,6 +382,7 @@
 </footer>
 
 <script src="/assets/user-nav.js"></script>
+<script src="/assets/saves.js"></script>
 <script>
     const TZ = "America/Los_Angeles";
     function formatDateline(iso) {
@@ -409,11 +427,16 @@
         return src || "(unknown)";
     }
 
+    function saveBtnHtml(a) {
+        return `<button class="save-btn" data-link="${(a.link || '').replace(/"/g, '&quot;')}" aria-label="Save">${window.QBIO_SAVES_BOOKMARK_SVG || ''}</button>`;
+    }
+
     function renderFeaturedCard(a) {
         const when = a.date_iso ? formatArticleDate(a.date_iso) : "";
         const thumb = a.thumbnail || PLACEHOLDER_THUMB;
         return `
             <div class="video-card">
+                ${saveBtnHtml(a)}
                 <a href="${a.link}" target="_blank" class="thumb-wrap" title="Watch on YouTube">
                     <img src="${thumb}" alt="" loading="lazy">
                     <div class="play-badge">Watch on YouTube &rarr;</div>
@@ -430,6 +453,7 @@
         const thumb = a.thumbnail || PLACEHOLDER_THUMB;
         return `
             <div class="archive-item">
+                ${saveBtnHtml(a)}
                 <a href="${a.link}" target="_blank" class="thumb" title="Watch on YouTube">
                     <img src="${thumb}" alt="" loading="lazy">
                 </a>
@@ -474,6 +498,8 @@
             .sort((a, b) => (b.date_iso || "").localeCompare(a.date_iso || ""));
         archiveWrap.hidden = archive.length === 0;
         document.getElementById("archive-list").innerHTML = archive.map(renderArchiveItem).join("");
+
+        if (window.qbioRefreshSaveIcons) window.qbioRefreshSaveIcons();
     }
 
     function updatePickerLabel() {
@@ -551,6 +577,9 @@
                 .filter(a => a.source_category === "video")
                 .slice()
                 .sort((a, b) => (b.date_iso || "").localeCompare(a.date_iso || ""));
+
+            // Register every video with the saves layer.
+            allItems.forEach(a => window.qbioRegisterArticle && window.qbioRegisterArticle(a));
 
             document.getElementById("dateline").textContent =
                 `${formatDateline(data.generated_at)} · ${allItems.length} VIDEOS`;

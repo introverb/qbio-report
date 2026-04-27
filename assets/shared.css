@@ -288,3 +288,28 @@ table.data td.mono { font-family: monospace; font-size: 11px; color: var(--soft-
     padding: 20px;
     text-align: center;
 }
+
+/* ---- Save (bookmark) button — appears on every feed item ---- */
+.save-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    opacity: 0.35;
+    transition: opacity 0.15s, color 0.15s, transform 0.1s;
+    color: var(--light-purple);
+    border: none;
+    background: transparent;
+    padding: 0;
+    flex-shrink: 0;
+}
+.save-btn:hover { opacity: 1; color: var(--pink); transform: scale(1.08); }
+.save-btn.filled { opacity: 1; color: var(--pink); }
+.save-btn svg { width: 15px; height: 18px; display: block; }
+.save-btn svg path { stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; }
+.save-btn:not(.filled) svg path { fill: none; }
+.save-btn.filled svg path { fill: currentColor; }
+.save-btn.logged-out:hover { color: var(--light-purple); transform: scale(1.04); }
+.save-btn.busy { opacity: 0.5; pointer-events: none; }

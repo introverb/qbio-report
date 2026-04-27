@@ -244,10 +244,17 @@
         @media (max-width: 560px) { .chatter-items { column-count: 1; } }
 
         .chatter-item {
+            position: relative;
             break-inside: avoid;
             margin-bottom: 28px;
             padding-left: 18px;
+            padding-right: 28px;
             border-left: 2px solid rgba(125, 74, 110, 0.35);
+        }
+        .chatter-item .save-btn {
+            position: absolute;
+            top: 0;
+            right: 0;
         }
         .chatter-item .headline {
             font-style: italic;
@@ -382,6 +389,7 @@
 </footer>
 
 <script src="/assets/user-nav.js"></script>
+<script src="/assets/saves.js"></script>
 <script>
     const DIRECT_TERMS = [
         "quantum biolog", "quantum bioscien", "quantum bio-",
@@ -545,6 +553,7 @@
         const snippet = extractSnippet(a);
         return `
             <div class="chatter-item">
+                <button class="save-btn" data-link="${(a.link || '').replace(/"/g, '&quot;')}" aria-label="Save">${window.QBIO_SAVES_BOOKMARK_SVG || ''}</button>
                 <div class="headline">
                     <span class="badge-mini ${badgeClass}">${badgeLabel}</span>
                     <a href="${a.link}" target="_blank" title="${stripHtml(a.title)}">${snippet}</a>
@@ -568,6 +577,7 @@
         }
         container.innerHTML = items.map(renderOneItem).join("");
         updatePickerLabel();
+        if (window.qbioRefreshSaveIcons) window.qbioRefreshSaveIcons();
     }
 
     function updatePickerLabel() {
@@ -698,6 +708,10 @@
                 .filter(isChatter)
                 .slice()
                 .sort((a, b) => (b.date_iso || "").localeCompare(a.date_iso || ""));
+
+            // Register every chatter item with the saves layer so the bookmark
+            // icons can post the full payload to /api/saves on click.
+            allItems.forEach(a => window.qbioRegisterArticle && window.qbioRegisterArticle(a));
 
             document.getElementById("dateline").textContent =
                 `${formatDateline(data.generated_at)} · ${allItems.length} CHATTER ITEMS`;

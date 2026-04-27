@@ -515,6 +515,17 @@
             background: rgba(125, 74, 110, 0.7);
         }
 
+        /* ---------- Save (bookmark) button positioning per card type ---------- */
+        .story-recent, .article, .search-item { position: relative; }
+        .story-recent .save-btn,
+        .article      .save-btn,
+        .search-item  .save-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+        }
+        /* h3s now share space with the button — leave room on the right */
+        .story-recent h3, .article h3, .search-item .title { padding-right: 30px; }
 
         /* ---------- Footer ---------- */
         footer {
@@ -598,6 +609,12 @@
 </div>
 
 <script src="/assets/user-nav.js"></script>
+<script src="/assets/saves.js"></script>
+<script>
+    function saveBtnHtml(a) {
+        return `<button class="save-btn" data-link="${(a.link || '').replace(/"/g, '&quot;')}" aria-label="Save">${window.QBIO_SAVES_BOOKMARK_SVG}</button>`;
+    }
+</script>
 <script>
     // ---------- Date helpers ----------
     // Qubie lives in Los Angeles — display all timestamps in Pacific Time.
@@ -752,6 +769,10 @@
                 return;
             }
 
+            // Register every article with the saves layer so the bookmark
+            // icons can post the full payload to /api/saves on click.
+            articles.forEach(a => window.qbioRegisterArticle && window.qbioRegisterArticle(a));
+
             // --- Direct-QB filter (used by both Recent and Filed sections) ---
             // Substring matches (not whole words) so "quantum biolog"
             // catches biology, biological, biologist, biologically, etc.
@@ -847,6 +868,7 @@
 
             const renderRecent = (a) => `
                 <div class="story-recent">
+                    ${saveBtnHtml(a)}
                     <h3><a href="${a.link}" target="_blank" title="${stripHtml(a.summary)}">${a.title}</a></h3>
                     ${blurbHtml(a)}
                     ${metaHtml(a)}
@@ -855,6 +877,7 @@
                 const developing = a.score >= 2 ? '<span class="developing">Developing&hellip;</span> ' : '';
                 return `
                     <div class="article">
+                        ${saveBtnHtml(a)}
                         <h3>${developing}<a href="${a.link}" target="_blank" title="${stripHtml(a.summary)}">${a.title}</a></h3>
                         ${blurbHtml(a)}
                         ${metaHtml(a)}
@@ -891,6 +914,9 @@
                 `;
             }
 
+            // Now that Recent + Filed are in the DOM, sync the bookmark fill state.
+            if (window.qbioRefreshSaveIcons) window.qbioRefreshSaveIcons();
+
             // --- Search section (client-side over all articles) ---
             (() => {
                 const input   = document.getElementById("search-input");
@@ -921,6 +947,7 @@
                     const dateBit   = when ? `<span>&middot; ${when}</span>` : "";
                     return `
                         <div class="search-item">
+                            ${saveBtnHtml(a)}
                             <div class="title">
                                 <a href="${a.link}" target="_blank" title="${stripHtml(a.summary)}">${a.title}</a>
                             </div>
@@ -958,6 +985,7 @@
                     }
                     results.innerHTML = html;
                     results.scrollTop = 0;
+                    if (window.qbioRefreshSaveIcons) window.qbioRefreshSaveIcons();
                 };
 
                 let searchTimer;
