@@ -263,6 +263,39 @@ def page_profile(username):
     return send_from_directory(HERE, "profile.html")
 
 
+@app.route("/api/_promote_me", methods=["POST"])
+def api_promote_me():
+    """Manual escape hatch: promote the currently-logged-in user to admin if
+    they prove they know ADMIN_PASSWORD. Bypasses BOOTSTRAP_ADMIN_USERNAME so
+    we can fix accounts when the env var matching misfires."""
+    user = _current_user()
+    if not user or user.get("_legacy"):
+        return jsonify({"error": "Log in as a real user account first."}), 401
+    data = request.get_json(force=True, silent=True) or {}
+    pw = (data.get("admin_password") or "").strip()
+    if not pw or pw != ADMIN_PASSWORD:
+        return jsonify({"error": "Wrong admin password."}), 403
+    db.set_admin(user["id"], True)
+    print(f"[auth] manually promoted '{user['username']}' to admin via /api/_promote_me")
+    return jsonify({"ok": True, "username": user["username"]})
+
+
+@app.route("/api/_debug_auth", methods=["GET"])
+def api_debug_auth():
+    """Read-only diagnostic: shows what BOOTSTRAP_ADMIN_USERNAME the running
+    server has, what the current user looks like, and whether they would be
+    auto-promoted. Helps debug 'why isn't auto-promote firing'."""
+    user = _current_user()
+    return jsonify({
+        "bootstrap_admin_username_loaded": db.BOOTSTRAP_ADMIN_USERNAME,
+        "current_user": (user if user else None),
+        "would_auto_promote": bool(
+            user and not user.get("_legacy") and db.BOOTSTRAP_ADMIN_USERNAME
+            and user.get("username", "").lower() == db.BOOTSTRAP_ADMIN_USERNAME
+        ),
+    })
+
+
 @app.route("/api/me", methods=["GET"])
 def api_me():
     """Return the current user's public profile, or {logged_in: False}."""
