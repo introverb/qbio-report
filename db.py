@@ -100,7 +100,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 # Username validation
 # ---------------------------------------------------------------------------
 import re as _re
-_USERNAME_RE = _re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{1,23}$")
+_USERNAME_RE = _re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{1,23}$")
 RESERVED_USERNAMES = {"admin", "api", "auth", "login", "logout", "signup",
                       "me", "u", "user", "users", "report", "chatter",
                       "video", "suggest", "library", "saves", "saved",
@@ -114,7 +114,7 @@ def validate_username(username: str) -> str:
         return "Username is required."
     if not _USERNAME_RE.match(username):
         return ("Username must be 2-24 chars, start with a letter or number, "
-                "and contain only letters, numbers, '_' or '-'.")
+                "and contain only letters, numbers, '.', '_' or '-'.")
     if username.lower() in RESERVED_USERNAMES:
         return "That username is reserved. Pick something else."
     return ""
