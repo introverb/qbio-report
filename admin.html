@@ -474,6 +474,20 @@
         <div id="source-fixes-list"></div>
     </section>
 
+    <!-- ====== Section 5: Filtered Items (off-topic, dropped by Haiku) ====== -->
+    <section class="section">
+        <div class="section-header">
+            <h2>Filtered Items</h2>
+            <div class="section-subtitle">
+                chatter/social/video items the relevance filter dropped &mdash;
+                <b>Restore</b> to whitelist + re-add to feed,
+                <b>Dismiss</b> to confirm and clear.
+            </div>
+        </div>
+        <div id="filtered-meta" style="font-size:11px;color:var(--soft-text);margin-bottom:10px;font-style:italic;"></div>
+        <div id="filtered-list"></div>
+    </section>
+
     <!-- ====== Accordion: DNS / custom-domain setup (collapsed by default) ====== -->
     <section class="accordion-section">
         <details>
@@ -802,9 +816,106 @@
         const sourceData = await initSourceOverview();
         loadSourceRequests();
         loadKeywordSuggestions();
+        loadFilteredItems();
         if (sourceData) renderSourceFixes(sourceData);
         wireScrapeNowButton(sourceData ? sourceData.generated_at : null);
     })();
+
+    // =========================================================
+    // Filtered Items (off-topic, dropped by Haiku)
+    // =========================================================
+    async function loadFilteredItems() {
+        const list = document.getElementById("filtered-list");
+        const meta = document.getElementById("filtered-meta");
+        list.innerHTML = '<div class="empty-state-small">Loading&hellip;</div>';
+        meta.textContent = "";
+        try {
+            const r = await fetch("/api/rejected", { cache: "no-store" });
+            if (!r.ok) throw new Error("Couldn't load filtered items.");
+            const data  = await r.json();
+            const items = data.items || [];
+            if (!items.length) {
+                list.innerHTML = '<div class="empty-state-small">Nothing in the queue. Either Haiku liked everything this scrape, or no scrapes have run since the filter was added.</div>';
+                meta.textContent = "";
+                return;
+            }
+            meta.textContent = `${items.length} item${items.length === 1 ? "" : "s"} flagged · entries auto-prune after 60 days`;
+            list.innerHTML = `
+                <table class="data">
+                    <thead><tr>
+                        <th style="width:90px;">Type</th>
+                        <th>Title</th>
+                        <th style="width:140px;">Source</th>
+                        <th style="width:160px;">Rejected</th>
+                        <th style="width:200px;">Actions</th>
+                    </tr></thead>
+                    <tbody>${items.map(renderFilteredRow).join("")}</tbody>
+                </table>`;
+            // Wire button handlers
+            list.querySelectorAll("button[data-restore]").forEach(b => {
+                b.addEventListener("click", () => onRestoreFiltered(b.dataset.restore));
+            });
+            list.querySelectorAll("button[data-dismiss]").forEach(b => {
+                b.addEventListener("click", () => onDismissFiltered(b.dataset.dismiss));
+            });
+        } catch (e) {
+            list.innerHTML = `<div class="empty-state-small">${e.message}</div>`;
+        }
+    }
+
+    function renderFilteredRow(it) {
+        const cat   = (it.source_category || "").toLowerCase();
+        const badge = cat ? `<span class="badge badge-${cat}">${cat}</span>` : "";
+        const when  = it.rejected_at
+            ? new Date(it.rejected_at).toLocaleString("en-US",
+                { timeZone: "America/Los_Angeles", month:"short", day:"numeric",
+                  hour:"numeric", minute:"2-digit", timeZoneName:"short" })
+            : "";
+        const linkEsc = (it.link || "").replace(/"/g, "&quot;");
+        const titleSafe = (it.title || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+        return `
+            <tr>
+                <td>${badge}</td>
+                <td>
+                    <a href="${linkEsc}" target="_blank" rel="noopener" style="font-weight:700;">${titleSafe}</a>
+                </td>
+                <td class="mono">${(it.source || "").replace(/&/g,"&amp;").replace(/</g,"&lt;")}</td>
+                <td style="font-size:11px;color:var(--soft-text);">${when}</td>
+                <td>
+                    <button data-restore="${linkEsc}">Restore</button>
+                    <button class="danger" data-dismiss="${linkEsc}">Dismiss</button>
+                </td>
+            </tr>`;
+    }
+
+    async function onRestoreFiltered(link) {
+        const r = await fetch("/api/rejected/restore", {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify({ link }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) {
+            alert(d.error || "Restore failed.");
+            return;
+        }
+        loadFilteredItems();
+    }
+
+    async function onDismissFiltered(link) {
+        if (!confirm("Dismiss this item permanently? Same article may re-appear in a future scrape if it's matched again.")) return;
+        const r = await fetch("/api/rejected", {
+            method:  "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify({ link }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) {
+            alert(d.error || "Dismiss failed.");
+            return;
+        }
+        loadFilteredItems();
+    }
 
     // =========================================================
     // Scrape-now button + progress polling

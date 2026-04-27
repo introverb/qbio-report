@@ -416,6 +416,128 @@ def serve_feed():
 
 
 SCRAPE_PROGRESS_FILE = os.path.join(DATA_DIR, "scrape_progress.json")
+REJECTED_FILE        = os.path.join(DATA_DIR, "rejected.json")
+WHITELIST_FILE       = os.path.join(DATA_DIR, "whitelist.json")
+
+
+# ============================================================================
+# Off-topic filter — admin review of items the scraper's Haiku filter dropped
+# ============================================================================
+
+def _load_rejected():
+    if not os.path.exists(REJECTED_FILE):
+        return {"items": []}
+    try:
+        with open(REJECTED_FILE, "r", encoding="utf-8") as f:
+            return json.load(f) or {"items": []}
+    except (json.JSONDecodeError, OSError):
+        return {"items": []}
+
+
+def _save_rejected(data):
+    with open(REJECTED_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+def _load_whitelist_set():
+    if not os.path.exists(WHITELIST_FILE):
+        return set()
+    try:
+        with open(WHITELIST_FILE, "r", encoding="utf-8") as f:
+            return set((json.load(f) or {}).get("links", []))
+    except (json.JSONDecodeError, OSError):
+        return set()
+
+
+def _save_whitelist_set(links_set):
+    with open(WHITELIST_FILE, "w", encoding="utf-8") as f:
+        json.dump({"links": sorted(links_set)}, f, indent=2)
+
+
+@app.route("/api/rejected", methods=["GET"])
+@require_admin
+def api_list_rejected():
+    """List items the scraper's Haiku filter flagged as off-topic.
+    Admin-only — DAO members shouldn't see the noise."""
+    return jsonify(_load_rejected())
+
+
+@app.route("/api/rejected/restore", methods=["POST"])
+@require_admin
+def api_restore_rejected():
+    """Restore a flagged item: add link to whitelist (so future scrapes don't
+    re-reject it), append the article to feed.json so it's visible immediately,
+    and remove it from rejected.json."""
+    data = request.get_json(force=True, silent=True) or {}
+    link = (data.get("link") or "").strip()
+    if not link:
+        return jsonify({"error": "link is required"}), 400
+
+    rejected = _load_rejected()
+    items = rejected.get("items") or []
+    target = next((it for it in items if it.get("link") == link), None)
+    if not target:
+        return jsonify({"error": "Not in rejected.json"}), 404
+
+    # 1. Whitelist the link so scrapes leave it alone
+    wl = _load_whitelist_set()
+    wl.add(link)
+    _save_whitelist_set(wl)
+
+    # 2. Splice the article into feed.json (idempotent — skip if already there)
+    if os.path.exists(FEED_JSON):
+        try:
+            with open(FEED_JSON, "r", encoding="utf-8") as f:
+                feed = json.load(f) or {}
+        except (json.JSONDecodeError, OSError):
+            feed = {}
+        articles = feed.get("articles") or []
+        if not any(a.get("link") == link for a in articles):
+            # Strip the rejection metadata before adding back to feed
+            restored_article = {k: v for k, v in target.items() if k != "rejected_at"}
+            articles.append(restored_article)
+            # Re-sort by date desc to keep ordering consistent
+            articles.sort(key=lambda a: a.get("date_iso") or "", reverse=True)
+            feed["articles"] = articles
+            feed["article_count"] = len(articles)
+            with open(FEED_JSON, "w", encoding="utf-8") as f:
+                json.dump(feed, f, indent=2, ensure_ascii=False)
+
+    # 3. Drop from rejected.json
+    rejected["items"] = [it for it in items if it.get("link") != link]
+    rejected["count"] = len(rejected["items"])
+    _save_rejected(rejected)
+
+    return jsonify({"ok": True, "whitelisted": link})
+
+
+@app.route("/api/rejected", methods=["DELETE"])
+@require_admin
+def api_dismiss_rejected():
+    """Permanently dismiss a rejected item (admin agrees with Haiku — don't
+    show in the queue anymore). Does NOT whitelist, so if the same article
+    re-appears in a future scrape it'll be re-evaluated."""
+    data = request.get_json(force=True, silent=True) or {}
+    link = (data.get("link") or "").strip()
+    if not link:
+        return jsonify({"error": "link is required"}), 400
+    rejected = _load_rejected()
+    items = rejected.get("items") or []
+    new_items = [it for it in items if it.get("link") != link]
+    if len(new_items) == len(items):
+        return jsonify({"error": "Not in rejected.json"}), 404
+    rejected["items"] = new_items
+    rejected["count"] = len(new_items)
+    _save_rejected(rejected)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/rejected/clear", methods=["POST"])
+@require_admin
+def api_clear_rejected():
+    """Wipe the entire rejected queue. Useful after a big calibration sweep."""
+    _save_rejected({"items": [], "count": 0})
+    return jsonify({"ok": True})
 
 
 @app.route("/api/scrape-progress", methods=["GET"])

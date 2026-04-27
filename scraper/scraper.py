@@ -15,7 +15,7 @@ import os
 import re
 import time
 import urllib.parse
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 
 import feedparser
@@ -1100,6 +1100,200 @@ def fetch_bluesky(keywords):
 # one-sentence plain-English "why it matters" using Claude Haiku.
 # Blurbs are cached by link — re-runs cost $0 for articles we've seen.
 
+# ============================================================================
+# OFF-TOPIC FILTER (Haiku-based) — applied to chatter/social/video only
+# ============================================================================
+# Why: keyword matching alone catches casual usage of "decoherence" in an
+# egg-poaching tweet, AI-generated clickbait videos, etc. Haiku reliably
+# distinguishes "actually about quantum biology" from "incidentally mentions
+# quantum buzzwords." Only chatter/social/video go through this — papers and
+# preprints from arXiv/PubMed basically never need it.
+#
+# Persistent state:
+#   rejected.json   — articles Haiku flagged off-topic (admin reviews via UI)
+#   whitelist.json  — links the admin manually restored; bypass the filter
+#                     forever after.
+#
+# Files live on the volume next to feed.json/keywords.txt etc.
+
+RELEVANCE_MODEL    = "claude-haiku-4-5"
+RELEVANCE_BATCH    = 20
+NOISY_CATEGORIES   = {"forums", "social", "video"}
+REJECTED_FILE      = os.path.join(DATA_DIR, "rejected.json")
+WHITELIST_FILE     = os.path.join(DATA_DIR, "whitelist.json")
+REJECTED_TTL_DAYS  = 60  # prune older entries on each run
+
+RELEVANCE_SYSTEM = (
+    "You filter scientific signal from social-media keyword matches. "
+    "Be strict about casual usage and AI clickbait; lean YES on genuine science."
+)
+
+RELEVANCE_USER_PREFIX = (
+    "Below are items from social media, forums, or YouTube that matched "
+    "quantum-biology keywords. For each, decide: is this actually about "
+    "(or directly relevant to) quantum biology, biophysics, quantum "
+    "chemistry, or related research?\n\n"
+    "Reply NO if it's:\n"
+    "- Casual conversation that just happens to use words like 'quantum', "
+    "'decoherence', 'entanglement', or 'radical pair' in a non-scientific sense\n"
+    "- AI-generated clickbait or content-farm video with no real substance\n"
+    "- Ads, spam, off-topic posts where the keyword match was coincidental\n\n"
+    "Reply YES for any genuine engagement with the science: papers, "
+    "discussions, lectures, demos, even informal commentary that actually "
+    "addresses quantum effects in biology. When in doubt, lean YES.\n\n"
+    "Reply with one line per item in the form '1: YES' or '2: NO' — "
+    "no other text.\n\n"
+    "Items:\n"
+)
+
+
+def load_whitelist():
+    if not os.path.exists(WHITELIST_FILE):
+        return set()
+    try:
+        with open(WHITELIST_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f) or {}
+        return set(data.get("links", []))
+    except (json.JSONDecodeError, OSError):
+        return set()
+
+
+def save_whitelist(links_set):
+    with open(WHITELIST_FILE, "w", encoding="utf-8") as f:
+        json.dump({"links": sorted(links_set)}, f, indent=2)
+
+
+def load_rejected_map():
+    """Returns {link: entry} dict (mutable, written back at end of run)."""
+    if not os.path.exists(REJECTED_FILE):
+        return {}
+    try:
+        with open(REJECTED_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f) or {}
+        items = data.get("items", [])
+        return {it["link"]: it for it in items if it.get("link")}
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def save_rejected_map(rejected_map):
+    items = sorted(
+        rejected_map.values(),
+        key=lambda x: x.get("rejected_at", ""),
+        reverse=True,
+    )
+    with open(REJECTED_FILE, "w", encoding="utf-8") as f:
+        json.dump({
+            "generated_at": datetime.now().isoformat(timespec="seconds"),
+            "count":        len(items),
+            "items":        items,
+        }, f, indent=2, ensure_ascii=False)
+
+
+def _judge_batch(client, batch):
+    """Ask Haiku for YES/NO per article. Returns parallel list of bools."""
+    lines = []
+    for i, a in enumerate(batch, 1):
+        title   = (a.get("title") or "").strip()[:300]
+        source  = (a.get("source") or "").strip()[:80]
+        summary = (a.get("summary") or "").strip()[:400]
+        lines.append(f"{i}. Title: {title}\n   Source: {source}\n   Summary: {summary}")
+    user_content = RELEVANCE_USER_PREFIX + "\n\n".join(lines)
+
+    try:
+        resp = client.messages.create(
+            model=RELEVANCE_MODEL,
+            max_tokens=12 * len(batch) + 50,
+            system=RELEVANCE_SYSTEM,
+            messages=[{"role": "user", "content": user_content}],
+        )
+        text = resp.content[0].text.strip()
+    except Exception as e:
+        print(f"  [Filter] Haiku error: {e} — defaulting batch to YES.")
+        return [True] * len(batch)
+
+    verdicts = [True] * len(batch)
+    for line in text.splitlines():
+        m = re.match(r"^\s*(\d+)\s*[:\.\)]?\s*(YES|NO)\b", line.strip(), re.IGNORECASE)
+        if m:
+            idx = int(m.group(1)) - 1
+            if 0 <= idx < len(batch):
+                verdicts[idx] = (m.group(2).upper() == "YES")
+    return verdicts
+
+
+def filter_off_topic(articles):
+    """Strip off-topic chatter/social/video items via Haiku. Returns the
+    cleaned article list. Newly-rejected items are merged into rejected.json
+    on the volume so /admin can review and restore them."""
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key or api_key == "PASTE_YOUR_KEY_HERE":
+        print("\n[Filter] No ANTHROPIC_API_KEY — skipping relevance filter.")
+        return articles
+    if anthropic is None:
+        print("\n[Filter] anthropic package not installed — skipping relevance filter.")
+        return articles
+
+    whitelist = load_whitelist()
+    rejected_map = load_rejected_map()
+
+    # Prune old entries (TTL) before adding new ones
+    cutoff = (datetime.now() - timedelta(days=REJECTED_TTL_DAYS)).isoformat(timespec="seconds")
+    rejected_map = {k: v for k, v in rejected_map.items()
+                    if v.get("rejected_at", "") >= cutoff}
+
+    targets = []      # need Haiku judgment
+    passthrough = []  # bypass filter (papers, news, or whitelisted)
+    for a in articles:
+        cat  = a.get("source_category")
+        link = a.get("link") or ""
+        if cat not in NOISY_CATEGORIES or link in whitelist:
+            passthrough.append(a)
+        else:
+            targets.append(a)
+
+    if not targets:
+        print("\n[Filter] No chatter/social/video items to check.")
+        save_rejected_map(rejected_map)  # write pruning result
+        return passthrough
+
+    print(f"\n[Filter] Checking {len(targets)} chatter/social/video items via Haiku ...")
+    client = anthropic.Anthropic(api_key=api_key)
+
+    kept = []
+    rejected_this_run = 0
+    now_iso = datetime.now().isoformat(timespec="seconds")
+
+    for batch_start in range(0, len(targets), RELEVANCE_BATCH):
+        batch = targets[batch_start:batch_start + RELEVANCE_BATCH]
+        verdicts = _judge_batch(client, batch)
+        for a, on_topic in zip(batch, verdicts):
+            if on_topic:
+                kept.append(a)
+            else:
+                rejected_this_run += 1
+                # Snapshot the article + when it was rejected. We replace any
+                # prior entry by link so the rejected_at timestamp stays fresh.
+                rejected_map[a["link"]] = {
+                    **a,
+                    "rejected_at": now_iso,
+                }
+                # Log so it shows up in Railway scrape output
+                print(f"  [Filter] DROP [{a.get('source_category')}] "
+                      f"{a.get('title','')[:90]}")
+
+    save_rejected_map(rejected_map)
+    print(f"  [Filter] kept {len(kept)} / {len(targets)} ; "
+          f"{rejected_this_run} newly rejected ; "
+          f"{len(rejected_map)} total in rejected.json")
+
+    return passthrough + kept
+
+
+# ============================================================================
+# BLURB ENRICHMENT (Haiku-based)
+# ============================================================================
+
 BLURB_MODEL       = "claude-haiku-4-5"
 BLURB_MAX_TOKENS  = 150
 BLURB_CACHE_FILE  = os.path.join(DATA_DIR, "blurbs_cache.json")
@@ -1560,6 +1754,9 @@ def main():
 
     # -- Sort by date_iso desc (most recent first) --
     unique.sort(key=lambda a: a["date_iso"] or "0", reverse=True)
+
+    # -- Off-topic filter for chatter/social/video (Haiku-based) --
+    unique = filter_off_topic(unique)
 
     # -- Enrich qualifying articles with LLM-generated blurbs --
     enrich_with_blurbs(unique)
