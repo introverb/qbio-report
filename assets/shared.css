@@ -294,22 +294,27 @@ table.data td.mono { font-family: monospace; font-size: 11px; color: var(--soft-
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 26px;
+    height: 26px;
     cursor: pointer;
-    opacity: 0.35;
-    transition: opacity 0.15s, color 0.15s, transform 0.1s;
-    color: var(--light-purple);
+    transition: transform 0.1s, color 0.15s;
+    color: var(--pink);
     border: none;
     background: transparent;
     padding: 0;
     flex-shrink: 0;
 }
-.save-btn:hover { opacity: 1; color: var(--pink); transform: scale(1.08); }
-.save-btn.filled { opacity: 1; color: var(--pink); }
-.save-btn svg { width: 15px; height: 18px; display: block; }
-.save-btn svg path { stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; }
-.save-btn:not(.filled) svg path { fill: none; }
-.save-btn.filled svg path { fill: currentColor; }
-.save-btn.logged-out:hover { color: var(--light-purple); transform: scale(1.04); }
-.save-btn.busy { opacity: 0.5; pointer-events: none; }
+.save-btn:hover { transform: scale(1.12); }
+.save-btn svg { width: 16px; height: 20px; display: block; }
+.save-btn svg path {
+    stroke: var(--pink);
+    stroke-width: 1.8;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    fill: none;
+    transition: fill 0.15s;
+}
+.save-btn.filled svg path { fill: var(--pink); }
+.save-btn.logged-out svg path { stroke: var(--light-purple); }
+.save-btn.logged-out:hover { transform: scale(1.04); }
+.save-btn.busy { opacity: 0.55; pointer-events: none; }

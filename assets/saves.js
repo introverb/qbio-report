@@ -19,9 +19,12 @@
     let LOGGED_IN   = false;
     const ARTICLES  = new Map(); // link -> full article object
 
-    // Bookmark SVG, exposed for convenience so pages can use a single source
+    // Bookmark SVG (24x24 viewBox, classic bookmark shape with rounded corners).
+    // Pink stroke by default; .filled adds a pink fill via CSS.
     window.QBIO_SAVES_BOOKMARK_SVG =
-        '<svg viewBox="0 0 16 18" aria-hidden="true"><path d="M2 1 L2 17 L8 13 L14 17 L14 1 Z"/></svg>';
+        '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+        '<path d="M6 3.5 a1 1 0 0 1 1 -1 h10 a1 1 0 0 1 1 1 v17.5 l-6 -3.6 l-6 3.6 z"/>' +
+        '</svg>';
 
     function syncIconState(btn) {
         const link = btn.dataset.link;

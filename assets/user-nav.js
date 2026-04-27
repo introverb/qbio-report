@@ -7,30 +7,28 @@
     }
 
     function render(me) {
-        // Top-right user slot
+        // Top-right user slot. Admin link appears here for admin accounts only.
         const slot = document.getElementById("user-nav-slot");
         if (slot) {
+            const adminLink = (me && (me.is_admin || me.legacy_admin))
+                ? `<a href="/admin">Admin</a><span class="sep">·</span>`
+                : "";
             if (me && me.logged_in && !me.legacy_admin) {
                 slot.innerHTML =
+                    adminLink +
                     `<a href="/u/${encodeURIComponent(me.username)}" title="My profile">@${escapeHtml(me.username)}</a>` +
                     `<span class="sep">·</span><a href="/logout">Log out</a>`;
             } else if (me && me.logged_in && me.legacy_admin) {
-                slot.innerHTML = `<a href="/logout">Log out</a>`;
+                slot.innerHTML = adminLink + `<a href="/logout">Log out</a>`;
             } else {
                 slot.innerHTML = `<a href="/login">Log in</a>`;
             }
         }
 
-        // Footer admin link — only visible to admins (real or legacy).
-        // Olli moved Admin out of the top nav to keep things clean.
+        // Footer admin link is no longer used (admin is back in the top nav).
+        // Clear any pre-rendered placeholder for older pages.
         const footerAdmin = document.getElementById("footer-admin-link");
-        if (footerAdmin) {
-            if (me && (me.is_admin || me.legacy_admin)) {
-                footerAdmin.innerHTML = `<a href="/admin" style="color:inherit;border-bottom:1px solid currentColor;text-decoration:none;">Admin</a>`;
-            } else {
-                footerAdmin.innerHTML = "";
-            }
-        }
+        if (footerAdmin) footerAdmin.innerHTML = "";
     }
 
     fetch("/api/me", { cache: "no-store" })
