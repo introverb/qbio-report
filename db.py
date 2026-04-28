@@ -42,8 +42,10 @@ CREATE TABLE IF NOT EXISTS users (
     discord_id       TEXT,
     discord_username TEXT    NOT NULL DEFAULT ''
 );
-CREATE UNIQUE INDEX IF NOT EXISTS idx_users_discord_id
-    ON users(discord_id) WHERE discord_id IS NOT NULL;
+-- Note: the unique index on discord_id is created in _migrate_users() after
+-- the column has been added to pre-existing tables. Don't add it here — on
+-- an existing DB, CREATE TABLE IF NOT EXISTS is a no-op so the column won't
+-- exist yet at this point in the script.
 
 CREATE TABLE IF NOT EXISTS saves (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
