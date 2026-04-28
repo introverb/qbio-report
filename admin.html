@@ -913,6 +913,10 @@
     // =========================================================
     // Filtered Items (off-topic, dropped by Haiku)
     // =========================================================
+    const FILTERED_PAGE_SIZE = 10;
+    let _filteredAll     = [];
+    let _filteredVisible = FILTERED_PAGE_SIZE;
+
     async function loadFilteredItems() {
         const list = document.getElementById("filtered-list");
         const meta = document.getElementById("filtered-meta");
@@ -921,34 +925,64 @@
         try {
             const r = await fetch("/api/rejected", { cache: "no-store" });
             if (!r.ok) throw new Error("Couldn't load filtered items.");
-            const data  = await r.json();
-            const items = data.items || [];
-            if (!items.length) {
-                list.innerHTML = '<div class="empty-state-small">Nothing in the queue. Either Haiku liked everything this scrape, or no scrapes have run since the filter was added.</div>';
-                meta.textContent = "";
-                return;
-            }
-            meta.textContent = `${items.length} item${items.length === 1 ? "" : "s"} flagged · entries auto-prune after 60 days`;
-            list.innerHTML = `
-                <table class="data">
-                    <thead><tr>
-                        <th style="width:90px;">Type</th>
-                        <th>Title</th>
-                        <th style="width:140px;">Source</th>
-                        <th style="width:160px;">Rejected</th>
-                        <th style="width:200px;">Actions</th>
-                    </tr></thead>
-                    <tbody>${items.map(renderFilteredRow).join("")}</tbody>
-                </table>`;
-            // Wire button handlers
-            list.querySelectorAll("button[data-restore]").forEach(b => {
-                b.addEventListener("click", () => onRestoreFiltered(b.dataset.restore));
-            });
-            list.querySelectorAll("button[data-dismiss]").forEach(b => {
-                b.addEventListener("click", () => onDismissFiltered(b.dataset.dismiss));
-            });
+            const data = await r.json();
+            _filteredAll = data.items || [];
+            // Clamp visible count: never below page size, never above total
+            if (_filteredVisible < FILTERED_PAGE_SIZE) _filteredVisible = FILTERED_PAGE_SIZE;
+            if (_filteredVisible > _filteredAll.length) _filteredVisible = _filteredAll.length;
+            renderFilteredItems();
         } catch (e) {
             list.innerHTML = `<div class="empty-state-small">${e.message}</div>`;
+        }
+    }
+
+    function renderFilteredItems() {
+        const list = document.getElementById("filtered-list");
+        const meta = document.getElementById("filtered-meta");
+        const total = _filteredAll.length;
+        if (!total) {
+            list.innerHTML = '<div class="empty-state-small">Nothing in the queue. Either Haiku liked everything this scrape, or no scrapes have run since the filter was added.</div>';
+            meta.textContent = "";
+            return;
+        }
+        const shown = Math.min(_filteredVisible, total);
+        const visible = _filteredAll.slice(0, shown);
+        meta.textContent = `Showing ${shown} of ${total} · entries auto-prune after 60 days`;
+
+        const remaining = total - shown;
+        const moreBtn = remaining > 0
+            ? `<div style="margin-top:12px;text-align:center;">
+                 <button id="filtered-show-more" style="background:transparent;color:var(--dark-purple);border:1px solid var(--dark-purple);">
+                   Show ${Math.min(FILTERED_PAGE_SIZE, remaining)} more &darr; (${remaining} remaining)
+                 </button>
+               </div>`
+            : "";
+
+        list.innerHTML = `
+            <table class="data">
+                <thead><tr>
+                    <th style="width:90px;">Type</th>
+                    <th>Title</th>
+                    <th style="width:140px;">Source</th>
+                    <th style="width:160px;">Rejected</th>
+                    <th style="width:200px;">Actions</th>
+                </tr></thead>
+                <tbody>${visible.map(renderFilteredRow).join("")}</tbody>
+            </table>
+            ${moreBtn}`;
+
+        list.querySelectorAll("button[data-restore]").forEach(b => {
+            b.addEventListener("click", () => onRestoreFiltered(b.dataset.restore));
+        });
+        list.querySelectorAll("button[data-dismiss]").forEach(b => {
+            b.addEventListener("click", () => onDismissFiltered(b.dataset.dismiss));
+        });
+        const more = document.getElementById("filtered-show-more");
+        if (more) {
+            more.addEventListener("click", () => {
+                _filteredVisible = Math.min(_filteredVisible + FILTERED_PAGE_SIZE, _filteredAll.length);
+                renderFilteredItems();
+            });
         }
     }
 
