@@ -32,14 +32,18 @@ BOOTSTRAP_ADMIN_USERNAME = (os.environ.get("BOOTSTRAP_ADMIN_USERNAME") or "").st
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    username      TEXT    NOT NULL UNIQUE COLLATE NOCASE,
-    password_hash TEXT    NOT NULL,
-    bio           TEXT    NOT NULL DEFAULT '',
-    avatar_url    TEXT    NOT NULL DEFAULT '',
-    is_admin      INTEGER NOT NULL DEFAULT 0,
-    created_at    TEXT    NOT NULL
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    username         TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+    password_hash    TEXT    NOT NULL DEFAULT '',
+    bio              TEXT    NOT NULL DEFAULT '',
+    avatar_url       TEXT    NOT NULL DEFAULT '',
+    is_admin         INTEGER NOT NULL DEFAULT 0,
+    created_at       TEXT    NOT NULL,
+    discord_id       TEXT,
+    discord_username TEXT    NOT NULL DEFAULT ''
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_discord_id
+    ON users(discord_id) WHERE discord_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS saves (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -68,6 +72,21 @@ def init_db():
     with connect() as conn:
         conn.executescript(SCHEMA)
         conn.commit()
+        _migrate_users(conn)
+
+
+def _migrate_users(conn):
+    """Add Discord columns to existing users tables. Idempotent."""
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(users)").fetchall()}
+    if "discord_id" not in cols:
+        conn.execute("ALTER TABLE users ADD COLUMN discord_id TEXT")
+    if "discord_username" not in cols:
+        conn.execute("ALTER TABLE users ADD COLUMN discord_username TEXT NOT NULL DEFAULT ''")
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_discord_id "
+        "ON users(discord_id) WHERE discord_id IS NOT NULL"
+    )
+    conn.commit()
 
 
 @contextmanager
@@ -169,9 +188,12 @@ def get_user_by_id(user_id: int) -> dict | None:
 
 
 def authenticate(username: str, password: str) -> dict | None:
-    """Return user dict if password matches, None otherwise."""
+    """Return user dict if password matches, None otherwise.
+    Discord-only accounts (empty password_hash) cannot log in via password."""
     user_full = _get_user_with_hash(username)
     if not user_full:
+        return None
+    if not user_full.get("password_hash"):
         return None
     if not verify_password(password, user_full["password_hash"]):
         return None
@@ -217,14 +239,79 @@ def update_profile(user_id: int, bio: str = None, avatar_url: str = None):
 
 def _row_to_user(row) -> dict:
     """Public user dict — never includes password_hash."""
+    keys = row.keys()
     return {
-        "id":         row["id"],
-        "username":   row["username"],
-        "bio":        row["bio"],
-        "avatar_url": row["avatar_url"],
-        "is_admin":   bool(row["is_admin"]),
-        "created_at": row["created_at"],
+        "id":               row["id"],
+        "username":         row["username"],
+        "bio":              row["bio"],
+        "avatar_url":       row["avatar_url"],
+        "is_admin":         bool(row["is_admin"]),
+        "created_at":       row["created_at"],
+        "discord_id":       row["discord_id"]       if "discord_id"       in keys else None,
+        "discord_username": row["discord_username"] if "discord_username" in keys else "",
+        "has_password":     bool(row["password_hash"]) if "password_hash" in keys else True,
     }
+
+
+# ---------------------------------------------------------------------------
+# Discord OAuth helpers
+# ---------------------------------------------------------------------------
+def get_user_by_discord_id(discord_id: str) -> dict | None:
+    if not discord_id:
+        return None
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM users WHERE discord_id = ?", (discord_id,)
+        ).fetchone()
+        return _row_to_user(row) if row else None
+
+
+def create_user_via_discord(username: str, discord_id: str,
+                            discord_username: str) -> dict:
+    """Create a Discord-only user (no password). Auto-promotes if username
+    matches BOOTSTRAP_ADMIN_USERNAME. Raises ValueError on duplicate username
+    or if this discord_id is already linked elsewhere."""
+    is_admin = 1 if (BOOTSTRAP_ADMIN_USERNAME and
+                     username.lower() == BOOTSTRAP_ADMIN_USERNAME) else 0
+    now = datetime.utcnow().isoformat(timespec="seconds")
+    with connect() as conn:
+        try:
+            cur = conn.execute(
+                "INSERT INTO users (username, password_hash, is_admin, "
+                "  created_at, discord_id, discord_username) "
+                "VALUES (?, '', ?, ?, ?, ?)",
+                (username, is_admin, now, discord_id, discord_username),
+            )
+            conn.commit()
+            return get_user_by_id(cur.lastrowid)
+        except sqlite3.IntegrityError as e:
+            msg = str(e).lower()
+            if "discord_id" in msg:
+                raise ValueError("That Discord account is already linked to another user.")
+            raise ValueError("Username is already taken.")
+
+
+def link_discord(user_id: int, discord_id: str, discord_username: str):
+    """Link a Discord account to an existing user. Raises ValueError if this
+    discord_id is already on another account."""
+    with connect() as conn:
+        try:
+            conn.execute(
+                "UPDATE users SET discord_id = ?, discord_username = ? WHERE id = ?",
+                (discord_id, discord_username, user_id),
+            )
+            conn.commit()
+        except sqlite3.IntegrityError:
+            raise ValueError("That Discord account is already linked to another user.")
+
+
+def unlink_discord(user_id: int):
+    with connect() as conn:
+        conn.execute(
+            "UPDATE users SET discord_id = NULL, discord_username = '' WHERE id = ?",
+            (user_id,),
+        )
+        conn.commit()
 
 
 # ---------------------------------------------------------------------------

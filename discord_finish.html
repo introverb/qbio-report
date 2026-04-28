@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QUBIE News — Sign in</title>
+    <title>QUBIE News — Pick a username</title>
     <style>
         @font-face { font-family: "Apercu Pro"; src: url("assets/fonts/apercu_regular_pro.otf") format("opentype"); font-weight: 400; font-style: normal; font-display: swap; }
         @font-face { font-family: "Apercu Pro"; src: url("assets/fonts/apercu_bold_pro.otf") format("opentype"); font-weight: 700; font-style: normal; font-display: swap; }
@@ -34,7 +34,7 @@
         }
 
         .login-card {
-            max-width: 420px;
+            max-width: 440px;
             width: 100%;
             text-align: center;
         }
@@ -53,8 +53,19 @@
             font-style: italic;
             font-size: 12px;
             color: var(--soft-text);
-            margin: 0 0 48px;
+            margin: 0 0 28px;
             letter-spacing: 0.05em;
+        }
+
+        .blurb {
+            font-size: 13px;
+            color: var(--soft-text);
+            line-height: 1.5;
+            margin-bottom: 22px;
+        }
+        .blurb b {
+            color: var(--dark-purple);
+            font-weight: 700;
         }
 
         form {
@@ -63,7 +74,7 @@
             gap: 10px;
             margin-bottom: 14px;
         }
-        input[type="text"], input[type="password"] {
+        input[type="text"] {
             width: 100%;
             font-family: inherit;
             font-size: 15px;
@@ -73,64 +84,17 @@
             color: var(--near-black);
             border-radius: 2px;
         }
-        input[type="text"]:focus, input[type="password"]:focus {
+        input[type="text"]:focus {
             outline: 2px solid var(--pink);
             outline-offset: -2px;
         }
-        form button { align-self: stretch; }
-        .switcher {
-            margin-top: 16px;
-            font-size: 12px;
-            color: var(--soft-text);
-            font-style: italic;
-        }
-        .switcher a {
-            color: var(--dark-purple);
-            text-decoration: none;
-            border-bottom: 1px solid var(--dark-purple);
-            font-style: normal;
-            font-weight: 700;
-            margin-left: 4px;
-        }
-        .switcher a:hover { color: var(--pink); border-bottom-color: var(--pink); }
-
-        .divider {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 18px 0 12px;
+        .helper {
             font-size: 11px;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
             color: var(--soft-text);
+            text-align: left;
+            line-height: 1.4;
+            margin: -2px 2px 4px;
         }
-        .divider::before, .divider::after {
-            content: "";
-            flex: 1;
-            border-top: 1px solid var(--cream-dim);
-        }
-        .discord-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            width: 100%;
-            font-family: inherit;
-            font-weight: 700;
-            font-size: 12px;
-            letter-spacing: 0.15em;
-            text-transform: uppercase;
-            padding: 10px 22px;
-            border: 1px solid #5865F2;
-            background: #5865F2;
-            color: #fff;
-            border-radius: 2px;
-            cursor: pointer;
-            text-decoration: none;
-        }
-        .discord-btn:hover { background: #4752C4; border-color: #4752C4; }
-        .discord-btn svg { width: 18px; height: 18px; fill: currentColor; }
-
         button {
             font-family: inherit;
             font-weight: 700;
@@ -178,26 +142,22 @@
 
 <div class="login-card">
     <div class="title">QUBIE News</div>
-    <div class="subtitle">&mdash; sign in &mdash;</div>
+    <div class="subtitle">&mdash; one last step &mdash;</div>
 
-    <form method="POST" action="/login{{NEXT_QUERY}}">
-        <input type="text" name="username" placeholder="Username" autofocus autocomplete="username">
-        <input type="password" name="password" placeholder="Password" required autocomplete="current-password">
-        <button type="submit">Sign in</button>
+    <div class="blurb">
+        Connected to Discord as <b>{{DISCORD_NAME}}</b>.
+        Pick a public username for your QUBIE Report profile &mdash;
+        this is what others will see at <code>/u/&lt;name&gt;</code>.
+    </div>
+
+    <form method="POST" action="/auth/discord/finish">
+        <input type="text" name="username" placeholder="Username" value="{{SUGGESTED}}" autofocus required>
+        <div class="helper">2&ndash;24 characters &middot; letters, numbers, . _ or -</div>
+        <button type="submit">Create my account</button>
     </form>
     <div class="error">{{ERROR_MESSAGE}}</div>
 
-    <div class="divider">or</div>
-    <a class="discord-btn" href="/auth/discord/start{{NEXT_QUERY}}">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317 4.369A19.79 19.79 0 0 0 16.558 3.2a.074.074 0 0 0-.079.037c-.34.6-.719 1.384-.984 2a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-1-2 .077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 5.17 4.369a.07.07 0 0 0-.032.027C1.533 9.046.587 13.58.91 18.057a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.027 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.105 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.927 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.892.077.077 0 0 0-.041.106c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.331c-1.182 0-2.156-1.085-2.156-2.419 0-1.333.955-2.419 2.156-2.419 1.21 0 2.176 1.096 2.156 2.42 0 1.333-.955 2.418-2.156 2.418zm7.974 0c-1.183 0-2.156-1.085-2.156-2.419 0-1.333.954-2.419 2.156-2.419 1.21 0 2.176 1.096 2.156 2.42 0 1.333-.945 2.418-2.156 2.418z"/></svg>
-        Continue with Discord
-    </a>
-
-    <div class="switcher">
-        New here? <a href="/signup{{NEXT_QUERY}}">Create an account</a>
-    </div>
-
-    <div class="back"><a href="/">&larr; Back to the Report</a></div>
+    <div class="back"><a href="/logout">&larr; Cancel</a></div>
 </div>
 
 </body>

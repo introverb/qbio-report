@@ -16,13 +16,16 @@ Then visit:
 """
 import json
 import os
+import secrets as _secrets
 import shutil
 import subprocess
 import sys
 import threading
+import urllib.parse
 from datetime import datetime
 from functools import wraps
 
+import requests
 from flask import Flask, Response, jsonify, redirect, request, send_from_directory, session, abort
 from openpyxl import load_workbook
 
@@ -244,6 +247,167 @@ def page_signup():
 def page_logout():
     session.clear()
     return redirect("/")
+
+
+# ============================================================================
+# Discord OAuth
+# ============================================================================
+DISCORD_CLIENT_ID     = os.environ.get("DISCORD_CLIENT_ID", "").strip()
+DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET", "").strip()
+DISCORD_REDIRECT_URI  = os.environ.get("DISCORD_REDIRECT_URI", "").strip()
+DISCORD_AUTH_URL      = "https://discord.com/api/oauth2/authorize"
+DISCORD_TOKEN_URL     = "https://discord.com/api/oauth2/token"
+DISCORD_USER_URL      = "https://discord.com/api/users/@me"
+
+
+def _discord_configured() -> bool:
+    return bool(DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET and DISCORD_REDIRECT_URI)
+
+
+@app.route("/auth/discord/start")
+def auth_discord_start():
+    """Kick off the OAuth flow. Stores a CSRF state token + post-login next URL
+    in the session, then bounces to Discord."""
+    if not _discord_configured():
+        return ("Discord login is not configured on this server. "
+                "Ask an admin to set DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, "
+                "and DISCORD_REDIRECT_URI."), 503
+    nxt = request.args.get("next") or "/"
+    if not (isinstance(nxt, str) and nxt.startswith("/")):
+        nxt = "/"
+    state = _secrets.token_urlsafe(24)
+    session["discord_oauth_state"] = state
+    session["discord_oauth_next"]  = nxt
+    params = {
+        "client_id":     DISCORD_CLIENT_ID,
+        "redirect_uri":  DISCORD_REDIRECT_URI,
+        "response_type": "code",
+        "scope":         "identify",
+        "state":         state,
+        "prompt":        "consent",
+    }
+    return redirect(f"{DISCORD_AUTH_URL}?{urllib.parse.urlencode(params)}")
+
+
+@app.route("/auth/discord/callback")
+def auth_discord_callback():
+    """Discord redirects here after the user approves. Exchange the code for
+    a token, fetch their identity, then either log them in (existing link)
+    or send them to the username-picker (new signup)."""
+    if not _discord_configured():
+        return "Discord login is not configured.", 503
+
+    err = request.args.get("error")
+    if err:
+        return redirect("/login?error=" + urllib.parse.quote(f"Discord: {err}"))
+
+    code  = request.args.get("code")
+    state = request.args.get("state")
+    expected = session.pop("discord_oauth_state", None)
+    nxt      = session.pop("discord_oauth_next", "/") or "/"
+    if not code or not state or state != expected:
+        return redirect("/login?error=" + urllib.parse.quote("Discord login failed (state mismatch)."))
+
+    # Exchange code for access token
+    try:
+        tok_resp = requests.post(
+            DISCORD_TOKEN_URL,
+            data={
+                "client_id":     DISCORD_CLIENT_ID,
+                "client_secret": DISCORD_CLIENT_SECRET,
+                "grant_type":    "authorization_code",
+                "code":          code,
+                "redirect_uri":  DISCORD_REDIRECT_URI,
+            },
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            timeout=10,
+        )
+        tok_resp.raise_for_status()
+        access_token = tok_resp.json().get("access_token")
+        if not access_token:
+            raise RuntimeError("no access_token in response")
+
+        u_resp = requests.get(
+            DISCORD_USER_URL,
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=10,
+        )
+        u_resp.raise_for_status()
+        d = u_resp.json()
+    except Exception as e:
+        print(f"[discord-oauth] exchange failed: {e}")
+        return redirect("/login?error=" + urllib.parse.quote("Discord login failed."))
+
+    discord_id   = str(d.get("id") or "")
+    d_username   = (d.get("global_name") or d.get("username") or "").strip()
+    if not discord_id:
+        return redirect("/login?error=" + urllib.parse.quote("Discord didn't return an account ID."))
+
+    # Already linked? Log them in.
+    existing = db.get_user_by_discord_id(discord_id)
+    if existing:
+        session.clear()
+        session["user_id"] = existing["id"]
+        session.permanent = True
+        return redirect(nxt)
+
+    # New Discord account — stash and send to username picker.
+    session["discord_pending_id"]       = discord_id
+    session["discord_pending_username"] = d_username
+    session["discord_pending_next"]     = nxt
+    return redirect("/auth/discord/finish")
+
+
+@app.route("/auth/discord/finish", methods=["GET", "POST"])
+def auth_discord_finish():
+    """One-screen username picker shown after a fresh Discord signup."""
+    discord_id = session.get("discord_pending_id")
+    if not discord_id:
+        return redirect("/login")
+
+    suggested = (session.get("discord_pending_username") or "").strip()
+    nxt       = session.get("discord_pending_next") or "/"
+
+    error = ""
+    prefill = suggested
+    if request.method == "POST":
+        username = (request.form.get("username") or "").strip()
+        prefill  = username
+        err = db.validate_username(username)
+        if err:
+            error = err
+        else:
+            try:
+                user = db.create_user_via_discord(
+                    username, discord_id,
+                    session.get("discord_pending_username") or "",
+                )
+                session.pop("discord_pending_id", None)
+                session.pop("discord_pending_username", None)
+                session.pop("discord_pending_next", None)
+                session["user_id"] = user["id"]
+                session.permanent = True
+                return redirect(nxt)
+            except ValueError as e:
+                error = str(e)
+
+    # Sanitize a default suggestion (Discord names can contain disallowed chars)
+    import re as _re_local
+    safe_suggested = _re_local.sub(r"[^A-Za-z0-9_.-]", "", suggested)[:24]
+    if prefill == suggested:
+        prefill = safe_suggested
+
+    with open(os.path.join(HERE, "discord_finish.html"), "r", encoding="utf-8") as f:
+        html = f.read()
+    html = html.replace("{{SUGGESTED}}", _html_escape(prefill))
+    html = html.replace("{{DISCORD_NAME}}", _html_escape(suggested or "your Discord account"))
+    html = html.replace("{{ERROR_MESSAGE}}", _html_escape(error))
+    return html
+
+
+def _html_escape(s: str) -> str:
+    return (s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+             .replace('"', "&quot;").replace("'", "&#39;"))
 
 
 # ============================================================================
