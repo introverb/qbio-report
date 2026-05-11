@@ -495,11 +495,24 @@
             <div class="section-subtitle">
                 chatter/social/video items the relevance filter dropped &mdash;
                 <b>Restore</b> to whitelist + re-add to feed,
-                <b>Dismiss</b> to confirm and clear.
+                <b>Dismiss</b> to block permanently (won't reappear in future scrapes).
             </div>
         </div>
         <div id="filtered-meta" style="font-size:11px;color:var(--soft-text);margin-bottom:10px;font-style:italic;"></div>
         <div id="filtered-list"></div>
+    </section>
+
+    <!-- ====== Section 5c: Blocked Articles (permanently killed by admins) ====== -->
+    <section class="section">
+        <div class="section-header">
+            <h2>Blocked Articles</h2>
+            <div class="section-subtitle">
+                Articles admins have permanently removed from the feed.
+                Future scrapes skip these. <b>Unblock</b> to make them eligible again.
+            </div>
+        </div>
+        <div id="blocked-meta" style="font-size:11px;color:var(--soft-text);margin-bottom:10px;font-style:italic;"></div>
+        <div id="blocked-list"></div>
     </section>
 
     <!-- ====== Accordion: DNS / custom-domain setup (collapsed by default) ====== -->
@@ -832,6 +845,7 @@
         loadKeywordSuggestions();
         loadUsers();
         loadFilteredItems();
+        loadBlockedItems();
         if (sourceData) renderSourceFixes(sourceData);
         wireScrapeNowButton(sourceData ? sourceData.generated_at : null);
     })();
@@ -1026,7 +1040,7 @@
     }
 
     async function onDismissFiltered(link) {
-        if (!confirm("Dismiss this item permanently? Same article may re-appear in a future scrape if it's matched again.")) return;
+        if (!confirm("Dismiss permanently? This adds the article to the blocklist so it won't reappear in future scrapes. You can undo via the Blocked Articles section below.")) return;
         const r = await fetch("/api/rejected", {
             method:  "DELETE",
             headers: { "Content-Type": "application/json" },
@@ -1038,6 +1052,119 @@
             return;
         }
         loadFilteredItems();
+        loadBlockedItems();
+    }
+
+    // =========================================================
+    // Blocked Articles (permanently killed by admins)
+    // =========================================================
+    const BLOCKED_PAGE_SIZE = 10;
+    let _blockedAll     = [];
+    let _blockedVisible = BLOCKED_PAGE_SIZE;
+
+    async function loadBlockedItems() {
+        const list = document.getElementById("blocked-list");
+        const meta = document.getElementById("blocked-meta");
+        list.innerHTML = '<div class="empty-state-small">Loading&hellip;</div>';
+        meta.textContent = "";
+        try {
+            const r = await fetch("/api/blocklist", { cache: "no-store" });
+            if (!r.ok) throw new Error("Couldn't load blocked articles.");
+            const data = await r.json();
+            _blockedAll = data.items || [];
+            if (_blockedVisible < BLOCKED_PAGE_SIZE) _blockedVisible = BLOCKED_PAGE_SIZE;
+            if (_blockedVisible > _blockedAll.length) _blockedVisible = _blockedAll.length;
+            renderBlockedItems();
+        } catch (e) {
+            list.innerHTML = `<div class="empty-state-small">${e.message}</div>`;
+        }
+    }
+
+    function renderBlockedItems() {
+        const list = document.getElementById("blocked-list");
+        const meta = document.getElementById("blocked-meta");
+        const total = _blockedAll.length;
+        if (!total) {
+            list.innerHTML = '<div class="empty-state-small">Nothing blocked yet. Admins can block articles from the Filtered Items section above, or via a Block button on feed cards.</div>';
+            meta.textContent = "";
+            return;
+        }
+        const shown = Math.min(_blockedVisible, total);
+        const visible = _blockedAll.slice(0, shown);
+        meta.textContent = `Showing ${shown} of ${total} blocked · these are skipped on every scrape`;
+
+        const remaining = total - shown;
+        const moreBtn = remaining > 0
+            ? `<div style="margin-top:12px;text-align:center;">
+                 <button id="blocked-show-more" style="background:transparent;color:var(--dark-purple);border:1px solid var(--dark-purple);">
+                   Show ${Math.min(BLOCKED_PAGE_SIZE, remaining)} more &darr; (${remaining} remaining)
+                 </button>
+               </div>`
+            : "";
+
+        list.innerHTML = `
+            <table class="data">
+                <thead><tr>
+                    <th style="width:90px;">Type</th>
+                    <th>Title</th>
+                    <th style="width:140px;">Source</th>
+                    <th style="width:120px;">Blocked by</th>
+                    <th style="width:160px;">When</th>
+                    <th style="width:130px;">Actions</th>
+                </tr></thead>
+                <tbody>${visible.map(renderBlockedRow).join("")}</tbody>
+            </table>
+            ${moreBtn}`;
+
+        list.querySelectorAll("button[data-unblock]").forEach(b => {
+            b.addEventListener("click", () => onUnblock(b.dataset.unblock));
+        });
+        const more = document.getElementById("blocked-show-more");
+        if (more) {
+            more.addEventListener("click", () => {
+                _blockedVisible = Math.min(_blockedVisible + BLOCKED_PAGE_SIZE, _blockedAll.length);
+                renderBlockedItems();
+            });
+        }
+    }
+
+    function renderBlockedRow(it) {
+        const cat   = (it.source_category || "").toLowerCase();
+        const badge = cat ? `<span class="badge badge-${cat}">${cat}</span>` : "";
+        const when  = it.blocked_at
+            ? new Date(it.blocked_at).toLocaleString("en-US",
+                { timeZone: "America/Los_Angeles", month:"short", day:"numeric",
+                  hour:"numeric", minute:"2-digit", timeZoneName:"short" })
+            : "";
+        const linkEsc   = (it.link || "").replace(/"/g, "&quot;");
+        const titleSafe = (it.title || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+        const byEsc     = (it.blocked_by || "").replace(/&/g,"&amp;").replace(/</g,"&lt;");
+        return `
+            <tr>
+                <td>${badge}</td>
+                <td>
+                    <a href="${linkEsc}" target="_blank" rel="noopener" style="font-weight:700;">${titleSafe}</a>
+                </td>
+                <td class="mono">${(it.source || "").replace(/&/g,"&amp;").replace(/</g,"&lt;")}</td>
+                <td class="mono" style="font-size:11px;">${byEsc}</td>
+                <td style="font-size:11px;color:var(--soft-text);">${when}</td>
+                <td><button data-unblock="${linkEsc}">Unblock</button></td>
+            </tr>`;
+    }
+
+    async function onUnblock(link) {
+        if (!confirm("Unblock this article? It'll be eligible for inclusion again on the next scrape.")) return;
+        const r = await fetch("/api/blocklist", {
+            method:  "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify({ link }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) {
+            alert(d.error || "Unblock failed.");
+            return;
+        }
+        loadBlockedItems();
     }
 
     // =========================================================

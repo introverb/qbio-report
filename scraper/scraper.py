@@ -1121,6 +1121,7 @@ RELEVANCE_BATCH    = 20
 NOISY_CATEGORIES   = {"forums", "social", "video"}
 REJECTED_FILE      = os.path.join(DATA_DIR, "rejected.json")
 WHITELIST_FILE     = os.path.join(DATA_DIR, "whitelist.json")
+BLOCKLIST_FILE     = os.path.join(DATA_DIR, "blocklist.json")
 REJECTED_TTL_DAYS  = 60  # prune older entries on each run
 
 RELEVANCE_SYSTEM = (
@@ -1166,6 +1167,18 @@ def load_whitelist():
         with open(WHITELIST_FILE, "r", encoding="utf-8") as f:
             data = json.load(f) or {}
         return set(data.get("links", []))
+    except (json.JSONDecodeError, OSError):
+        return set()
+
+
+def load_blocklist():
+    """Return set of links the admin has permanently blocked."""
+    if not os.path.exists(BLOCKLIST_FILE):
+        return set()
+    try:
+        with open(BLOCKLIST_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f) or {}
+        return {it.get("link") for it in (data.get("items") or []) if it.get("link")}
     except (json.JSONDecodeError, OSError):
         return set()
 
@@ -1754,6 +1767,17 @@ def main():
     # -- Finalize: dedupe, sort, blurbs, write --
     PROGRESS["current"] = "finalizing (dedup + blurbs + write)"
     _progress_write()
+
+    # -- Drop admin-blocklisted articles before anything else --
+    blocked_links = load_blocklist()
+    if blocked_links:
+        before = len(all_articles)
+        all_articles = [a for a in all_articles
+                        if (a.get("link") or "") not in blocked_links]
+        dropped = before - len(all_articles)
+        if dropped:
+            print(f"[blocklist] dropped {dropped} blocked article(s) "
+                  f"({len(blocked_links)} total on blocklist)")
 
     # -- Deduplicate by title --
     seen = set()

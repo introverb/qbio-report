@@ -630,6 +630,7 @@ def serve_feed():
 SCRAPE_PROGRESS_FILE = os.path.join(DATA_DIR, "scrape_progress.json")
 REJECTED_FILE        = os.path.join(DATA_DIR, "rejected.json")
 WHITELIST_FILE       = os.path.join(DATA_DIR, "whitelist.json")
+BLOCKLIST_FILE       = os.path.join(DATA_DIR, "blocklist.json")
 
 
 # ============================================================================
@@ -664,6 +665,49 @@ def _load_whitelist_set():
 def _save_whitelist_set(links_set):
     with open(WHITELIST_FILE, "w", encoding="utf-8") as f:
         json.dump({"links": sorted(links_set)}, f, indent=2)
+
+
+# ----- Blocklist (permanently-killed articles) ------------------------------
+def _load_blocklist():
+    """Return {'items': [...]}. Each item is a snapshot of the article at
+    block time plus blocked_by/blocked_at/reason metadata."""
+    if not os.path.exists(BLOCKLIST_FILE):
+        return {"items": []}
+    try:
+        with open(BLOCKLIST_FILE, "r", encoding="utf-8") as f:
+            return json.load(f) or {"items": []}
+    except (json.JSONDecodeError, OSError):
+        return {"items": []}
+
+
+def _save_blocklist(data):
+    with open(BLOCKLIST_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+def _blocklist_links() -> set:
+    """Fast set of just the blocked links (for membership checks)."""
+    return {it.get("link", "") for it in _load_blocklist().get("items", []) if it.get("link")}
+
+
+def _remove_from_feed(link: str):
+    """Drop an article from feed.json so it disappears immediately for everyone.
+    Safe no-op if the feed doesn't exist or the link isn't in it."""
+    if not os.path.exists(FEED_JSON):
+        return
+    try:
+        with open(FEED_JSON, "r", encoding="utf-8") as f:
+            feed = json.load(f) or {}
+    except (json.JSONDecodeError, OSError):
+        return
+    articles = feed.get("articles") or []
+    new_articles = [a for a in articles if a.get("link") != link]
+    if len(new_articles) == len(articles):
+        return
+    feed["articles"] = new_articles
+    feed["article_count"] = len(new_articles)
+    with open(FEED_JSON, "w", encoding="utf-8") as f:
+        json.dump(feed, f, indent=2, ensure_ascii=False)
 
 
 @app.route("/api/rejected", methods=["GET"])
@@ -726,22 +770,113 @@ def api_restore_rejected():
 @app.route("/api/rejected", methods=["DELETE"])
 @require_admin
 def api_dismiss_rejected():
-    """Permanently dismiss a rejected item (admin agrees with Haiku — don't
-    show in the queue anymore). Does NOT whitelist, so if the same article
-    re-appears in a future scrape it'll be re-evaluated."""
+    """Permanently dismiss a rejected item: admin agrees with Haiku, never
+    show this article again. Adds the link to the blocklist so future scrapes
+    skip it before keyword scoring even runs, then drops it from the queue."""
+    data = request.get_json(force=True, silent=True) or {}
+    link   = (data.get("link") or "").strip()
+    reason = (data.get("reason") or "").strip()
+    if not link:
+        return jsonify({"error": "link is required"}), 400
+
+    rejected = _load_rejected()
+    items = rejected.get("items") or []
+    target = next((it for it in items if it.get("link") == link), None)
+    if not target:
+        return jsonify({"error": "Not in rejected.json"}), 404
+
+    # Add to permanent blocklist (snapshot of the article + who blocked it)
+    _add_to_blocklist(target, reason=reason or "Dismissed from Filtered Items")
+
+    # Drop from the rejected queue
+    rejected["items"] = [it for it in items if it.get("link") != link]
+    rejected["count"] = len(rejected["items"])
+    _save_rejected(rejected)
+    return jsonify({"ok": True, "blocked": link})
+
+
+def _add_to_blocklist(article: dict, reason: str = ""):
+    """Append an article snapshot to blocklist.json. Idempotent on link."""
+    user = _current_user() or {}
+    blocked_by = user.get("username") or "_legacy_admin"
+    blocked_at = datetime.utcnow().isoformat(timespec="seconds")
+    snap = {k: v for k, v in article.items() if k != "rejected_at"}
+    snap.update({
+        "blocked_by": blocked_by,
+        "blocked_at": blocked_at,
+        "reason":     reason,
+    })
+    bl = _load_blocklist()
+    items = bl.get("items") or []
+    # Replace any existing entry by link so blocked_at refreshes
+    items = [it for it in items if it.get("link") != snap.get("link")]
+    items.append(snap)
+    items.sort(key=lambda x: x.get("blocked_at", ""), reverse=True)
+    bl["items"] = items
+    _save_blocklist(bl)
+    # Also strip it from the live feed so the change is visible immediately
+    if snap.get("link"):
+        _remove_from_feed(snap["link"])
+
+
+# ----- Blocklist API --------------------------------------------------------
+@app.route("/api/blocklist", methods=["GET"])
+@require_admin
+def api_list_blocklist():
+    return jsonify(_load_blocklist())
+
+
+@app.route("/api/blocklist", methods=["POST"])
+@require_admin
+def api_block_article():
+    """Add an article to the permanent blocklist. Accepts either a full
+    article snapshot ({link, title, source, source_category, ...}) or just
+    {link} — we'll look up the rest from feed.json if possible."""
+    data = request.get_json(force=True, silent=True) or {}
+    link   = (data.get("link") or "").strip()
+    reason = (data.get("reason") or "").strip()
+    if not link:
+        return jsonify({"error": "link is required"}), 400
+
+    # If only a link was provided, try to pull the snapshot from feed.json
+    snap = {k: v for k, v in data.items() if k in (
+        "link", "title", "source", "source_category", "summary",
+        "blurb", "date_iso", "score", "matched")}
+    if "title" not in snap and os.path.exists(FEED_JSON):
+        try:
+            with open(FEED_JSON, "r", encoding="utf-8") as f:
+                feed = json.load(f) or {}
+            match = next((a for a in (feed.get("articles") or [])
+                          if a.get("link") == link), None)
+            if match:
+                snap = {k: match.get(k) for k in (
+                    "link", "title", "source", "source_category", "summary",
+                    "blurb", "date_iso", "score", "matched")}
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    snap["link"] = link
+    _add_to_blocklist(snap, reason=reason)
+    return jsonify({"ok": True, "blocked": link})
+
+
+@app.route("/api/blocklist", methods=["DELETE"])
+@require_admin
+def api_unblock_article():
+    """Remove an entry from the blocklist. The article will be eligible for
+    inclusion again on the next scrape."""
     data = request.get_json(force=True, silent=True) or {}
     link = (data.get("link") or "").strip()
     if not link:
         return jsonify({"error": "link is required"}), 400
-    rejected = _load_rejected()
-    items = rejected.get("items") or []
+    bl = _load_blocklist()
+    items = bl.get("items") or []
     new_items = [it for it in items if it.get("link") != link]
     if len(new_items) == len(items):
-        return jsonify({"error": "Not in rejected.json"}), 404
-    rejected["items"] = new_items
-    rejected["count"] = len(new_items)
-    _save_rejected(rejected)
-    return jsonify({"ok": True})
+        return jsonify({"error": "Not in blocklist"}), 404
+    bl["items"] = new_items
+    _save_blocklist(bl)
+    return jsonify({"ok": True, "unblocked": link})
 
 
 @app.route("/api/rejected/clear", methods=["POST"])
