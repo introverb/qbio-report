@@ -29,8 +29,15 @@
 #     biophysics                 <- default weight 1, no bracket needed
 # ==========================================
 
+# --- Featured Authors (DAO-priority — max weight pushes their work to the top) ---
+Jim Al-Khalili [10]
+Geoffrey Guy [10]
+Jonathan Woodward [10]
+Nathan Babcock [10]
+Peter Hoor [10]
+
 # --- Core Quantum Biology ---
-quantum biology
+quantum biology [10]
 quantum coherence
 quantum tunneling
 quantum entanglement in biology
