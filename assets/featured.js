@@ -17,7 +17,7 @@
 
 (function () {
     const THRESHOLD = 10;   // min score to qualify; matches author + phrase weighting
-    const LIMIT     = 4;    // max cards shown
+    const LIMIT     = 10;   // max cards shown — newest qualifying items
 
     // Inject styles once (each feed page has its own inline <style>; not all
     // pull shared.css, so be self-contained like saves.js).
@@ -170,10 +170,7 @@
         const featured = articles
             .filter(a => (a.score || 0) >= THRESHOLD)
             .filter(a => !cats.size || cats.has(a.source_category))
-            .sort((a, b) => {
-                if ((b.score || 0) !== (a.score || 0)) return (b.score || 0) - (a.score || 0);
-                return (b.date_iso || "").localeCompare(a.date_iso || "");
-            })
+            .sort((a, b) => (b.date_iso || "").localeCompare(a.date_iso || ""))
             .slice(0, LIMIT);
 
         if (!featured.length) return; // stay hidden — nothing earns the spot
@@ -186,8 +183,8 @@
         container.innerHTML = `
             <section class="featured-strip">
                 <div class="featured-label">
-                    <span>Featured &mdash; DAO Priority</span>
-                    <span class="featured-sublabel">work from boosted authors &amp; core quantum-biology hits</span>
+                    <span>Featured</span>
+                    <span class="featured-sublabel">most recent hits from boosted authors &amp; core quantum-biology terms</span>
                 </div>
                 <div class="featured-grid">${featured.map(renderCard).join("")}</div>
             </section>`;
