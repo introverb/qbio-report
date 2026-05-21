@@ -5,19 +5,46 @@
 // The high threshold means only items matching the DAO-priority authors
 // or the "quantum biology" phrase qualify (those keywords carry weight 10).
 //
+// Each card has a 3:1 banner at the top — uses article.thumbnail if
+// present (currently only YouTube articles), otherwise falls back to a
+// palette gradient picked deterministically from the article link.
+//
 // Usage on a feed page (add near top of body, after the nav):
 //
 //   <div id="featured-container"></div>
 //   <script>
-//     window.FEATURED_CATEGORIES = ["papers","preprints","news"]; // or chatter/video
+//     window.FEATURED_CATEGORIES = ["paper","preprint","news"];
 //   </script>
-//   <script src="/assets/featured.js?v=1"></script>
+//   <script src="/assets/featured.js?v=3"></script>
 //
 // If no items meet the bar, the container stays hidden (no empty section).
 
 (function () {
     const THRESHOLD = 10;   // min score to qualify; matches author + phrase weighting
     const LIMIT     = 10;   // max cards shown — newest qualifying items
+
+    // Palette gradients used when no image is available. Sourced from the
+    // site's color tokens: --cream #EEE8DF, --dark-purple #2D1B30,
+    // --light-purple #7D4A6E, --pink #D57DB2. Each gradient is picked
+    // deterministically per-article so the strip isn't all one color.
+    const GRADIENTS = [
+        "linear-gradient(135deg, #2D1B30 0%, #7D4A6E 60%, #D57DB2 100%)",
+        "linear-gradient(135deg, #7D4A6E 0%, #D57DB2 100%)",
+        "linear-gradient(135deg, #D57DB2 0%, #EEE8DF 100%)",
+        "linear-gradient(135deg, #2D1B30 0%, #D57DB2 100%)",
+        "linear-gradient(135deg, #7D4A6E 0%, #2D1B30 100%)",
+        "linear-gradient(135deg, #EEE8DF 0%, #D57DB2 60%, #7D4A6E 100%)",
+        "linear-gradient(120deg, #2D1B30 0%, #7D4A6E 50%, #EEE8DF 100%)",
+        "linear-gradient(150deg, #D57DB2 0%, #7D4A6E 70%, #2D1B30 100%)",
+    ];
+
+    function gradientFor(link) {
+        // Cheap deterministic hash → gradient index
+        let h = 0;
+        const s = link || "";
+        for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+        return GRADIENTS[Math.abs(h) % GRADIENTS.length];
+    }
 
     // Inject styles once (each feed page has its own inline <style>; not all
     // pull shared.css, so be self-contained like saves.js).
@@ -55,7 +82,7 @@
             }
             .featured-grid {
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
                 gap: 14px;
                 margin-top: 14px;
             }
@@ -63,24 +90,45 @@
                 position: relative;
                 background: #EEE8DF;
                 border: 1px solid #2D1B30;
-                border-left: 3px solid #D57DB2;
-                padding: 14px 14px 12px;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+            .featured-banner {
+                width: 100%;
+                aspect-ratio: 3 / 1;
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+                background-color: #7D4A6E;
+                border-bottom: 1px solid #2D1B30;
+                flex-shrink: 0;
+            }
+            .featured-card-body {
+                padding: 12px 14px 12px;
                 display: flex;
                 flex-direction: column;
                 gap: 8px;
-                min-height: 130px;
+                flex: 1;
+                border-left: 3px solid #D57DB2;
+                margin-left: -1px; /* tuck the accent under the card border */
             }
             .featured-card .save-btn {
                 position: absolute;
                 top: 8px;
                 right: 8px;
+                background: rgba(238, 232, 223, 0.85) !important;
+                border-radius: 50%;
+                width: 28px;
+                height: 28px;
+                z-index: 2;
             }
             .featured-card h3 {
                 font-family: "Apercu Pro", sans-serif;
                 font-size: 14px;
                 line-height: 1.3;
                 font-weight: 700;
-                margin: 0 32px 0 0;
+                margin: 0;
                 color: #1A1416;
             }
             .featured-card h3 a {
@@ -138,18 +186,29 @@
         return `<button class="save-btn" data-link="${esc(a.link)}" data-title="${esc(a.title)}" data-source="${esc(a.source)}" data-category="${esc(a.source_category)}" aria-label="Save">${svg}</button>`;
     }
 
+    function bannerHtml(a) {
+        const thumb = (a.thumbnail || "").trim();
+        if (thumb) {
+            return `<div class="featured-banner" style="background-image:url('${esc(thumb)}');"></div>`;
+        }
+        return `<div class="featured-banner" style="background-image:${gradientFor(a.link)};"></div>`;
+    }
+
     function renderCard(a) {
         const date = formatDate(a.date_iso);
         const src  = esc(a.source || "");
         return `
             <div class="featured-card">
                 ${bookmarkButtonHtml(a)}
-                <h3><a href="${esc(a.link)}" target="_blank" rel="noopener">${esc(a.title)}</a></h3>
-                <div class="featured-meta">
-                    <span>${src}</span>
-                    ${date ? `<span class="dot">·</span><span>${date}</span>` : ""}
-                    <span class="dot">·</span>
-                    <span class="featured-score">SCORE ${a.score}</span>
+                ${bannerHtml(a)}
+                <div class="featured-card-body">
+                    <h3><a href="${esc(a.link)}" target="_blank" rel="noopener">${esc(a.title)}</a></h3>
+                    <div class="featured-meta">
+                        <span>${src}</span>
+                        ${date ? `<span class="dot">·</span><span>${date}</span>` : ""}
+                        <span class="dot">·</span>
+                        <span class="featured-score">SCORE ${a.score}</span>
+                    </div>
                 </div>
             </div>`;
     }
