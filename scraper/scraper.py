@@ -251,7 +251,7 @@ def record_stats(tier, source_name, target, category, matched, total, error="", 
 # SHARED HELPERS
 # ============================================================================
 
-_WEIGHT_RE = re.compile(r"^(.*?)\s*\[(\d+)\]\s*$")
+_WEIGHT_RE = re.compile(r"^(.*?)\s*\[(-?\d+)\]\s*$")
 
 def load_keywords(filepath=KEYWORDS_FILE):
     """Parse keywords.txt. Returns dict {phrase: weight}.

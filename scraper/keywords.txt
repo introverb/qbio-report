@@ -22,11 +22,15 @@
 #   Append [N] to a line to assign integer weight N (default = 1).
 #   Article score = SUM of matched keyword weights (was: count of matches).
 #   Higher score = higher rank in Breaking and elsewhere.
+#   Negative weights are allowed — use them to suppress unwanted content
+#   (an article with net score <= 0 is dropped from the feed).
 #   Examples:
-#     quantum biology [5]        <- core term, strong boost
+#     quantum biology [10]       <- core term, strong boost
 #     radical pair [5]           <- flagship mechanism
 #     cryptochrome [3]
 #     biophysics                 <- default weight 1, no bracket needed
+#     consciousness [-5]         <- suppress: pulls woo/consciousness down
+#     healing class [-10]        <- suppress hard: bans soft-science ads
 # ==========================================
 
 # --- Featured Authors (DAO-priority — max weight pushes their work to the top) ---

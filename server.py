@@ -952,7 +952,7 @@ def api_list_keywords():
 
 
 import re as _re
-_KW_WEIGHT_RE = _re.compile(r"^(.*?)\s*\[(\d+)\]\s*$")
+_KW_WEIGHT_RE = _re.compile(r"^(.*?)\s*\[(-?\d+)\]\s*$")
 
 
 def _extract_phrase(s):
