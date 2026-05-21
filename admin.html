@@ -407,7 +407,7 @@
     <div class="admin-intro">
         <div class="admin-intro-head">How this page works</div>
         <ul>
-            <li>Four sections below: <b>Source Overview</b> (live stats) &rarr; <b>Source Requests</b> queue &rarr; <b>Keyword Changes</b> queue &rarr; <b>Source Fixes</b> (broken sources).</li>
+            <li>Day-to-day sections (top &rarr; bottom): <b>Source Overview</b> (live stats) &rarr; <b>Source Requests</b> queue &rarr; <b>Keyword Changes</b> queue &rarr; <b>Manage Users</b> &rarr; <b>Filtered Items</b> &rarr; <b>Blocked Articles</b>. <b>Source Fixes</b> sits at the bottom — only matters when something's broken.</li>
             <li><b>Push</b> a source request to auto-apply it (works for RSS feeds &amp; subreddits). Complex requests (new APIs) need Olli &mdash; the button is disabled on those.</li>
             <li><b>Apply</b> a keyword request to save it to <code>keywords.txt</code>, or use the <b>Quick add</b> form to add a keyword directly. <b>Decline</b> dismisses without applying.</li>
             <li>Scrapes run automatically at <b>07:00</b> and <b>16:00 PT</b>. Use <b>Run scrape now</b> for an immediate refresh (~2&ndash;3 min).</li>
@@ -467,15 +467,6 @@
         </div>
     </section>
 
-    <!-- ====== Section 4: Source Fixes ====== -->
-    <section class="section">
-        <div class="section-header">
-            <h2>Source Fixes</h2>
-            <div class="section-subtitle">sources currently in ERROR state &mdash; each needs dev attention</div>
-        </div>
-        <div id="source-fixes-list"></div>
-    </section>
-
     <!-- ====== Section 5a: Manage Users (admin role assignment) ====== -->
     <section class="section">
         <div class="section-header">
@@ -513,6 +504,15 @@
         </div>
         <div id="blocked-meta" style="font-size:11px;color:var(--soft-text);margin-bottom:10px;font-style:italic;"></div>
         <div id="blocked-list"></div>
+    </section>
+
+    <!-- ====== Section 6: Source Fixes (moved to bottom — dev-only, low daily use) ====== -->
+    <section class="section">
+        <div class="section-header">
+            <h2>Source Fixes</h2>
+            <div class="section-subtitle">sources currently in ERROR state &mdash; each needs dev attention</div>
+        </div>
+        <div id="source-fixes-list"></div>
     </section>
 
     <!-- ====== Accordion: DNS / custom-domain setup (collapsed by default) ====== -->
