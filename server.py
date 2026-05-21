@@ -22,7 +22,7 @@ import subprocess
 import sys
 import threading
 import urllib.parse
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
 
 import requests
@@ -1526,12 +1526,49 @@ def _start_scheduler():
         print("[scheduler] warm-up scrape in 60s")
 
 
+# Rate limiter for manual scrapes — 10 per rolling hour, shared across all
+# admins (it's a single shared scraper). In-memory deque; resets on restart,
+# which is fine since admins use this infrequently.
+from collections import deque as _deque
+_SCRAPE_CLICKS    = _deque()  # timestamps (UTC datetimes) of recent triggers
+_SCRAPE_RATE_MAX  = 10        # max triggers
+_SCRAPE_RATE_WIN  = 3600      # per N seconds
+
+
 @app.route("/api/scrape", methods=["POST"])
 @require_auth
 def api_manual_scrape():
-    """Manually trigger a scrape (useful from the admin pages)."""
+    """Manually trigger a scrape (useful from the admin pages).
+    Rate-limited to 10 triggers per hour across all admins combined."""
+    now = datetime.utcnow()
+    # Drop timestamps older than the window
+    cutoff = now - timedelta(seconds=_SCRAPE_RATE_WIN)
+    while _SCRAPE_CLICKS and _SCRAPE_CLICKS[0] < cutoff:
+        _SCRAPE_CLICKS.popleft()
+
+    if len(_SCRAPE_CLICKS) >= _SCRAPE_RATE_MAX:
+        oldest = _SCRAPE_CLICKS[0]
+        retry_after_s = int((oldest + timedelta(seconds=_SCRAPE_RATE_WIN) - now).total_seconds())
+        retry_after_s = max(retry_after_s, 1)
+        mins = max(1, round(retry_after_s / 60))
+        resp = jsonify({
+            "error": (f"Rate limit: max {_SCRAPE_RATE_MAX} manual scrapes per hour "
+                      f"(across all admins). Try again in ~{mins} min."),
+            "retry_after_seconds": retry_after_s,
+            "limit": _SCRAPE_RATE_MAX,
+            "window_seconds": _SCRAPE_RATE_WIN,
+        })
+        resp.status_code = 429
+        resp.headers["Retry-After"] = str(retry_after_s)
+        return resp
+
+    _SCRAPE_CLICKS.append(now)
     threading.Thread(target=run_scrape_sync, daemon=True).start()
-    return jsonify({"ok": True, "status": "scrape started in background"})
+    return jsonify({
+        "ok": True,
+        "status": "scrape started in background",
+        "remaining": _SCRAPE_RATE_MAX - len(_SCRAPE_CLICKS),
+    })
 
 
 # Kick off the scheduler when the module loads (works under gunicorn/flask run alike)
