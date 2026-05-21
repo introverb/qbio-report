@@ -35,3 +35,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Claude Code local cache (per-machine permission rules, etc.)
+.claude/
