@@ -58,7 +58,8 @@
                 letter-spacing: 0.3em;
                 text-transform: uppercase;
                 color: rgba(238, 232, 223, 0.65);
-                padding-bottom: 0;
+                border-bottom: 1px solid rgba(238, 232, 223, 0.15);
+                padding-bottom: 10px;
                 margin-bottom: 18px;
             }
             .featured-sublabel {
@@ -302,14 +303,11 @@
             featured.forEach(window.qbioRegisterArticle);
         }
 
-        const title = window.FEATURED_TITLE || "Featured";
-        const subtitle = window.FEATURED_SUBTITLE
-            || "most recent hits from boosted authors &amp; core quantum-biology terms";
         container.innerHTML = `
             <section class="featured-strip">
                 <div class="featured-label">
-                    <span>${title}</span>
-                    <span class="featured-sublabel">${subtitle}</span>
+                    <span>Featured</span>
+                    <span class="featured-sublabel">most recent hits from boosted authors &amp; core quantum-biology terms</span>
                 </div>
                 <div class="featured-grid">${featured.map(renderCard).join("")}</div>
             </section>`;
