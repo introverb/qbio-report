@@ -22,7 +22,7 @@
 
 (function () {
     const THRESHOLD = 10;   // min score to qualify
-    const LIMIT     = 10;   // max cards shown
+    const LIMIT     = 12;   // max cards shown
     const SCORE_MAX = 20;   // for the score-bar visualization (score >= 20 = full bar)
 
     // Per-category accent color for the eyebrow + score bar
