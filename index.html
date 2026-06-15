@@ -271,8 +271,17 @@
         }
         .story-recent {
             break-inside: avoid;
-            margin-bottom: 24px;
+            margin-bottom: 18px;
             min-height: 150px;  /* floor: keeps short cards from creating gaps */
+            /* Soft panel — matches DAO's rounded-lg card treatment */
+            background: var(--cream-warm);
+            border: 1px solid rgba(75, 36, 60, 0.12);
+            border-radius: 8px;
+            padding: 16px 18px 14px;
+            transition: border-color 0.15s, transform 0.15s;
+        }
+        .story-recent:hover {
+            border-color: rgba(75, 36, 60, 0.32);
         }
         .story-recent h3 {
             font-size: 18px;
@@ -308,7 +317,15 @@
         @media (max-width: 440px) { .columns { column-count: 1; } }
         .article {
             break-inside: avoid;
-            margin-bottom: 28px;
+            margin-bottom: 16px;
+            background: var(--cream-warm);
+            border: 1px solid rgba(75, 36, 60, 0.10);
+            border-radius: 6px;
+            padding: 12px 14px 11px;
+            transition: border-color 0.15s;
+        }
+        .article:hover {
+            border-color: rgba(75, 36, 60, 0.28);
         }
         .article h3 {
             font-size: 14px;
@@ -398,12 +415,22 @@
             text-transform: uppercase;
             font-style: normal;
         }
-        .badge-paper    { background: var(--gold);         color: var(--near-black); }
-        .badge-preprint { background: var(--cyan);         color: var(--near-black); }
-        .badge-news     { background: var(--coral);        color: var(--cream); }
-        .badge-forums   { background: var(--pale-pink);    color: var(--dark-purple); border: 1px solid var(--dark-purple); }
-        .badge-social   { background: var(--pink);         color: var(--near-black); }
-        .badge-video    { background: var(--dark-purple);  color: var(--cream); }
+        /* Badges as subtle accent pills — consistent shape, accent border + text,
+           transparent background. Matches the DAO's restrained eyebrow-label style. */
+        .badge {
+            background: transparent;
+            border-radius: 999px;
+            border: 1px solid currentColor;
+            padding: 2px 8px 1px;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+        }
+        .badge-paper    { color: #9a7e2e; }    /* gold, darkened for cream contrast */
+        .badge-preprint { color: #2b9090; }    /* teal */
+        .badge-news     { color: #c54648; }    /* coral, slightly muted */
+        .badge-forums   { color: var(--light-purple); }
+        .badge-social   { color: #b85a8f; }    /* pink, darkened */
+        .badge-video    { color: var(--deep-plum); }
 
         /* ---------- Status / empty ---------- */
         .status {
@@ -467,11 +494,11 @@
             width: 100%;
             font-family: inherit;
             font-size: 15px;
-            padding: 11px 14px 11px 44px;
-            border: 1px solid var(--light-purple);
-            background: var(--cream);
+            padding: 12px 14px 12px 44px;
+            border: 1px solid rgba(75, 36, 60, 0.32);
+            background: var(--cream-warm);
             color: var(--near-black);
-            border-radius: 3px;
+            border-radius: 8px;
         }
         #search-input:focus {
             outline: 2px solid var(--pink);
@@ -491,10 +518,10 @@
         .search-results {
             max-height: 500px;
             overflow-y: auto;
-            border: 1px solid rgba(125, 74, 110, 0.3);
-            background: var(--cream-dim);
-            border-radius: 3px;
-            padding: 8px 18px;
+            border: 1px solid rgba(75, 36, 60, 0.16);
+            background: var(--cream-warm);
+            border-radius: 8px;
+            padding: 8px 20px;
         }
         .search-results .search-item {
             padding: 12px 0;
