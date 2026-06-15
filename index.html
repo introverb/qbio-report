@@ -75,112 +75,137 @@
         .site-nav .nav-admin .sep { color: rgba(125, 74, 110, 0.4); }
 
         .page {
-            max-width: 820px;
+            max-width: 1180px;
             margin: 0 auto;
-            padding: 36px 24px 0;
+            padding: 56px 32px 0;
         }
         .page-wide {
-            max-width: 1200px;
+            max-width: 1180px;
             margin: 0 auto;
-            padding: 0 24px;
+            padding: 0 32px;
         }
         .page-footer {
-            max-width: 820px;
+            max-width: 1180px;
             margin: 0 auto;
-            padding: 0 24px 80px;
+            padding: 0 32px 80px;
         }
+        /* Section spacing — DAO's homepage uses ~96–128px between major sections */
+        .section-gap { margin-top: 96px; }
+        .section-header {
+            margin-bottom: 40px;
+            max-width: 720px;
+        }
+        .section-header .eyebrow { margin-bottom: 18px; }
+        .section-header .display {
+            font-size: clamp(28px, 4vw, 40px);
+            line-height: 1.04;
+        }
+
+        /* ---------- Shared display patterns (mirrors quantumbiologydao.xyz) ---------- */
+        .eyebrow {
+            font-family: "Apercu Pro", -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 11px;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            font-weight: 700;
+            margin: 0 0 18px;
+            color: var(--gold);
+        }
+        .eyebrow.teal  { color: #2b9090; }   /* darker teal for contrast on cream */
+        .eyebrow.pink  { color: #b85a8f; }   /* darker pink for contrast on cream */
+        .eyebrow.coral { color: var(--coral); }
+        .eyebrow.plum  { color: var(--deep-plum); }
+        .eyebrow em {
+            font-style: italic;
+            font-weight: 400;
+            letter-spacing: 0.18em;
+        }
+        .display {
+            font-family: "Chap", "Apercu Pro", sans-serif;
+            font-size: clamp(32px, 5vw, 52px);
+            line-height: 1.02;
+            letter-spacing: -0.005em;
+            color: var(--dark-purple);
+            margin: 0;
+            font-weight: 400;
+        }
+        .display em {
+            font-style: italic;
+            color: var(--gold);
+        }
+        .display em.teal { color: #2b9090; }
+        .display em.pink { color: #b85a8f; }
+        .display em.plum { color: var(--light-purple); }
 
         /* ---------- Masthead ---------- */
         .masthead {
-            text-align: center;
-            padding: 24px 0 56px;
-            position: relative;
+            text-align: left;
+            padding: 32px 0 72px;
+            max-width: 720px;
         }
-        /* Hairline rules above + below the masthead, tinted with a pink dot
-           in the middle — echoes the DAO site's section markers without
-           copying their cube graphic. */
-        .masthead::before,
-        .masthead::after {
-            content: "";
-            display: block;
-            margin: 0 auto;
-            width: min(620px, 80%);
-            height: 1px;
-            background: linear-gradient(
-                90deg,
-                transparent 0%,
-                var(--deep-plum) 18%,
-                var(--deep-plum) 82%,
-                transparent 100%
-            );
-            position: relative;
-        }
-        .masthead::before { margin-bottom: 28px; }
-        .masthead::after  { margin-top: 32px; }
-        .masthead .title {
-            font-family: "Chap", "Apercu Pro", sans-serif;
-            font-weight: 400;
-            font-size: clamp(48px, 8vw, 72px);
-            letter-spacing: 0.08em;
-            color: var(--dark-purple);
-            margin: 0;
-            line-height: 0.95;
-            text-transform: uppercase;
-        }
-        /* The // separator nods to the DAO site's QUBIE://REPORT block */
-        .masthead .title-slashes {
-            color: var(--pink);
-            font-weight: 700;
-            margin: 0 0.04em;
+        .masthead .eyebrow { margin-bottom: 24px; }
+        .masthead .display {
+            font-size: clamp(44px, 7.5vw, 80px);
+            letter-spacing: -0.01em;
+            line-height: 0.98;
         }
         .masthead .subtitle {
-            font-style: italic;
-            font-size: 13px;
+            font-size: 15px;
             color: var(--soft-text);
-            margin: 18px 0 18px;
-            letter-spacing: 0.08em;
+            margin: 28px 0 0;
+            line-height: 1.55;
+            max-width: 540px;
+            font-weight: 400;
         }
         .masthead .dateline {
+            font-family: "Apercu Pro", monospace;
             font-size: 11px;
             letter-spacing: 0.28em;
             text-transform: uppercase;
-            color: var(--dark-purple);
+            color: var(--soft-text);
             font-weight: 700;
+            margin-top: 36px;
             display: inline-block;
-            padding: 6px 14px;
-            border: 1px solid var(--deep-plum);
-            background: var(--cream-warm);
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--deep-plum);
         }
         .masthead .schedule {
-            font-size: 11px;
+            font-size: 12px;
             font-style: italic;
             color: var(--soft-text);
-            margin-top: 14px;
-            letter-spacing: 0.04em;
+            margin-top: 12px;
+            letter-spacing: 0.02em;
         }
 
         /* ---------- Recent Stories (chronological, 2-col per side) ---------- */
         .recent-label {
-            text-align: center;
-            margin: 0 0 32px;
-            font-weight: 700;
-            font-size: 17px;
-            letter-spacing: 0.5em;
-            color: var(--dark-purple);
+            margin: 0 0 40px;
+            max-width: 720px;
+        }
+        .recent-label::before {
+            content: "02 / Recent dispatches";
+            display: block;
+            font-family: "Apercu Pro", monospace;
+            font-size: 11px;
+            letter-spacing: 0.3em;
             text-transform: uppercase;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 22px;
+            color: #2b9090;
+            font-weight: 700;
+            margin-bottom: 16px;
         }
-        .recent-label::before,
         .recent-label::after {
-            content: "";
-            display: inline-block;
-            width: 26px;
-            height: 30px;
-            background: url("assets/logo-icon.svg") no-repeat center / contain;
+            content: "The latest from across the field.";
+            display: block;
+            font-family: "Chap", "Apercu Pro", sans-serif;
+            font-size: clamp(28px, 4vw, 40px);
+            line-height: 1.04;
+            color: var(--dark-purple);
+            font-weight: 400;
         }
+        /* Hide the actual text inside the .recent-label div; the ::before/::after
+           handle display. (Markup is rendered by JS; can't change that easily.) */
+        .recent-label { font-size: 0; gap: 0; }
+        .recent-label > * { display: none; }
         /* Recent section: left half = general, right half = direct QB */
         .recent-wrap {
             display: flex;
@@ -290,14 +315,31 @@
 
         /* ---------- Filed Stories (columns by score) ---------- */
         .filed-label {
-            text-align: center;
-            margin: 0 0 24px;
-            font-weight: 700;
-            font-size: 11px;
-            letter-spacing: 0.4em;
-            color: var(--light-purple);
-            text-transform: uppercase;
+            margin: 0 0 40px;
+            font-size: 0;
+            max-width: 720px;
         }
+        .filed-label::before {
+            content: "03 / Filed by relevance";
+            display: block;
+            font-family: "Apercu Pro", monospace;
+            font-size: 11px;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: var(--gold);
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        .filed-label::after {
+            content: "Everything else, scored & sorted.";
+            display: block;
+            font-family: "Chap", "Apercu Pro", sans-serif;
+            font-size: clamp(26px, 3.5vw, 36px);
+            line-height: 1.04;
+            color: var(--dark-purple);
+            font-weight: 400;
+        }
+        .filed-label > * { display: none; }
         /* Filed section: 4-column flow sorted by relevance score */
         .columns {
             column-count: 4;
@@ -398,12 +440,23 @@
             text-transform: uppercase;
             font-style: normal;
         }
-        .badge-paper    { background: var(--gold);         color: var(--near-black); }
-        .badge-preprint { background: var(--cyan);         color: var(--near-black); }
-        .badge-news     { background: var(--coral);        color: var(--cream); }
-        .badge-forums   { background: var(--pale-pink);    color: var(--dark-purple); border: 1px solid var(--dark-purple); }
-        .badge-social   { background: var(--pink);         color: var(--near-black); }
-        .badge-video    { background: var(--dark-purple);  color: var(--cream); }
+        /* Badges are now accent eyebrow text — restrained, mono-cap style
+           that matches the DAO's eyebrow labels. */
+        .badge {
+            background: transparent !important;
+            border: none !important;
+            padding: 0 !important;
+            font-family: "Apercu Pro", monospace !important;
+            font-size: 10px !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.28em !important;
+        }
+        .badge-paper    { color: #9a7e2e; }   /* gold, darkened for cream-bg contrast */
+        .badge-preprint { color: #2b9090; }   /* teal */
+        .badge-news     { color: var(--coral); }
+        .badge-forums   { color: var(--light-purple); }
+        .badge-social   { color: #b85a8f; }   /* pink, darkened */
+        .badge-video    { color: var(--deep-plum); }
 
         /* ---------- Status / empty ---------- */
         .status {
@@ -416,38 +469,42 @@
 
         /* ---------- Search section ---------- */
         .search-section {
-            max-width: 900px;
-            margin: 20px auto 60px;
-            padding: 0 24px;
+            max-width: 1180px;
+            margin: 96px auto 60px;
+            padding: 0 32px;
         }
         .search-label {
-            text-align: center;
-            font-weight: 700;
-            font-size: 15px;
-            letter-spacing: 0.45em;
-            color: var(--dark-purple);
+            margin: 0 0 8px;
+            font-size: 0;
+            max-width: 720px;
+        }
+        .search-label::before {
+            content: "01 / The DAO's bookmarks";
+            display: block;
+            font-family: "Apercu Pro", monospace;
+            font-size: 11px;
+            letter-spacing: 0.3em;
             text-transform: uppercase;
-            margin-bottom: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 18px;
+            color: #b85a8f;
+            font-weight: 700;
+            margin-bottom: 16px;
         }
-        .search-label::before,
         .search-label::after {
-            content: "";
-            display: inline-block;
-            width: 20px;
-            height: 23px;
-            background: url("assets/logo-icon.svg") no-repeat center / contain;
+            content: "Saved by the community.";
+            display: block;
+            font-family: "Chap", "Apercu Pro", sans-serif;
+            font-size: clamp(28px, 4vw, 40px);
+            line-height: 1.04;
+            color: var(--dark-purple);
+            font-weight: 400;
         }
+        .search-label > * { display: none; }
         .search-subtitle {
-            text-align: center;
-            font-style: italic;
-            font-size: 12px;
+            font-size: 13px;
             color: var(--soft-text);
-            margin: 0 0 22px;
-            letter-spacing: 0.03em;
+            margin: 12px 0 28px;
+            line-height: 1.5;
+            max-width: 540px;
         }
         .search-input-wrap {
             position: relative;
@@ -633,10 +690,11 @@
 <div class="page">
 
     <header class="masthead">
-        <div class="title">QUBIE NEWS</div>
-        <div class="subtitle">&mdash; the quantum biology headline aggregator &mdash;</div>
+        <p class="eyebrow">QUBIE<em>://</em>NEWS &nbsp;&middot;&nbsp; an aggregator</p>
+        <h1 class="display">Headlines from the<br><em>quantum biology</em> field.</h1>
+        <p class="subtitle">A daily aggregator of papers, preprints, chatter, and video &mdash; operated by the Quantum Biology DAO.</p>
         <div class="dateline" id="dateline">Loading&hellip;</div>
-        <div class="schedule">feed refreshes twice daily at 07:00 &amp; 16:00 PT (Qubie lives in LA)</div>
+        <div class="schedule">Feed refreshes twice daily at 07:00 &amp; 16:00 PT (Qubie lives in LA).</div>
     </header>
 
     <div id="status" class="status">Loading feed&hellip;</div>
