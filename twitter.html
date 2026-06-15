@@ -6,11 +6,52 @@
     <title>QUBIE News &mdash; Twitter / X</title>
     <link rel="stylesheet" href="/assets/shared.css">
     <style>
+        /* ---------- Dark mode palette (overrides shared.css) ---------- */
+        :root {
+            --cream:       #FFFCF6;
+            --cream-warm:  #FAF4E8;
+            --cream-dim:   #EEE8DF;
+            --dark-purple: #25101D;
+            --deep-plum:   #4B243C;
+            --light-purple:#854B6E;
+            --pink:        #D57DB2;
+            --pale-pink:   #FFCEEC;
+            --cyan:        #7DD3D3;
+            --gold:        #E5C46B;
+            --coral:       #FF6568;
+            --near-black:  #120810;
+            --soft-text:   #4B243C;
+        }
         body {
+            background: var(--dark-purple);
+            color: var(--cream);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
+        a { color: var(--gold); border-bottom: 1px solid rgba(238, 232, 223, 0.35); }
+        a:hover { color: var(--pink); border-bottom-color: var(--pink); }
+
+        /* Site nav — mirror index.html */
+        .site-nav {
+            background: var(--near-black);
+            border-bottom: 1px solid rgba(238, 232, 223, 0.10);
+        }
+        .site-nav .sep { color: rgba(238, 232, 223, 0.25); }
+        .site-nav .nav-public a { color: rgba(238, 232, 223, 0.70); }
+        .site-nav .nav-public a:hover { color: var(--pink); }
+        .site-nav .nav-public a.active { color: var(--gold); border-bottom: 2px solid var(--gold); }
+        .site-nav .nav-admin {
+            border: 1px solid rgba(238, 232, 223, 0.18);
+            border-radius: 999px;
+            padding: 2px 8px;
+            background: rgba(238, 232, 223, 0.04);
+        }
+        .site-nav .nav-admin a { color: rgba(238, 232, 223, 0.55); }
+        .site-nav .nav-admin a:hover { color: var(--pink); }
+        .site-nav .nav-admin a.active { color: var(--gold); border-bottom: 2px solid var(--gold); }
+        .site-nav .nav-admin .sep { color: rgba(238, 232, 223, 0.18); }
+
         main.coming-soon {
             flex: 1;
             display: flex;
@@ -25,7 +66,7 @@
         .cs-eyebrow {
             font-size: 11px;
             letter-spacing: 0.4em;
-            color: var(--light-purple);
+            color: var(--gold);
             text-transform: uppercase;
             font-weight: 700;
             margin-bottom: 12px;
@@ -35,7 +76,7 @@
             font-weight: 400;
             font-size: 56px;
             letter-spacing: 0.04em;
-            color: var(--dark-purple);
+            color: var(--cream);
             text-transform: uppercase;
             line-height: 1;
             margin: 0 0 14px;
@@ -46,18 +87,20 @@
         .cs-subtitle {
             font-style: italic;
             font-size: 14px;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.65);
             letter-spacing: 0.04em;
             margin-bottom: 48px;
         }
         .cs-card {
-            background: var(--cream-dim);
-            border-left: 3px solid var(--pink);
+            background: rgba(18, 8, 16, 0.40);
+            border: 1px solid rgba(238, 232, 223, 0.10);
+            border-left: 3px solid var(--gold);
             padding: 24px 28px;
-            border-radius: 3px;
+            border-radius: 6px;
             text-align: left;
             font-size: 14px;
             line-height: 1.55;
+            color: rgba(238, 232, 223, 0.85);
             max-width: 560px;
             width: 100%;
         }
@@ -66,22 +109,22 @@
             letter-spacing: 0.28em;
             text-transform: uppercase;
             font-weight: 700;
-            color: var(--pink);
+            color: var(--gold);
             margin-bottom: 12px;
         }
         .cs-card p { margin: 0 0 12px; }
         .cs-card p:last-child { margin: 0; }
         .cs-card a {
-            color: var(--dark-purple);
+            color: var(--gold);
             font-weight: 700;
             text-decoration: none;
-            border-bottom: 1px solid var(--dark-purple);
+            border-bottom: 1px solid rgba(238, 232, 223, 0.35);
         }
         .cs-card a:hover { color: var(--pink); border-bottom-color: var(--pink); }
         .cs-meta {
             margin-top: 28px;
             font-size: 11px;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.40);
             font-style: italic;
             letter-spacing: 0.04em;
         }
@@ -89,15 +132,15 @@
             margin-top: auto;
             text-align: center;
             font-size: 10px;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.55);
             letter-spacing: 0.2em;
             text-transform: uppercase;
             padding: 24px 16px 28px;
         }
         footer a {
-            color: var(--dark-purple);
+            color: var(--cream);
             text-decoration: none;
-            border-bottom: 1px solid var(--dark-purple);
+            border-bottom: 1px solid rgba(238, 232, 223, 0.35);
         }
         footer a:hover { color: var(--pink); border-bottom-color: var(--pink); }
         footer .copyright { font-style: italic; margin-top: 8px; letter-spacing: 0.08em; }

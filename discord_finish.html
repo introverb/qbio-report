@@ -10,13 +10,19 @@
         @font-face { font-family: "Chap"; src: url("assets/fonts/Chap-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
 
         :root {
-            --cream: #EEE8DF;
-            --cream-dim: #E5DED2;
-            --dark-purple: #2D1B30;
-            --light-purple: #7D4A6E;
-            --pink: #D57DB2;
-            --near-black: #1A1416;
-            --soft-text: #3A3036;
+            --cream:       #FFFCF6;
+            --cream-warm:  #FAF4E8;
+            --cream-dim:   #EEE8DF;
+            --dark-purple: #25101D;
+            --deep-plum:   #4B243C;
+            --light-purple:#854B6E;
+            --pink:        #D57DB2;
+            --pale-pink:   #FFCEEC;
+            --cyan:        #7DD3D3;
+            --gold:        #E5C46B;
+            --coral:       #FF6568;
+            --near-black:  #120810;
+            --soft-text:   #4B243C;
         }
 
         * { box-sizing: border-box; }
@@ -24,8 +30,8 @@
 
         body {
             font-family: "Apercu Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-            background: var(--cream);
-            color: var(--near-black);
+            background: var(--dark-purple);
+            color: var(--cream);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -37,6 +43,10 @@
             max-width: 440px;
             width: 100%;
             text-align: center;
+            background: rgba(18, 8, 16, 0.50);
+            border: 1px solid rgba(238, 232, 223, 0.10);
+            border-radius: 12px;
+            padding: 40px 32px;
         }
 
         .title {
@@ -44,7 +54,7 @@
             font-weight: 400;
             font-size: 44px;
             letter-spacing: 0.06em;
-            color: var(--dark-purple);
+            color: var(--cream);
             margin: 0 0 6px;
             line-height: 1;
             text-transform: uppercase;
@@ -52,19 +62,19 @@
         .subtitle {
             font-style: italic;
             font-size: 12px;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.65);
             margin: 0 0 28px;
             letter-spacing: 0.05em;
         }
 
         .blurb {
             font-size: 13px;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.75);
             line-height: 1.5;
             margin-bottom: 22px;
         }
         .blurb b {
-            color: var(--dark-purple);
+            color: var(--cream);
             font-weight: 700;
         }
 
@@ -79,18 +89,22 @@
             font-family: inherit;
             font-size: 15px;
             padding: 10px 14px;
-            border: 1px solid var(--dark-purple);
-            background: var(--cream);
-            color: var(--near-black);
-            border-radius: 2px;
+            border: 1px solid rgba(238, 232, 223, 0.18);
+            background: rgba(18, 8, 16, 0.50);
+            color: var(--cream);
+            border-radius: 6px;
+        }
+        input[type="text"]::placeholder {
+            color: rgba(238, 232, 223, 0.40);
         }
         input[type="text"]:focus {
             outline: 2px solid var(--pink);
             outline-offset: -2px;
+            border-color: var(--pink);
         }
         .helper {
             font-size: 11px;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.50);
             text-align: left;
             line-height: 1.4;
             margin: -2px 2px 4px;
@@ -102,10 +116,10 @@
             letter-spacing: 0.15em;
             text-transform: uppercase;
             padding: 10px 22px;
-            border: 1px solid var(--dark-purple);
+            border: 1px solid rgba(238, 232, 223, 0.18);
             background: var(--dark-purple);
             color: var(--cream);
-            border-radius: 2px;
+            border-radius: 6px;
             cursor: pointer;
         }
         button:hover {
@@ -115,7 +129,7 @@
         }
 
         .error {
-            color: #c55;
+            color: var(--coral);
             font-size: 13px;
             font-style: italic;
             margin-top: 10px;
@@ -130,9 +144,9 @@
             font-weight: 700;
         }
         .back a {
-            color: var(--light-purple);
+            color: rgba(238, 232, 223, 0.55);
             text-decoration: none;
-            border-bottom: 1px solid var(--light-purple);
+            border-bottom: 1px solid rgba(238, 232, 223, 0.35);
             padding-bottom: 2px;
         }
         .back a:hover { color: var(--pink); border-bottom-color: var(--pink); }

@@ -6,6 +6,88 @@
     <title>QUBIE News — Profile</title>
     <link rel="stylesheet" href="/assets/shared.css">
     <style>
+        /* ---------- Dark mode palette (overrides shared.css) ---------- */
+        :root {
+            --cream:       #FFFCF6;
+            --cream-warm:  #FAF4E8;
+            --cream-dim:   #EEE8DF;
+            --dark-purple: #25101D;
+            --deep-plum:   #4B243C;
+            --light-purple:#854B6E;
+            --pink:        #D57DB2;
+            --pale-pink:   #FFCEEC;
+            --cyan:        #7DD3D3;
+            --gold:        #E5C46B;
+            --coral:       #FF6568;
+            --near-black:  #120810;
+            --soft-text:   rgba(238, 232, 223, 0.55);
+        }
+        body { background: var(--dark-purple); color: var(--cream); }
+        a { color: var(--gold); border-bottom: 1px solid rgba(238, 232, 223, 0.35); }
+        a:hover { color: var(--pink); border-bottom-color: var(--pink); }
+
+        /* Site nav — mirror index.html */
+        .site-nav {
+            background: var(--near-black);
+            border-bottom: 1px solid rgba(238, 232, 223, 0.10);
+        }
+        .site-nav .sep { color: rgba(238, 232, 223, 0.25); }
+        .site-nav .nav-public a { color: rgba(238, 232, 223, 0.70); }
+        .site-nav .nav-public a:hover { color: var(--pink); }
+        .site-nav .nav-public a.active { color: var(--gold); border-bottom: 2px solid var(--gold); }
+        .site-nav .nav-admin {
+            border: 1px solid rgba(238, 232, 223, 0.18);
+            border-radius: 999px;
+            padding: 2px 8px;
+            background: rgba(238, 232, 223, 0.04);
+        }
+        .site-nav .nav-admin a { color: rgba(238, 232, 223, 0.55); }
+        .site-nav .nav-admin a:hover { color: var(--pink); }
+        .site-nav .nav-admin a.active { color: var(--gold); border-bottom: 2px solid var(--gold); }
+        .site-nav .nav-admin .sep { color: rgba(238, 232, 223, 0.18); }
+
+        /* Inputs / buttons — dark */
+        input[type="text"], input[type="number"], select, textarea {
+            background: rgba(18, 8, 16, 0.50);
+            border: 1px solid rgba(238, 232, 223, 0.18);
+            color: var(--cream);
+        }
+        input::placeholder, textarea::placeholder { color: rgba(238, 232, 223, 0.40); }
+        input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
+            outline: 2px solid var(--pink);
+            outline-offset: -2px;
+            border-color: var(--pink);
+        }
+        button {
+            background: var(--dark-purple);
+            border: 1px solid rgba(238, 232, 223, 0.18);
+            color: var(--cream);
+        }
+        button:hover { background: var(--pink); border-color: var(--pink); color: var(--near-black); }
+        button.secondary { background: transparent; color: var(--cream); }
+        button.secondary:hover { background: transparent; color: var(--pink); border-color: var(--pink); }
+
+        /* Admin page heading */
+        .admin-page h1 { color: var(--cream); }
+        .admin-page .subtitle { color: rgba(238, 232, 223, 0.55); }
+        .empty-state { color: rgba(238, 232, 223, 0.55); }
+
+        /* Badges — transparent pill style */
+        .badge {
+            background: transparent;
+            border-radius: 999px;
+            border: 1px solid currentColor;
+            padding: 2px 8px 1px;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+        }
+        .badge-paper    { color: var(--gold); }
+        .badge-preprint { color: var(--cyan); }
+        .badge-news     { color: var(--coral); }
+        .badge-forums   { color: var(--pale-pink); }
+        .badge-social   { color: var(--pink); }
+        .badge-video    { color: var(--cream); }
+
         .profile-header {
             display: flex;
             gap: 24px;
@@ -17,14 +99,14 @@
             width: 96px;
             height: 96px;
             border-radius: 50%;
-            background: var(--cream-dim);
-            border: 2px solid var(--light-purple);
+            background: rgba(18, 8, 16, 0.50);
+            border: 2px solid rgba(238, 232, 223, 0.20);
             display: flex;
             align-items: center;
             justify-content: center;
             font-family: "Chap", "Apercu Pro", sans-serif;
             font-size: 42px;
-            color: var(--dark-purple);
+            color: var(--cream);
             text-transform: uppercase;
             overflow: hidden;
             flex-shrink: 0;
@@ -36,7 +118,7 @@
             font-weight: 400;
             font-size: 32px;
             letter-spacing: 0.04em;
-            color: var(--dark-purple);
+            color: var(--cream);
             margin: 0 0 4px;
             text-transform: uppercase;
         }
@@ -48,7 +130,7 @@
             font-weight: 700;
             font-size: 9px;
             padding: 2px 7px 1px;
-            border-radius: 2px;
+            border-radius: 999px;
             margin-left: 10px;
             letter-spacing: 0.15em;
             vertical-align: middle;
@@ -56,14 +138,14 @@
         .profile-since {
             font-style: italic;
             font-size: 12px;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.55);
             letter-spacing: 0.04em;
             margin-bottom: 12px;
         }
         .profile-bio {
             font-size: 14px;
             line-height: 1.5;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.65);
             white-space: pre-wrap;
             margin-top: 6px;
         }
@@ -75,7 +157,7 @@
             display: flex;
             justify-content: space-between;
             align-items: baseline;
-            border-bottom: 1px solid rgba(45, 27, 48, 0.2);
+            border-bottom: 1px solid rgba(238, 232, 223, 0.15);
             padding-bottom: 8px;
             margin-bottom: 18px;
         }
@@ -84,33 +166,46 @@
             font-weight: 400;
             font-size: 24px;
             letter-spacing: 0.04em;
-            color: var(--dark-purple);
+            color: var(--cream);
             text-transform: uppercase;
             margin: 0;
         }
         .saves-header .count {
             font-size: 11px;
             font-style: italic;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.55);
         }
         .saves-list { list-style: none; padding: 0; margin: 0; }
+        /* Saves use the same card treatment as Recent Dispatches on index.html */
         .save-item {
-            padding: 14px 0;
-            border-bottom: 1px solid rgba(45, 27, 48, 0.12);
+            background: rgba(18, 8, 16, 0.40);
+            border: 1px solid rgba(238, 232, 223, 0.10);
+            border-radius: 8px;
+            padding: 16px 18px 14px;
+            margin-bottom: 14px;
+            transition: border-color 0.15s, background 0.15s;
         }
-        .save-item:last-child { border: none; }
+        .save-item:hover {
+            border-color: rgba(238, 232, 223, 0.25);
+            background: rgba(18, 8, 16, 0.55);
+        }
+        .save-item:last-child { border: 1px solid rgba(238, 232, 223, 0.10); }
         .save-item .title { font-weight: 700; font-size: 14px; line-height: 1.35; margin-bottom: 4px; }
-        .save-item .title a { color: var(--dark-purple); text-decoration: none; border: none; }
-        .save-item .title a:hover { color: var(--pink); }
+        .save-item .title a {
+            color: var(--cream);
+            text-decoration: none;
+            border-bottom: 1px solid rgba(238, 232, 223, 0.30);
+        }
+        .save-item .title a:hover { color: var(--pink); border-bottom-color: var(--pink); }
         .save-item .meta {
             font-size: 11px;
-            color: var(--light-purple);
+            color: rgba(238, 232, 223, 0.55);
             font-style: italic;
             letter-spacing: 0.03em;
         }
         .save-item .blurb {
             font-size: 13px;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.65);
             margin-top: 4px;
             line-height: 1.45;
         }
@@ -119,7 +214,7 @@
         .edit-modal {
             position: fixed;
             inset: 0;
-            background: rgba(45, 27, 48, 0.35);
+            background: rgba(18, 8, 16, 0.70);
             display: none;
             align-items: center;
             justify-content: center;
@@ -127,19 +222,20 @@
         }
         .edit-modal.open { display: flex; }
         .edit-panel {
-            background: var(--cream);
-            border: 1px solid var(--dark-purple);
-            border-radius: 4px;
+            background: var(--dark-purple);
+            border: 1px solid rgba(238, 232, 223, 0.18);
+            border-radius: 8px;
             padding: 24px;
             max-width: 480px;
             width: calc(100% - 48px);
+            color: var(--cream);
         }
         .edit-panel h3 {
             font-family: "Chap", "Apercu Pro", sans-serif;
             font-weight: 400;
             font-size: 22px;
             letter-spacing: 0.04em;
-            color: var(--dark-purple);
+            color: var(--cream);
             text-transform: uppercase;
             margin: 0 0 16px;
         }
@@ -149,7 +245,7 @@
             letter-spacing: 0.18em;
             text-transform: uppercase;
             font-weight: 700;
-            color: var(--light-purple);
+            color: var(--gold);
             margin: 12px 0 4px;
         }
         .edit-panel input, .edit-panel textarea {
@@ -157,16 +253,17 @@
             font-family: inherit;
             font-size: 14px;
             padding: 8px 10px;
-            border: 1px solid var(--light-purple);
-            background: var(--cream);
-            color: var(--near-black);
-            border-radius: 2px;
+            border: 1px solid rgba(238, 232, 223, 0.18);
+            background: rgba(18, 8, 16, 0.50);
+            color: var(--cream);
+            border-radius: 4px;
         }
+        .edit-panel input::placeholder, .edit-panel textarea::placeholder { color: rgba(238, 232, 223, 0.40); }
         .edit-panel textarea { min-height: 100px; resize: vertical; }
         .edit-panel .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
 
         .empty-saves {
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.55);
             font-style: italic;
             padding: 30px 0;
             text-align: center;

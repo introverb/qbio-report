@@ -6,6 +6,105 @@
     <title>QUBIE News — Keywords</title>
     <link rel="stylesheet" href="assets/shared.css">
     <style>
+        /* ---- Dark-mode override of shared.css (aligns with index.html) ---- */
+        :root {
+            --cream:       #FFFCF6;
+            --cream-warm:  #FAF4E8;
+            --cream-dim:   #EEE8DF;
+            --dark-purple: #25101D;
+            --deep-plum:   #4B243C;
+            --light-purple:#854B6E;
+            --pink:        #D57DB2;
+            --pale-pink:   #FFCEEC;
+            --cyan:        #7DD3D3;
+            --gold:        #E5C46B;
+            --coral:       #FF6568;
+            --near-black:  #120810;
+            --soft-text:   #4B243C;
+        }
+        body {
+            background: var(--dark-purple);
+            color: var(--cream);
+        }
+        a { color: var(--cream); border-bottom: 1px solid rgba(238, 232, 223, 0.35); }
+        a:hover { color: var(--pink); border-bottom-color: var(--pink); }
+
+        /* Site nav — dark plum */
+        .site-nav {
+            background: var(--near-black);
+            border-bottom: 1px solid rgba(238, 232, 223, 0.10);
+        }
+        .site-nav .sep { color: rgba(238, 232, 223, 0.25); }
+        .site-nav .nav-public a { color: rgba(238, 232, 223, 0.70); }
+        .site-nav .nav-public a:hover { color: var(--pink); }
+        .site-nav .nav-public a.active { color: var(--gold); border-bottom: 2px solid var(--gold); }
+        .site-nav .nav-admin {
+            border: 1px solid rgba(238, 232, 223, 0.18);
+            border-radius: 999px;
+            padding: 2px 8px;
+            background: rgba(238, 232, 223, 0.04);
+        }
+        .site-nav .nav-admin a { color: rgba(238, 232, 223, 0.55); opacity: 1; }
+        .site-nav .nav-admin a:hover { color: var(--pink); }
+        .site-nav .nav-admin a.active { color: var(--gold); border-bottom: 2px solid var(--gold); }
+        .site-nav .nav-admin .sep { color: rgba(238, 232, 223, 0.18); }
+
+        /* Headings + subtitle */
+        .admin-page h1 { color: var(--cream); }
+        .admin-page .subtitle { color: rgba(238, 232, 223, 0.55); }
+
+        /* Forms — dark inputs */
+        input[type="text"], input[type="number"], select, textarea {
+            font-family: inherit;
+            font-size: 14px;
+            padding: 8px 12px;
+            border: 1px solid rgba(238, 232, 223, 0.18);
+            background: rgba(18, 8, 16, 0.50);
+            color: var(--cream);
+            border-radius: 8px;
+        }
+        input::placeholder, textarea::placeholder { color: rgba(238, 232, 223, 0.40); }
+        input:focus, select:focus, textarea:focus {
+            outline: 2px solid var(--pink);
+            outline-offset: -2px;
+            border-color: var(--pink);
+        }
+
+        /* Buttons */
+        button {
+            background: var(--dark-purple);
+            color: var(--cream);
+            border: 1px solid rgba(238, 232, 223, 0.18);
+            border-radius: 6px;
+        }
+        button:hover { background: var(--pink); color: var(--near-black); border-color: var(--pink); }
+        button.secondary { background: transparent; color: var(--cream); }
+        button.secondary:hover { background: transparent; color: var(--pink); border-color: var(--pink); }
+        button.danger {
+            background: transparent;
+            border-color: rgba(238, 232, 223, 0.30);
+            color: rgba(238, 232, 223, 0.65);
+        }
+        button.danger:hover {
+            background: var(--coral); color: var(--near-black); border-color: var(--coral);
+        }
+
+        /* Flash messages */
+        .flash {
+            background: rgba(18, 8, 16, 0.40);
+            border: 1px solid rgba(238, 232, 223, 0.10);
+            border-left: 3px solid var(--pink);
+            color: rgba(238, 232, 223, 0.75);
+            border-radius: 8px;
+        }
+        .flash.error {
+            border-left-color: var(--coral);
+            color: var(--coral);
+        }
+
+        /* Empty state */
+        .empty-state { color: rgba(238, 232, 223, 0.55); }
+
         /* Weight badge on keyword tags */
         .kw-weight {
             display: inline-block;
@@ -20,16 +119,32 @@
         }
         .kw-weight::before { content: "×"; margin-right: 1px; }
 
-        /* Hover affordance — click anywhere on a tag to edit its weight */
-        .kw-tag { cursor: pointer; transition: background 0.1s; }
-        .kw-tag:hover { background: var(--cream-dim); }
+        /* Keyword tag — dark panel */
+        .kw-tag {
+            background: rgba(18, 8, 16, 0.40);
+            border: 1px solid rgba(238, 232, 223, 0.18);
+            color: var(--cream);
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background 0.1s, border-color 0.1s;
+        }
+        .kw-tag:hover {
+            background: rgba(18, 8, 16, 0.65);
+            border-color: rgba(238, 232, 223, 0.35);
+        }
         .kw-tag.editing {
             cursor: default;
-            background: var(--cream-dim);
+            background: rgba(18, 8, 16, 0.65);
             border-color: var(--pink);
             padding-right: 6px;
         }
-        .kw-tag.editing:hover { background: var(--cream-dim); }
+        .kw-tag.editing:hover { background: rgba(18, 8, 16, 0.65); }
+        .kw-tag button {
+            color: rgba(238, 232, 223, 0.55);
+            background: transparent;
+            border: none;
+        }
+        .kw-tag button:hover { color: var(--pink); background: transparent; }
 
         /* Edit-mode controls inside a tag */
         .kw-tag .kw-weight-edit {
@@ -37,10 +152,10 @@
             font-size: 12px;
             padding: 2px 4px;
             margin-left: 8px;
-            border: 1px solid var(--light-purple);
-            background: var(--cream);
-            color: var(--dark-purple);
-            border-radius: 2px;
+            border: 1px solid rgba(238, 232, 223, 0.18);
+            background: rgba(18, 8, 16, 0.50);
+            color: var(--cream);
+            border-radius: 4px;
             cursor: pointer;
         }
         .kw-tag .kw-weight-edit:focus {
@@ -57,14 +172,14 @@
             text-transform: uppercase;
             padding: 2px 8px;
             margin-left: 4px;
-            border-radius: 2px;
+            border-radius: 4px;
             cursor: pointer;
             border: 1px solid;
         }
         .kw-tag .kw-save {
             background: var(--dark-purple);
             color: var(--cream);
-            border-color: var(--dark-purple);
+            border-color: rgba(238, 232, 223, 0.18);
         }
         .kw-tag .kw-save:hover {
             background: var(--pink);
@@ -73,8 +188,8 @@
         }
         .kw-tag .kw-cancel {
             background: transparent;
-            color: var(--light-purple);
-            border-color: var(--light-purple);
+            color: rgba(238, 232, 223, 0.55);
+            border-color: rgba(238, 232, 223, 0.18);
         }
         .kw-tag .kw-cancel:hover {
             color: var(--pink);

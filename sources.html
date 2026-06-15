@@ -6,6 +6,151 @@
     <title>QUBIE News — Sources</title>
     <link rel="stylesheet" href="assets/shared.css">
     <style>
+        /* ---- Dark-mode override of shared.css (aligns with index.html) ---- */
+        :root {
+            --cream:       #FFFCF6;
+            --cream-warm:  #FAF4E8;
+            --cream-dim:   #EEE8DF;
+            --dark-purple: #25101D;
+            --deep-plum:   #4B243C;
+            --light-purple:#854B6E;
+            --pink:        #D57DB2;
+            --pale-pink:   #FFCEEC;
+            --cyan:        #7DD3D3;
+            --gold:        #E5C46B;
+            --coral:       #FF6568;
+            --near-black:  #120810;
+            --soft-text:   #4B243C;
+        }
+        body {
+            background: var(--dark-purple);
+            color: var(--cream);
+        }
+        a { color: var(--cream); border-bottom: 1px solid rgba(238, 232, 223, 0.35); }
+        a:hover { color: var(--pink); border-bottom-color: var(--pink); }
+
+        /* Site nav — dark plum */
+        .site-nav {
+            background: var(--near-black);
+            border-bottom: 1px solid rgba(238, 232, 223, 0.10);
+        }
+        .site-nav .sep { color: rgba(238, 232, 223, 0.25); }
+        .site-nav .nav-public a { color: rgba(238, 232, 223, 0.70); }
+        .site-nav .nav-public a:hover { color: var(--pink); }
+        .site-nav .nav-public a.active { color: var(--gold); border-bottom: 2px solid var(--gold); }
+        .site-nav .nav-admin {
+            border: 1px solid rgba(238, 232, 223, 0.18);
+            border-radius: 999px;
+            padding: 2px 8px;
+            background: rgba(238, 232, 223, 0.04);
+        }
+        .site-nav .nav-admin a { color: rgba(238, 232, 223, 0.55); opacity: 1; }
+        .site-nav .nav-admin a:hover { color: var(--pink); }
+        .site-nav .nav-admin a.active { color: var(--gold); border-bottom: 2px solid var(--gold); }
+        .site-nav .nav-admin .sep { color: rgba(238, 232, 223, 0.18); }
+
+        /* Headings + subtitle */
+        .admin-page h1 { color: var(--cream); }
+        .admin-page .subtitle { color: rgba(238, 232, 223, 0.55); }
+
+        /* Forms — dark inputs */
+        input[type="text"], input[type="number"], input[type="search"], select, textarea {
+            font-family: inherit;
+            font-size: 14px;
+            padding: 8px 12px;
+            border: 1px solid rgba(238, 232, 223, 0.18);
+            background: rgba(18, 8, 16, 0.50);
+            color: var(--cream);
+            border-radius: 8px;
+        }
+        input::placeholder, textarea::placeholder { color: rgba(238, 232, 223, 0.40); }
+        input:focus, select:focus, textarea:focus {
+            outline: 2px solid var(--pink);
+            outline-offset: -2px;
+            border-color: var(--pink);
+        }
+        select option { background: var(--near-black); color: var(--cream); }
+
+        /* Buttons */
+        button {
+            background: var(--dark-purple);
+            color: var(--cream);
+            border: 1px solid rgba(238, 232, 223, 0.18);
+            border-radius: 6px;
+        }
+        button:hover { background: var(--pink); color: var(--near-black); border-color: var(--pink); }
+        button.secondary { background: transparent; color: var(--cream); }
+        button.secondary:hover { background: transparent; color: var(--pink); border-color: var(--pink); }
+        button.danger {
+            background: transparent;
+            border-color: rgba(238, 232, 223, 0.30);
+            color: rgba(238, 232, 223, 0.65);
+        }
+        button.danger:hover {
+            background: var(--coral); color: var(--near-black); border-color: var(--coral);
+        }
+
+        /* Flash messages */
+        .flash {
+            background: rgba(18, 8, 16, 0.40);
+            border: 1px solid rgba(238, 232, 223, 0.10);
+            border-left: 3px solid var(--pink);
+            color: rgba(238, 232, 223, 0.75);
+            border-radius: 8px;
+        }
+        .flash.error {
+            border-left-color: var(--coral);
+            color: var(--coral);
+        }
+
+        /* Empty state */
+        .empty-state { color: rgba(238, 232, 223, 0.55); }
+
+        /* Tabs */
+        .tabs {
+            border-bottom: 1px solid rgba(238, 232, 223, 0.18);
+        }
+        .tab { color: rgba(238, 232, 223, 0.55); }
+        .tab:hover { color: var(--cream); }
+        .tab.active {
+            color: var(--gold);
+            background: rgba(18, 8, 16, 0.50);
+            border-color: rgba(238, 232, 223, 0.18);
+            border-bottom: 1px solid rgba(18, 8, 16, 0.50);
+        }
+
+        /* Data tables */
+        table.data th, table.data td {
+            border-bottom: 1px solid rgba(238, 232, 223, 0.10);
+            color: var(--cream);
+        }
+        table.data th {
+            color: rgba(238, 232, 223, 0.65);
+            background: rgba(18, 8, 16, 0.50);
+        }
+        table.data tbody tr:nth-child(odd) td { background: rgba(238, 232, 223, 0.03); }
+        table.data tbody tr:nth-child(even) td { background: transparent; }
+        /* Status row tints — semantic colors over dark */
+        table.data tr.status-error td   { background: rgba(255, 101, 104, 0.12); }
+        table.data tr.status-nohits td  { background: rgba(229, 196, 107, 0.10); }
+        table.data tr.status-working td { background: rgba(125, 211, 211, 0.08); }
+        table.data td.mono { color: rgba(238, 232, 223, 0.55); font-family: monospace; font-size: 11px; }
+
+        /* Badges — outline pill style matching index.html */
+        .badge {
+            background: transparent !important;
+            border: 1px solid currentColor !important;
+            border-radius: 999px;
+            padding: 2px 8px 1px;
+            letter-spacing: 0.18em;
+        }
+        .badge-paper    { color: var(--gold); }
+        .badge-preprint { color: var(--cyan); }
+        .badge-news     { color: var(--coral); }
+        .badge-forums   { color: var(--pale-pink); }
+        .badge-social   { color: var(--pink); }
+        .badge-video    { color: var(--cream); }
+
         .tab-panel { display: none; }
         .tab-panel.active { display: block; }
         .stat-bar {
@@ -13,20 +158,21 @@
             gap: 24px;
             flex-wrap: wrap;
             font-size: 12px;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.55);
             margin-bottom: 24px;
             letter-spacing: 0.05em;
         }
         .stat-bar b {
-            color: var(--dark-purple);
+            color: var(--cream);
             font-size: 20px;
             display: block;
             letter-spacing: 0;
         }
         .request-form {
-            background: var(--cream-dim);
+            background: rgba(18, 8, 16, 0.40);
+            border: 1px solid rgba(238, 232, 223, 0.10);
             padding: 20px;
-            border-radius: 2px;
+            border-radius: 8px;
             margin-bottom: 24px;
         }
         .request-form h3 {
@@ -34,7 +180,7 @@
             font-size: 11px;
             letter-spacing: 0.2em;
             text-transform: uppercase;
-            color: var(--dark-purple);
+            color: var(--cream);
         }
         .request-form .form-grid {
             display: grid;
@@ -52,7 +198,7 @@
         .requests-block {
             margin-top: 56px;
             padding-top: 40px;
-            border-top: 2px solid var(--dark-purple);
+            border-top: 1px solid rgba(238, 232, 223, 0.18);
         }
         .requests-block .requests-header {
             text-align: center;
@@ -63,7 +209,7 @@
             font-weight: 400;
             font-size: 30px;
             letter-spacing: 0.06em;
-            color: var(--dark-purple);
+            color: var(--cream);
             text-transform: uppercase;
             margin: 0 0 8px;
             display: flex;
@@ -78,16 +224,17 @@
             width: 22px;
             height: 25px;
             background: url("assets/logo-icon.svg") no-repeat center / contain;
+            filter: brightness(0) invert(0.92) sepia(0.15) hue-rotate(310deg);
         }
         .requests-block .requests-subtitle {
             font-style: italic;
             font-size: 12px;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.55);
             letter-spacing: 0.03em;
         }
         .requests-block .requests-subtitle a {
-            color: var(--light-purple);
-            border-bottom: 1px solid var(--light-purple);
+            color: var(--cream);
+            border-bottom: 1px solid rgba(238, 232, 223, 0.35);
         }
         .requests-block .requests-subtitle a:hover {
             color: var(--pink);
@@ -197,7 +344,7 @@
                 <td><b>${s.tier}</b></td>
                 <td>${s.sources_configured}</td>
                 <td>${s.articles_contributed}</td>
-                <td>${s.errored > 0 ? `<span style="color:#c55">${s.errored}</span>` : s.errored}</td>
+                <td>${s.errored > 0 ? `<span style="color:var(--coral)">${s.errored}</span>` : s.errored}</td>
             </tr>`).join("");
         const when = new Date(data.generated_at).toLocaleString("en-US",
             { timeZone: "America/Los_Angeles", month:"short", day:"numeric", year:"numeric", hour:"numeric", minute:"2-digit", timeZoneName: "short" });
@@ -227,8 +374,8 @@
                 <td style="text-align:right;">${r.matched}</td>
                 <td style="text-align:right;">${r.total}</td>
                 <td>${r.status}</td>
-                <td style="color:#c55;">${r.error || ""}</td>
-                <td style="color: var(--soft-text); font-style: italic;">${r.notes || ""}</td>
+                <td style="color: var(--coral);">${r.error || ""}</td>
+                <td style="color: rgba(238, 232, 223, 0.55); font-style: italic;">${r.notes || ""}</td>
             </tr>`).join("");
         return `
             <table class="data">
@@ -402,7 +549,7 @@
             <div><b>${totalSources}</b>sources configured</div>
             <div><b>${totalArticles}</b>articles contributed</div>
             <div><b>${data.unique_articles_after_dedup}</b>unique after dedup</div>
-            <div><b style="color:${totalErrored > 0 ? '#c55' : 'var(--dark-purple)'};">${totalErrored}</b>errored</div>
+            <div><b style="color:${totalErrored > 0 ? 'var(--coral)' : 'var(--cream)'};">${totalErrored}</b>errored</div>
         `;
 
         // Summary tab

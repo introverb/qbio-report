@@ -6,20 +6,94 @@
     <title>QUBIE News — Suggest</title>
     <link rel="stylesheet" href="assets/shared.css">
     <style>
-        /* How-to-contribute intro block (mirrors /admin's intro styling) */
-        .suggest-intro {
-            background: var(--cream-dim);
+        /* ---------- Dark mode palette (overrides shared.css) ---------- */
+        :root {
+            --cream:       #FFFCF6;
+            --cream-warm:  #FAF4E8;
+            --cream-dim:   #EEE8DF;
+            --dark-purple: #25101D;
+            --deep-plum:   #4B243C;
+            --light-purple:#854B6E;
+            --pink:        #D57DB2;
+            --pale-pink:   #FFCEEC;
+            --cyan:        #7DD3D3;
+            --gold:        #E5C46B;
+            --coral:       #FF6568;
+            --near-black:  #120810;
+            --soft-text:   rgba(238, 232, 223, 0.55);
+        }
+        body { background: var(--dark-purple); color: var(--cream); }
+        a { color: var(--gold); border-bottom: 1px solid rgba(238, 232, 223, 0.35); }
+        a:hover { color: var(--pink); border-bottom-color: var(--pink); }
+
+        /* Site nav — mirror index.html */
+        .site-nav {
+            background: var(--near-black);
+            border-bottom: 1px solid rgba(238, 232, 223, 0.10);
+        }
+        .site-nav .sep { color: rgba(238, 232, 223, 0.25); }
+        .site-nav .nav-public a { color: rgba(238, 232, 223, 0.70); }
+        .site-nav .nav-public a:hover { color: var(--pink); }
+        .site-nav .nav-public a.active { color: var(--gold); border-bottom: 2px solid var(--gold); }
+        .site-nav .nav-admin {
+            border: 1px solid rgba(238, 232, 223, 0.18);
+            border-radius: 999px;
+            padding: 2px 8px;
+            background: rgba(238, 232, 223, 0.04);
+        }
+        .site-nav .nav-admin a { color: rgba(238, 232, 223, 0.55); }
+        .site-nav .nav-admin a:hover { color: var(--pink); }
+        .site-nav .nav-admin a.active { color: var(--gold); border-bottom: 2px solid var(--gold); }
+        .site-nav .nav-admin .sep { color: rgba(238, 232, 223, 0.18); }
+
+        /* Inputs / buttons — dark */
+        input[type="text"], input[type="number"], select, textarea {
+            background: rgba(18, 8, 16, 0.50) !important;
+            border: 1px solid rgba(238, 232, 223, 0.18) !important;
+            color: var(--cream) !important;
+        }
+        input::placeholder, textarea::placeholder { color: rgba(238, 232, 223, 0.40); }
+        input:focus, select:focus, textarea:focus {
+            outline: 2px solid var(--pink);
+            outline-offset: -2px;
+            border-color: var(--pink) !important;
+        }
+        button {
+            background: var(--dark-purple);
+            border: 1px solid rgba(238, 232, 223, 0.18);
+            color: var(--cream);
+        }
+        button:hover { background: var(--pink); border-color: var(--pink); color: var(--near-black); }
+        button.secondary { background: transparent; color: var(--cream); }
+        button.secondary:hover { background: transparent; color: var(--pink); border-color: var(--pink); }
+
+        .admin-page h1 { color: var(--cream); }
+        .admin-page .subtitle { color: rgba(238, 232, 223, 0.55); }
+        .empty-state { color: rgba(238, 232, 223, 0.55); }
+
+        .flash {
+            background: rgba(18, 8, 16, 0.40);
+            border: 1px solid rgba(238, 232, 223, 0.10);
             border-left: 3px solid var(--pink);
+            color: rgba(238, 232, 223, 0.85);
+        }
+
+        /* How-to-contribute intro block — dark panel */
+        .suggest-intro {
+            background: rgba(18, 8, 16, 0.40);
+            border: 1px solid rgba(238, 232, 223, 0.10);
+            border-left: 3px solid var(--gold);
             padding: 18px 24px;
-            border-radius: 3px;
+            border-radius: 6px;
             margin: 0 0 40px;
+            color: rgba(238, 232, 223, 0.75);
         }
         .suggest-intro-head {
             font-size: 11px;
             letter-spacing: 0.28em;
             text-transform: uppercase;
             font-weight: 700;
-            color: var(--pink);
+            color: var(--gold);
             margin-bottom: 12px;
         }
         .suggest-intro ul {
@@ -32,14 +106,15 @@
         .suggest-intro code {
             font-family: Consolas, monospace;
             font-size: 12px;
-            background: var(--cream);
+            background: rgba(18, 8, 16, 0.60);
+            color: var(--pale-pink);
             padding: 1px 5px;
-            border-radius: 2px;
+            border-radius: 3px;
         }
         .suggest-intro a {
-            color: var(--dark-purple);
+            color: var(--gold);
             text-decoration: none;
-            border-bottom: 1px solid var(--dark-purple);
+            border-bottom: 1px solid rgba(238, 232, 223, 0.35);
         }
         .suggest-intro a:hover { color: var(--pink); border-bottom-color: var(--pink); }
 
@@ -57,35 +132,36 @@
             font-weight: 400;
             font-size: 24px;
             letter-spacing: 0.04em;
-            color: var(--dark-purple);
+            color: var(--cream);
             text-transform: uppercase;
             margin: 0 0 6px;
         }
         .suggest-col .col-subtitle {
             font-style: italic;
             font-size: 12px;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.55);
             margin-bottom: 20px;
             letter-spacing: 0.03em;
         }
 
-        /* Current-items pane */
+        /* Current-items pane — dark card */
         .current-box {
             max-height: 220px;
             overflow-y: auto;
-            border: 1px solid rgba(125, 74, 110, 0.3);
-            background: var(--cream-dim);
+            border: 1px solid rgba(238, 232, 223, 0.10);
+            background: rgba(18, 8, 16, 0.40);
             padding: 12px 16px;
-            border-radius: 3px;
+            border-radius: 6px;
             margin-bottom: 18px;
+            color: rgba(238, 232, 223, 0.75);
         }
         .current-box::-webkit-scrollbar { width: 8px; }
         .current-box::-webkit-scrollbar-track { background: transparent; }
         .current-box::-webkit-scrollbar-thumb {
-            background: rgba(125, 74, 110, 0.45);
+            background: rgba(238, 232, 223, 0.18);
             border-radius: 4px;
         }
-        .current-box .loading { color: var(--soft-text); font-style: italic; padding: 20px; text-align: center; }
+        .current-box .loading { color: rgba(238, 232, 223, 0.55); font-style: italic; padding: 20px; text-align: center; }
 
         /* Category sub-header above each sources box */
         .sources-subhead {
@@ -93,7 +169,7 @@
             letter-spacing: 0.22em;
             text-transform: uppercase;
             font-weight: 700;
-            color: var(--light-purple);
+            color: var(--gold);
             margin: 20px 0 6px;
             display: flex;
             align-items: baseline;
@@ -104,7 +180,7 @@
             font-size: 10px;
             font-weight: 400;
             font-style: italic;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.55);
             letter-spacing: 0.05em;
         }
 
@@ -118,13 +194,13 @@
             font-weight: 400;
             font-size: 18px;
             letter-spacing: 0.06em;
-            color: var(--dark-purple);
+            color: var(--cream);
             text-transform: uppercase;
         }
         .browse-heading .s {
             font-style: italic;
             font-size: 12px;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.55);
             letter-spacing: 0.03em;
             margin-top: 2px;
         }
@@ -134,11 +210,11 @@
             padding: 6px 0;
             font-size: 12px;
             line-height: 1.4;
-            border-bottom: 1px dotted rgba(45, 27, 48, 0.15);
+            border-bottom: 1px dotted rgba(238, 232, 223, 0.12);
         }
         .src-row:last-child { border: none; }
-        .src-row .name { font-weight: 700; color: var(--dark-purple); }
-        .src-row .meta { font-size: 10px; color: var(--light-purple); font-style: italic; }
+        .src-row .name { font-weight: 700; color: var(--cream); }
+        .src-row .meta { font-size: 10px; color: rgba(238, 232, 223, 0.55); font-style: italic; }
 
         /* Keywords as tags */
         .kw-cloud { line-height: 2; }
@@ -147,10 +223,10 @@
             padding: 3px 8px;
             margin: 2px 3px;
             font-size: 12px;
-            color: var(--dark-purple);
-            background: var(--cream);
-            border: 1px solid var(--light-purple);
-            border-radius: 2px;
+            color: var(--cream);
+            background: rgba(18, 8, 16, 0.50);
+            border: 1px solid rgba(238, 232, 223, 0.20);
+            border-radius: 999px;
             cursor: default;
         }
         .kw-cloud .kw-tag .kw-weight {
@@ -159,19 +235,19 @@
             background: var(--pink);
             color: var(--near-black);
             padding: 0 5px 1px;
-            border-radius: 2px;
+            border-radius: 999px;
             margin-left: 5px;
             font-weight: 700;
             letter-spacing: 0.03em;
         }
         .kw-cloud .kw-tag .kw-weight::before { content: "×"; margin-right: 1px; }
 
-        /* Suggest forms */
+        /* Suggest forms — dark panel */
         .suggest-form {
-            background: var(--cream-dim);
-            border: 1px solid rgba(125, 74, 110, 0.3);
+            background: rgba(18, 8, 16, 0.40);
+            border: 1px solid rgba(238, 232, 223, 0.10);
             padding: 18px;
-            border-radius: 3px;
+            border-radius: 6px;
         }
         .suggest-form label {
             display: block;
@@ -179,7 +255,7 @@
             letter-spacing: 0.18em;
             text-transform: uppercase;
             font-weight: 700;
-            color: var(--light-purple);
+            color: var(--gold);
             margin: 10px 0 4px;
         }
         .suggest-form label:first-child { margin-top: 0; }
@@ -191,10 +267,10 @@
             font-family: inherit;
             font-size: 14px;
             padding: 8px 10px;
-            border: 1px solid var(--light-purple);
-            background: var(--cream);
-            color: var(--near-black);
-            border-radius: 2px;
+            border: 1px solid rgba(238, 232, 223, 0.18);
+            background: rgba(18, 8, 16, 0.50);
+            color: var(--cream);
+            border-radius: 4px;
         }
         .suggest-form input:focus, .suggest-form select:focus, .suggest-form textarea:focus {
             outline: 2px solid var(--pink);
@@ -217,19 +293,19 @@
             font-weight: 400;
             font-size: 18px;
             letter-spacing: 0.06em;
-            color: var(--dark-purple);
+            color: var(--cream);
             text-transform: uppercase;
             margin: 18px 0 10px;
         }
 
         /* Click-to-edit weight change popover on existing keyword tags */
-        .kw-cloud .kw-tag { cursor: pointer; transition: background 0.1s; }
-        .kw-cloud .kw-tag:hover { background: var(--cream-dim); border-color: var(--pink); }
+        .kw-cloud .kw-tag { cursor: pointer; transition: background 0.1s, border-color 0.1s; }
+        .kw-cloud .kw-tag:hover { background: rgba(18, 8, 16, 0.70); border-color: var(--pink); }
 
         .weight-change-modal {
             position: fixed;
             inset: 0;
-            background: rgba(45, 27, 48, 0.35);
+            background: rgba(18, 8, 16, 0.70);
             display: none;
             align-items: center;
             justify-content: center;
@@ -237,36 +313,37 @@
         }
         .weight-change-modal.open { display: flex; }
         .weight-change-panel {
-            background: var(--cream);
-            border: 1px solid var(--dark-purple);
-            border-radius: 4px;
+            background: var(--dark-purple);
+            border: 1px solid rgba(238, 232, 223, 0.18);
+            border-radius: 8px;
             padding: 24px;
             max-width: 420px;
             width: calc(100% - 48px);
+            color: var(--cream);
         }
         .weight-change-panel h4 {
             font-family: "Chap", "Apercu Pro", sans-serif;
             font-weight: 400;
             font-size: 18px;
             letter-spacing: 0.05em;
-            color: var(--dark-purple);
+            color: var(--cream);
             text-transform: uppercase;
             margin: 0 0 4px;
         }
         .weight-change-panel .sub {
             font-style: italic;
             font-size: 12px;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.55);
             margin-bottom: 14px;
         }
-        .weight-change-panel .sub b { color: var(--dark-purple); font-style: normal; }
+        .weight-change-panel .sub b { color: var(--cream); font-style: normal; }
         .weight-change-panel label {
             display: block;
             font-size: 10px;
             letter-spacing: 0.18em;
             text-transform: uppercase;
             font-weight: 700;
-            color: var(--light-purple);
+            color: var(--gold);
             margin: 10px 0 4px;
         }
         .weight-change-panel input,
@@ -276,11 +353,12 @@
             font-family: inherit;
             font-size: 14px;
             padding: 8px 10px;
-            border: 1px solid var(--light-purple);
-            background: var(--cream);
-            color: var(--near-black);
-            border-radius: 2px;
+            border: 1px solid rgba(238, 232, 223, 0.18);
+            background: rgba(18, 8, 16, 0.50);
+            color: var(--cream);
+            border-radius: 4px;
         }
+        .weight-change-panel input::placeholder, .weight-change-panel textarea::placeholder { color: rgba(238, 232, 223, 0.40); }
         .weight-change-panel textarea { min-height: 56px; resize: vertical; }
         .weight-change-panel .actions {
             display: flex;
@@ -290,8 +368,8 @@
         }
         .weight-change-panel button.secondary {
             background: transparent;
-            color: var(--dark-purple);
-            border: 1px solid var(--dark-purple);
+            color: var(--cream);
+            border: 1px solid rgba(238, 232, 223, 0.30);
         }
     </style>
 </head>

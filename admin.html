@@ -6,16 +6,156 @@
     <title>QUBIE News — Admin</title>
     <link rel="stylesheet" href="assets/shared.css">
     <style>
+        /* ============================================================
+           DARK MODE — overrides shared.css to match the dark site theme
+           on index.html. Palette + patterns mirror index.html exactly.
+           ============================================================ */
+        :root {
+            --cream:       #FFFCF6;
+            --cream-warm:  #FAF4E8;
+            --cream-dim:   #EEE8DF;
+            --dark-purple: #25101D;
+            --deep-plum:   #4B243C;
+            --light-purple:#854B6E;
+            --pink:        #D57DB2;
+            --pale-pink:   #FFCEEC;
+            --cyan:        #7DD3D3;
+            --gold:        #E5C46B;
+            --coral:       #FF6568;
+            --near-black:  #120810;
+            --soft-text:   #4B243C;
+        }
+
+        body {
+            background: var(--dark-purple);
+            color: var(--cream);
+        }
+
+        /* ---- Site nav (matches index.html exactly) ---- */
+        .site-nav {
+            background: var(--near-black);
+            border-bottom: 1px solid rgba(238, 232, 223, 0.10);
+        }
+        .site-nav .sep { color: rgba(238, 232, 223, 0.25); }
+        .site-nav .nav-public a { color: rgba(238, 232, 223, 0.70); }
+        .site-nav .nav-public a:hover { color: var(--pink); }
+        .site-nav .nav-public a.active { color: var(--gold); border-bottom: 2px solid var(--gold); }
+        .site-nav .nav-admin {
+            border: 1px solid rgba(238, 232, 223, 0.18);
+            border-radius: 999px;
+            padding: 2px 8px;
+            background: rgba(238, 232, 223, 0.04);
+        }
+        .site-nav .nav-admin a { color: rgba(238, 232, 223, 0.55); opacity: 1; }
+        .site-nav .nav-admin a:hover { color: var(--pink); }
+        .site-nav .nav-admin a.active { color: var(--gold); border-bottom: 2px solid var(--gold); opacity: 1; }
+        .site-nav .nav-admin .sep { color: rgba(238, 232, 223, 0.18); }
+
+        /* ---- Admin page heading ---- */
+        .admin-page h1 { color: var(--cream); }
+        .admin-page .subtitle { color: rgba(238, 232, 223, 0.55); }
+
+        /* ---- Anchors in body text ---- */
+        a { color: var(--gold); border-bottom: 1px solid rgba(238, 232, 223, 0.35); }
+        a:hover { color: var(--pink); border-bottom-color: var(--pink); }
+
+        /* ---- Forms ---- */
+        input[type="text"], input[type="email"], input[type="password"],
+        input[type="number"], input[type="url"], select, textarea {
+            background: rgba(18, 8, 16, 0.50);
+            border: 1px solid rgba(238, 232, 223, 0.18);
+            color: var(--cream);
+        }
+        input::placeholder, textarea::placeholder { color: rgba(238, 232, 223, 0.40); }
+        input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus,
+        input[type="number"]:focus, input[type="url"]:focus, select:focus, textarea:focus {
+            outline: 2px solid var(--pink);
+            outline-offset: -2px;
+            border-color: var(--pink);
+        }
+
+        /* ---- Buttons (dark + visible border) ---- */
+        button {
+            background: var(--dark-purple);
+            color: var(--cream);
+            border: 1px solid rgba(238, 232, 223, 0.35);
+        }
+        button:hover { background: var(--pink); border-color: var(--pink); color: var(--near-black); }
+        button.secondary {
+            background: transparent;
+            color: var(--cream);
+            border-color: rgba(238, 232, 223, 0.35);
+        }
+        button.secondary:hover { background: transparent; color: var(--pink); border-color: var(--pink); }
+        button.danger {
+            background: transparent;
+            border-color: var(--coral);
+            color: var(--coral);
+        }
+        button.danger:hover { background: var(--coral); color: var(--near-black); border-color: var(--coral); }
+
+        /* ---- Flash / status messages ---- */
+        .flash {
+            background: rgba(18, 8, 16, 0.40);
+            border-left: 3px solid var(--pink);
+            color: var(--cream);
+        }
+        .flash.error { border-left-color: var(--coral); color: var(--coral); }
+
+        /* ---- Data tables ---- */
+        table.data th, table.data td {
+            border-bottom: 1px solid rgba(238, 232, 223, 0.10);
+            color: var(--cream);
+        }
+        table.data th {
+            color: var(--cream);
+            background: rgba(18, 8, 16, 0.55);
+        }
+        table.data tbody tr:nth-child(odd) td { background: rgba(238, 232, 223, 0.03); }
+        table.data tbody tr:nth-child(even) td { background: transparent; }
+        table.data tr.status-error td { background: rgba(255, 101, 104, 0.12); }
+        table.data tr.status-nohits td { background: rgba(229, 196, 107, 0.10); }
+        table.data tr.status-working td { background: rgba(125, 211, 211, 0.08); }
+        table.data td.mono { color: rgba(238, 232, 223, 0.65); }
+
+        /* ---- Badges (re-tinted for dark bg) ---- */
+        .badge-paper    { background: var(--gold);         color: var(--near-black); }
+        .badge-preprint { background: var(--cyan);         color: var(--near-black); }
+        .badge-news     { background: var(--pink);         color: var(--near-black); }
+        .badge-forums   { background: transparent; color: var(--cream); border: 1px solid rgba(238, 232, 223, 0.40); }
+        .badge-social   { background: transparent; color: var(--light-purple); border: 1px solid var(--light-purple); }
+        .badge-video    { background: transparent; color: var(--cream); border: 1px solid rgba(238, 232, 223, 0.40); }
+
+        /* ---- Keyword tag (dark variant) ---- */
+        .kw-tag {
+            border: 1px solid rgba(238, 232, 223, 0.25);
+            color: var(--cream);
+            background: rgba(18, 8, 16, 0.40);
+        }
+        .kw-tag button {
+            background: transparent;
+            border: none;
+            color: rgba(238, 232, 223, 0.65);
+        }
+        .kw-tag button:hover { color: var(--pink); background: transparent; }
+
+        .empty-state { color: rgba(238, 232, 223, 0.55); }
+
+        /* ============================================================
+           Admin-page specific styles (dark)
+           ============================================================ */
         .tab-panel { display: none; }
         .tab-panel.active { display: block; }
 
-        /* How-to-use intro block */
+        /* How-to-use intro block — dark panel */
         .admin-intro {
-            background: var(--cream-dim);
+            background: rgba(18, 8, 16, 0.40);
+            border: 1px solid rgba(238, 232, 223, 0.10);
             border-left: 3px solid var(--pink);
             padding: 16px 22px;
-            border-radius: 3px;
+            border-radius: 8px;
             margin-bottom: 48px;
+            color: var(--cream);
         }
         .admin-intro-head {
             font-size: 10px;
@@ -30,27 +170,31 @@
             padding-left: 20px;
             line-height: 1.6;
         }
-        .admin-intro li { margin-bottom: 4px; font-size: 13px; }
+        .admin-intro li { margin-bottom: 4px; font-size: 13px; color: rgba(238, 232, 223, 0.75); }
         .admin-intro li:last-child { margin-bottom: 0; }
         .admin-intro a {
-            color: var(--dark-purple);
+            color: var(--gold);
             text-decoration: none;
-            border-bottom: 1px solid var(--dark-purple);
+            border-bottom: 1px solid rgba(238, 232, 223, 0.35);
         }
         .admin-intro a:hover { color: var(--pink); border-bottom-color: var(--pink); }
         .admin-intro code {
             font-family: Consolas, monospace;
             font-size: 12px;
-            background: var(--cream);
+            background: rgba(238, 232, 223, 0.08);
+            color: var(--cream);
+            border: 1px solid rgba(238, 232, 223, 0.15);
             padding: 1px 5px;
             border-radius: 2px;
         }
 
-        /* Section headers */
+        /* Section panels — each section is its own dark card */
         .section {
-            margin-top: 56px;
-            padding-top: 36px;
-            border-top: 2px solid var(--dark-purple);
+            margin-top: 40px;
+            padding: 28px 28px 24px;
+            border: 1px solid rgba(238, 232, 223, 0.10);
+            background: rgba(18, 8, 16, 0.40);
+            border-radius: 8px;
         }
         .section-header {
             text-align: center;
@@ -61,7 +205,7 @@
             font-weight: 400;
             font-size: 28px;
             letter-spacing: 0.06em;
-            color: var(--dark-purple);
+            color: var(--cream);
             text-transform: uppercase;
             margin: 0 0 6px;
             display: flex;
@@ -76,11 +220,12 @@
             width: 20px;
             height: 23px;
             background: url("assets/logo-icon.svg") no-repeat center / contain;
+            filter: brightness(0) invert(0.92) sepia(0.15) hue-rotate(310deg);
         }
         .section-header .section-subtitle {
             font-style: italic;
             font-size: 12px;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.55);
             letter-spacing: 0.03em;
         }
 
@@ -89,12 +234,12 @@
             gap: 24px;
             flex-wrap: wrap;
             font-size: 12px;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.55);
             margin-bottom: 24px;
             letter-spacing: 0.05em;
         }
         .stat-bar b {
-            color: var(--dark-purple);
+            color: var(--cream);
             font-size: 20px;
             display: block;
             letter-spacing: 0;
@@ -112,18 +257,13 @@
         .scrape-now-row .scrape-status {
             font-size: 11px;
             font-style: italic;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.55);
             letter-spacing: 0.03em;
         }
-        .scrape-now-row .scrape-status.running {
-            color: var(--pink);
-            font-style: italic;
-        }
-        .scrape-now-row .scrape-status.done {
-            color: #4a7c4a;
-        }
+        .scrape-now-row .scrape-status.running { color: var(--pink); font-style: italic; }
+        .scrape-now-row .scrape-status.done { color: var(--cyan); }
 
-        /* Progress bar — appears below the button row while a scrape is running */
+        /* Progress bar */
         .scrape-progress {
             display: none;
             width: 100%;
@@ -134,8 +274,8 @@
         .scrape-progress-track {
             width: 100%;
             height: 10px;
-            background: var(--cream-dim);
-            border: 1px solid rgba(45, 27, 48, 0.18);
+            background: rgba(238, 232, 223, 0.10);
+            border: 1px solid rgba(238, 232, 223, 0.18);
             border-radius: 6px;
             overflow: hidden;
         }
@@ -150,28 +290,30 @@
             justify-content: space-between;
             font-size: 10px;
             letter-spacing: 0.05em;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.55);
             margin-top: 4px;
             font-family: Consolas, monospace;
         }
-        .scrape-progress-meta .now { color: var(--dark-purple); font-style: italic; }
+        .scrape-progress-meta .now { color: var(--cream); font-style: italic; }
 
         .empty-state-small {
             padding: 20px;
             text-align: center;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.55);
             font-style: italic;
-            background: var(--cream-dim);
-            border-radius: 3px;
+            background: rgba(238, 232, 223, 0.03);
+            border: 1px solid rgba(238, 232, 223, 0.10);
+            border-radius: 6px;
         }
 
-        /* Pending request card styling */
+        /* Pending request card */
         .request-card {
-            background: var(--cream-dim);
+            background: rgba(18, 8, 16, 0.55);
+            border: 1px solid rgba(238, 232, 223, 0.10);
             border-left: 3px solid var(--light-purple);
             padding: 14px 18px;
             margin-bottom: 12px;
-            border-radius: 3px;
+            border-radius: 6px;
         }
         .request-card.weight-change { border-left-color: var(--pink); }
         .request-card .rc-header {
@@ -182,11 +324,7 @@
             flex-wrap: wrap;
             margin-bottom: 6px;
         }
-        .request-card .rc-title {
-            font-size: 15px;
-            font-weight: 700;
-            color: var(--dark-purple);
-        }
+        .request-card .rc-title { font-size: 15px; font-weight: 700; color: var(--cream); }
         .request-card .rc-kind {
             font-size: 10px;
             letter-spacing: 0.15em;
@@ -196,13 +334,13 @@
         }
         .request-card .rc-meta {
             font-size: 11px;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.55);
             font-style: italic;
             margin-bottom: 6px;
         }
         .request-card .rc-notes {
             font-size: 13px;
-            color: var(--near-black);
+            color: rgba(238, 232, 223, 0.75);
             line-height: 1.4;
             margin-bottom: 10px;
         }
@@ -215,9 +353,10 @@
 
         /* Quick add (keyword) form */
         .quick-add {
-            background: rgba(45, 27, 48, 0.04);
+            background: rgba(238, 232, 223, 0.04);
+            border: 1px solid rgba(238, 232, 223, 0.10);
             padding: 16px 18px;
-            border-radius: 3px;
+            border-radius: 6px;
             margin-top: 20px;
         }
         .quick-add-header {
@@ -225,23 +364,21 @@
             letter-spacing: 0.2em;
             text-transform: uppercase;
             font-weight: 700;
-            color: var(--light-purple);
+            color: var(--gold);
             margin-bottom: 10px;
         }
 
-        /* Accordion at the bottom of the page */
+        /* Accordion at bottom */
         .accordion-section {
             margin-top: 64px;
             padding-top: 24px;
-            border-top: 1px dotted rgba(45, 27, 48, 0.3);
+            border-top: 1px dotted rgba(238, 232, 223, 0.20);
         }
-        .accordion-section details {
-            font-size: 12px;
-        }
+        .accordion-section details { font-size: 12px; }
         .accordion-section details summary {
             cursor: pointer;
             list-style: none;
-            color: var(--dark-purple);
+            color: var(--cream);
             font-weight: 700;
             letter-spacing: 0.14em;
             text-transform: uppercase;
@@ -253,37 +390,35 @@
             align-items: center;
             gap: 12px;
         }
-        .accordion-section details summary::before {
-            font-size: 16px;
-        }
         .accordion-section details summary::-webkit-details-marker { display: none; }
         .accordion-section details summary::before {
             content: "▸";
             color: var(--pink);
             transition: transform 0.15s;
             display: inline-block;
+            font-size: 16px;
         }
-        .accordion-section details[open] summary::before {
-            transform: rotate(90deg);
-        }
+        .accordion-section details[open] summary::before { transform: rotate(90deg); }
         .accordion-section details summary:hover {
-            background: rgba(45, 27, 48, 0.04);
-            color: var(--dark-purple);
+            background: rgba(238, 232, 223, 0.06);
+            color: var(--cream);
         }
         .accordion-section .accordion-body {
-            background: var(--cream-dim);
+            background: rgba(18, 8, 16, 0.40);
+            border: 1px solid rgba(238, 232, 223, 0.10);
             padding: 20px 24px;
-            border-radius: 3px;
+            border-radius: 6px;
             margin-top: 10px;
             font-size: 13px;
             line-height: 1.5;
+            color: rgba(238, 232, 223, 0.75);
         }
         .accordion-section .accordion-body h4 {
             font-family: "Chap", "Apercu Pro", sans-serif;
             font-weight: 400;
             font-size: 14px;
             letter-spacing: 0.08em;
-            color: var(--dark-purple);
+            color: var(--cream);
             text-transform: uppercase;
             margin: 20px 0 8px;
         }
@@ -298,7 +433,9 @@
         .accordion-section .accordion-body code {
             font-family: Consolas, monospace;
             font-size: 12px;
-            background: var(--cream);
+            background: rgba(238, 232, 223, 0.08);
+            color: var(--cream);
+            border: 1px solid rgba(238, 232, 223, 0.15);
             padding: 1px 5px;
             border-radius: 2px;
         }
@@ -312,44 +449,43 @@
         .accordion-section .accordion-body td {
             text-align: left;
             padding: 6px 10px;
-            border-bottom: 1px solid rgba(45, 27, 48, 0.15);
+            border-bottom: 1px solid rgba(238, 232, 223, 0.10);
             vertical-align: top;
         }
         .accordion-section .accordion-body th {
             font-size: 10px;
             letter-spacing: 0.1em;
             text-transform: uppercase;
-            color: var(--dark-purple);
+            color: var(--cream);
             font-weight: 700;
         }
-        .accordion-section .accordion-body .warn {
-            color: #c55;
-            font-weight: 700;
-        }
+        .accordion-section .accordion-body .warn { color: var(--coral); font-weight: 700; }
 
         /* Source fixes list */
         .fix-row {
             padding: 10px 14px;
             margin-bottom: 8px;
-            background: rgba(197, 85, 85, 0.08);
-            border-left: 3px solid #c55;
-            border-radius: 3px;
+            background: rgba(255, 101, 104, 0.10);
+            border: 1px solid rgba(238, 232, 223, 0.10);
+            border-left: 3px solid var(--coral);
+            border-radius: 4px;
             font-size: 13px;
+            color: rgba(238, 232, 223, 0.75);
         }
-        .fix-row .fix-name { font-weight: 700; color: var(--dark-purple); }
-        .fix-row .fix-target { font-family: monospace; font-size: 11px; color: var(--soft-text); }
+        .fix-row .fix-name { font-weight: 700; color: var(--cream); }
+        .fix-row .fix-target { font-family: monospace; font-size: 11px; color: rgba(238, 232, 223, 0.55); }
         .fix-row .fix-error {
-            color: #c55;
+            color: var(--coral);
             font-family: monospace;
             font-size: 11px;
             margin-top: 4px;
         }
 
-        /* Tabs (reuse) */
+        /* Tabs */
         .tabs {
             display: flex;
             gap: 0;
-            border-bottom: 1px solid var(--dark-purple);
+            border-bottom: 1px solid rgba(238, 232, 223, 0.18);
             margin-bottom: 24px;
             flex-wrap: wrap;
         }
@@ -359,21 +495,42 @@
             letter-spacing: 0.15em;
             text-transform: uppercase;
             font-weight: 700;
-            color: var(--soft-text);
+            color: rgba(238, 232, 223, 0.55);
             cursor: pointer;
             border: 1px solid transparent;
             border-bottom: none;
             background: transparent;
             border-radius: 2px 2px 0 0;
         }
-        .tab:hover { color: var(--dark-purple); }
+        .tab:hover { color: var(--cream); }
         .tab.active {
-            color: var(--dark-purple);
-            background: var(--cream-dim);
-            border-color: rgba(45, 27, 48, 0.3);
-            border-bottom: 1px solid var(--cream-dim);
+            color: var(--cream);
+            background: rgba(238, 232, 223, 0.06);
+            border-color: rgba(238, 232, 223, 0.18);
+            border-bottom: 1px solid rgba(238, 232, 223, 0.06);
             margin-bottom: -1px;
         }
+
+        /* Source-row health statuses (if used) */
+        .status-healthy { color: var(--cyan); }
+        .status-warn    { color: var(--gold); }
+        .status-error   { color: var(--coral); }
+
+        /* Generic code blocks */
+        code {
+            background: rgba(238, 232, 223, 0.08);
+            color: var(--cream);
+            border: 1px solid rgba(238, 232, 223, 0.15);
+            padding: 1px 5px;
+            border-radius: 2px;
+            font-family: Consolas, monospace;
+            font-size: 12px;
+        }
+
+        /* Footer */
+        .page-footer, footer { color: rgba(238, 232, 223, 0.55); }
+        .page-footer a, footer a { color: var(--cream); border-bottom: 1px solid rgba(238, 232, 223, 0.35); }
+        .page-footer a:hover, footer a:hover { color: var(--pink); border-bottom-color: var(--pink); }
     </style>
 </head>
 <body>
