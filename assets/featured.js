@@ -5,9 +5,10 @@
 // The high threshold means only items matching the DAO-priority authors
 // or the "quantum biology" phrase qualify (those keywords carry weight 10).
 //
-// Each card has a 3:1 banner at the top — uses article.thumbnail if
-// present (currently only YouTube articles), otherwise falls back to a
-// palette gradient picked deterministically from the article link.
+// Card design mirrors the .qubie-card pattern on quantumbiologydao.xyz:
+// no banner — instead an editorial-data layout with a mono eyebrow,
+// sans-bold title, mono source/date row, thin score bar with cyan fill,
+// keyword chips, and a blurb. Distinctive and consistent with the DAO.
 //
 // Usage on a feed page (add near top of body, after the nav):
 //
@@ -15,125 +16,111 @@
 //   <script>
 //     window.FEATURED_CATEGORIES = ["paper","preprint","news"];
 //   </script>
-//   <script src="/assets/featured.js?v=3"></script>
+//   <script src="/assets/featured.js?v=5"></script>
 //
-// If no items meet the bar, the container stays hidden (no empty section).
+// If no items meet the bar, the container stays hidden.
 
 (function () {
-    const THRESHOLD = 10;   // min score to qualify; matches author + phrase weighting
-    const LIMIT     = 10;   // max cards shown — newest qualifying items
+    const THRESHOLD = 10;   // min score to qualify
+    const LIMIT     = 10;   // max cards shown
+    const SCORE_MAX = 20;   // for the score-bar visualization (score >= 20 = full bar)
 
-    // Palette gradients used when no image is available. Sourced from the
-    // site's color tokens: --cream #EEE8DF, --dark-purple #2D1B30,
-    // --light-purple #7D4A6E, --pink #D57DB2. Each gradient is picked
-    // deterministically per-article so the strip isn't all one color.
-    const GRADIENTS = [
-        "linear-gradient(135deg, #2D1B30 0%, #7D4A6E 60%, #D57DB2 100%)",
-        "linear-gradient(135deg, #7D4A6E 0%, #D57DB2 100%)",
-        "linear-gradient(135deg, #D57DB2 0%, #EEE8DF 100%)",
-        "linear-gradient(135deg, #2D1B30 0%, #D57DB2 100%)",
-        "linear-gradient(135deg, #7D4A6E 0%, #2D1B30 100%)",
-        "linear-gradient(135deg, #EEE8DF 0%, #D57DB2 60%, #7D4A6E 100%)",
-        "linear-gradient(120deg, #2D1B30 0%, #7D4A6E 50%, #EEE8DF 100%)",
-        "linear-gradient(150deg, #D57DB2 0%, #7D4A6E 70%, #2D1B30 100%)",
-    ];
+    // Per-category accent color for the eyebrow + score bar
+    const CAT_ACCENT = {
+        paper:    "#E5C46B",   // gold
+        preprint: "#7DD3D3",   // cyan
+        news:     "#FF6568",   // coral
+        forums:   "#FFCEEC",   // pale pink
+        social:   "#D57DB2",   // pink
+        video:    "#FFFCF6",   // cream
+    };
+    const CAT_LABEL = {
+        paper: "PAPER", preprint: "PREPRINT", news: "NEWS",
+        forums: "FORUMS", social: "SOCIAL", video: "VIDEO",
+    };
 
-    function gradientFor(link) {
-        // Cheap deterministic hash → gradient index
-        let h = 0;
-        const s = link || "";
-        for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-        return GRADIENTS[Math.abs(h) % GRADIENTS.length];
-    }
-
-    // Inject styles once (each feed page has its own inline <style>; not all
-    // pull shared.css, so be self-contained like saves.js).
     if (!document.getElementById("qbio-featured-styles")) {
         const s = document.createElement("style");
         s.id = "qbio-featured-styles";
         s.textContent = `
             .featured-strip {
-                margin: 24px auto 32px;
+                margin: 24px auto 40px;
                 max-width: 1180px;
                 padding: 0 24px;
             }
             .featured-label {
-                font-family: "Chap", "Apercu Pro", sans-serif;
-                font-size: 13px;
-                letter-spacing: 0.2em;
-                text-transform: uppercase;
-                color: #2D1B30;
-                border-bottom: 1px solid #2D1B30;
-                padding-bottom: 6px;
-                margin-bottom: 4px;
                 display: flex;
                 align-items: baseline;
                 justify-content: space-between;
                 gap: 12px;
+                font-family: "Apercu Pro", monospace;
+                font-size: 10px;
+                letter-spacing: 0.3em;
+                text-transform: uppercase;
+                color: rgba(238, 232, 223, 0.65);
+                border-bottom: 1px solid rgba(238, 232, 223, 0.15);
+                padding-bottom: 10px;
+                margin-bottom: 18px;
             }
             .featured-sublabel {
-                font-style: italic;
+                font-family: "Chap", "Apercu Pro", sans-serif;
                 font-size: 11px;
-                font-family: "Apercu Pro", -apple-system, BlinkMacSystemFont, sans-serif;
-                color: #7D4A6E;
+                font-weight: 400;
+                font-style: italic;
                 text-transform: none;
                 letter-spacing: 0.04em;
-                font-weight: 400;
+                color: rgba(238, 232, 223, 0.50);
             }
             .featured-grid {
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
                 gap: 14px;
-                margin-top: 14px;
             }
             .featured-card {
                 position: relative;
-                background: #EEE8DF;
-                border: 1px solid #2D1B30;
+                background: rgba(18, 8, 16, 0.55);
+                border: 1px solid rgba(238, 232, 223, 0.10);
+                border-radius: 4px;
+                padding: 18px 18px 16px;
                 display: flex;
                 flex-direction: column;
-                overflow: hidden;
+                gap: 10px;
+                overflow: visible;
+                transition: border-color 0.18s, background 0.18s;
             }
-            .featured-banner {
-                width: 100%;
-                aspect-ratio: 3 / 1;
-                background-size: cover;
-                background-position: center;
-                background-repeat: no-repeat;
-                background-color: #7D4A6E;
-                border-bottom: 1px solid #2D1B30;
-                flex-shrink: 0;
-            }
-            .featured-card-body {
-                padding: 12px 14px 12px;
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-                flex: 1;
-                border-left: 3px solid #D57DB2;
-                margin-left: -1px; /* tuck the accent under the card border */
+            .featured-card:hover {
+                border-color: rgba(238, 232, 223, 0.25);
+                background: rgba(18, 8, 16, 0.75);
             }
             .featured-card .save-btn {
                 position: absolute;
-                top: 8px;
-                right: 8px;
-                background: rgba(238, 232, 223, 0.85) !important;
-                border-radius: 50%;
-                width: 28px;
-                height: 28px;
+                top: 8px; right: 8px;
                 z-index: 2;
             }
+            .featured-eyebrow {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 8px;
+                font-family: "Apercu Pro", monospace;
+                font-size: 9px;
+                font-weight: 700;
+                letter-spacing: 0.28em;
+                text-transform: uppercase;
+                padding-right: 60px;  /* room for save + × buttons */
+            }
+            .featured-cat { color: var(--featured-accent, #E5C46B); }
+            .featured-date { color: rgba(238, 232, 223, 0.42); font-weight: 400; }
             .featured-card h3 {
                 font-family: "Apercu Pro", sans-serif;
-                font-size: 14px;
+                font-size: 15px;
                 line-height: 1.3;
                 font-weight: 700;
-                margin: 0;
-                color: #1A1416;
-                /* Clamp to 4 lines with ellipsis */
+                margin: 2px 0 0;
+                color: #FFFCF6;
                 display: -webkit-box;
-                -webkit-line-clamp: 4;
-                line-clamp: 4;
+                -webkit-line-clamp: 3;
+                line-clamp: 3;
                 -webkit-box-orient: vertical;
                 overflow: hidden;
             }
@@ -143,26 +130,80 @@
                 border-bottom: 1px solid transparent;
             }
             .featured-card h3 a:hover {
-                color: #7D4A6E;
-                border-bottom-color: #D57DB2;
+                color: var(--featured-accent, #D57DB2);
             }
-            .featured-card .featured-meta {
+            .featured-source {
+                font-family: "Apercu Pro", monospace;
                 font-size: 10px;
-                letter-spacing: 0.06em;
-                color: #3A3036;
-                text-transform: uppercase;
-                margin-top: auto;
+                letter-spacing: 0.05em;
+                color: rgba(238, 232, 223, 0.50);
+                margin-top: -2px;
+                line-height: 1.35;
+            }
+            .featured-source-sep { color: rgba(238, 232, 223, 0.25); margin: 0 6px; }
+            .featured-score-row {
                 display: flex;
-                gap: 6px;
-                flex-wrap: wrap;
                 align-items: center;
+                gap: 10px;
+                margin-top: 2px;
             }
-            .featured-card .featured-meta .dot { color: #7D4A6E; }
-            .featured-card .featured-score {
-                font-size: 10px;
+            .featured-score-bar {
+                flex: 1;
+                height: 1px;
+                background: rgba(238, 232, 223, 0.10);
+                position: relative;
+            }
+            .featured-score-fill {
+                position: absolute;
+                top: -1px; bottom: -1px;
+                left: 0;
+                background: var(--featured-accent, #7DD3D3);
+            }
+            .featured-score-num {
+                font-family: "Apercu Pro", monospace;
+                font-size: 9px;
                 font-weight: 700;
-                color: #D57DB2;
-                letter-spacing: 0.1em;
+                letter-spacing: 0.2em;
+                color: var(--featured-accent, #7DD3D3);
+                white-space: nowrap;
+            }
+            .featured-keywords {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+            .featured-kw {
+                display: inline-block;
+                padding: 1px 6px 2px;
+                border: 1px solid rgba(238, 232, 223, 0.15);
+                border-radius: 2px;
+                font-family: "Apercu Pro", monospace;
+                font-size: 9px;
+                font-weight: 400;
+                letter-spacing: 0.04em;
+                text-transform: uppercase;
+                color: rgba(238, 232, 223, 0.55);
+                white-space: nowrap;
+            }
+            .featured-kw-more {
+                font-family: "Apercu Pro", monospace;
+                font-size: 9px;
+                color: rgba(238, 232, 223, 0.35);
+                padding: 1px 2px;
+                letter-spacing: 0.04em;
+            }
+            .featured-blurb {
+                font-family: "Apercu Pro", sans-serif;
+                font-size: 12px;
+                font-style: italic;
+                line-height: 1.5;
+                color: rgba(238, 232, 223, 0.62);
+                margin: 0;
+                display: -webkit-box;
+                -webkit-line-clamp: 3;
+                line-clamp: 3;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
             }
         `;
         document.head.appendChild(s);
@@ -192,31 +233,49 @@
         return `<button class="save-btn" data-link="${esc(a.link)}" data-title="${esc(a.title)}" data-source="${esc(a.source)}" data-category="${esc(a.source_category)}" aria-label="Save">${svg}</button>`;
     }
 
-    function bannerHtml(a) {
-        const thumb = (a.thumbnail || "").trim();
-        if (thumb) {
-            return `<div class="featured-banner" style="background-image:url('${esc(thumb)}');"></div>`;
-        }
-        return `<div class="featured-banner" style="background-image:${gradientFor(a.link)};"></div>`;
+    function sourceHtml(a) {
+        // "ArXiv (search)" or "PubMed · Journal Name" — already pre-formatted in
+        // article.source. Don't double-decorate.
+        return esc(a.source || "");
+    }
+
+    function keywordsHtml(a) {
+        const kws = Array.isArray(a.matched_keywords) ? a.matched_keywords : [];
+        if (!kws.length) return "";
+        const show = kws.slice(0, 3);
+        const extra = kws.length - show.length;
+        const pills = show.map(k =>
+            `<span class="featured-kw">${esc(k)}</span>`).join("");
+        const more  = extra > 0 ? `<span class="featured-kw-more">+${extra}</span>` : "";
+        return `<div class="featured-keywords">${pills}${more}</div>`;
     }
 
     function renderCard(a) {
-        const date = formatDate(a.date_iso);
-        const src  = esc(a.source || "");
+        const cat   = (a.source_category || "").toLowerCase();
+        const accent = CAT_ACCENT[cat] || "#E5C46B";
+        const catLabel = CAT_LABEL[cat] || (a.source_category || "").toUpperCase();
+        const date  = formatDate(a.date_iso);
+        const score = a.score || 0;
+        const fillPct = Math.min(100, Math.round((score / SCORE_MAX) * 100));
+        const blurb = a.blurb ? `<p class="featured-blurb">${esc(a.blurb)}</p>` : "";
         return `
-            <div class="featured-card">
+            <article class="featured-card" style="--featured-accent: ${accent};">
                 ${bookmarkButtonHtml(a)}
-                ${bannerHtml(a)}
-                <div class="featured-card-body">
-                    <h3><a href="${esc(a.link)}" target="_blank" rel="noopener">${esc(a.title)}</a></h3>
-                    <div class="featured-meta">
-                        <span>${src}</span>
-                        ${date ? `<span class="dot">·</span><span>${date}</span>` : ""}
-                        <span class="dot">·</span>
-                        <span class="featured-score">SCORE ${a.score}</span>
-                    </div>
+                <div class="featured-eyebrow">
+                    <span class="featured-cat">${esc(catLabel)}</span>
+                    <span class="featured-date">${date}</span>
                 </div>
-            </div>`;
+                <h3><a href="${esc(a.link)}" target="_blank" rel="noopener">${esc(a.title)}</a></h3>
+                <div class="featured-source">${sourceHtml(a)}</div>
+                <div class="featured-score-row">
+                    <div class="featured-score-bar">
+                        <div class="featured-score-fill" style="width: ${fillPct}%;"></div>
+                    </div>
+                    <span class="featured-score-num">SCORE ${score}</span>
+                </div>
+                ${keywordsHtml(a)}
+                ${blurb}
+            </article>`;
     }
 
     async function render() {
@@ -238,9 +297,8 @@
             .sort((a, b) => (b.date_iso || "").localeCompare(a.date_iso || ""))
             .slice(0, LIMIT);
 
-        if (!featured.length) return; // stay hidden — nothing earns the spot
+        if (!featured.length) return;
 
-        // Register articles with saves.js so the bookmark click has full payload
         if (typeof window.qbioRegisterArticle === "function") {
             featured.forEach(window.qbioRegisterArticle);
         }
