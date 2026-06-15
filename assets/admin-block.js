@@ -19,15 +19,17 @@
         s.textContent = `
             button.block-btn {
                 display: inline-flex; align-items: center; justify-content: center;
-                width: 16px; height: 20px; cursor: pointer; padding: 0;
-                margin: 0 4px 0 0; vertical-align: middle;
+                width: 18px; height: 20px; cursor: pointer; padding: 0;
+                position: absolute;
+                top: 4px;
+                right: 32px;   /* sits just to the left of the bookmark (.save-btn at right:4px, ~26px wide) */
                 border: none !important;
                 background: transparent !important;
                 color: #d65c5c;
                 box-shadow: none; outline: none;
                 -webkit-appearance: none; appearance: none;
                 transition: color 0.12s, transform 0.1s;
-                flex-shrink: 0;
+                z-index: 2;
             }
             button.block-btn svg { width: 14px; height: 14px; display: block; overflow: visible; }
             button.block-btn:hover {
@@ -37,6 +39,8 @@
             button.block-btn.busy { opacity: 0.5; pointer-events: none; }
             button.block-btn:focus { outline: none; }
             button.block-btn:focus-visible { outline: 2px solid #d65c5c; outline-offset: 2px; border-radius: 3px; }
+            /* Featured cards use a larger save-btn at top:8px right:8px — bump the × to match */
+            .featured-card .block-btn { top: 8px; right: 42px; }
             .qbio-blocking { transition: opacity 0.3s, transform 0.3s; opacity: 0; transform: scale(0.97); }
         `;
         document.head.appendChild(s);
