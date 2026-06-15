@@ -14,15 +14,21 @@
         @font-face { font-family: "Apercu Pro"; src: url("assets/fonts/apercu_bold_italic_pro.otf") format("opentype"); font-weight: 700; font-style: italic; font-display: swap; }
         @font-face { font-family: "Chap"; src: url("assets/fonts/Chap-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
 
-        /* ---------- QBI Palette ---------- */
+        /* ---------- QBI Palette (aligned with quantumbiologydao.xyz) ---------- */
         :root {
-            --cream:       #EEE8DF;
-            --cream-dim:   #E5DED2;
-            --dark-purple: #2D1B30;
-            --light-purple:#7D4A6E;
-            --pink:        #D57DB2;
-            --near-black:  #1A1416;
-            --soft-text:   #3A3036;
+            --cream:       #FFFCF6;  /* warm primary bg — matches DAO body */
+            --cream-warm:  #FAF4E8;  /* slightly warmer for cards */
+            --cream-dim:   #EEE8DF;  /* secondary bg — was primary, now for nav/footer */
+            --dark-purple: #25101D;  /* deepest plum from DAO */
+            --deep-plum:   #4B243C;  /* mid plum for dividers/borders */
+            --light-purple:#854B6E;  /* matches DAO's lighter plum */
+            --pink:        #D57DB2;  /* shared with DAO */
+            --pale-pink:   #FFCEEC;  /* DAO accent — soft fills */
+            --cyan:        #7DD3D3;  /* DAO accent — preprint/serene */
+            --gold:        #E5C46B;  /* DAO accent — papers/heritage */
+            --coral:       #FF6568;  /* DAO accent — news/urgent */
+            --near-black:  #120810;  /* DAO's deepest text */
+            --soft-text:   #4B243C;  /* tinted body-secondary */
         }
 
         * { box-sizing: border-box; }
@@ -87,38 +93,70 @@
         /* ---------- Masthead ---------- */
         .masthead {
             text-align: center;
-            padding: 0 0 48px;
+            padding: 24px 0 56px;
+            position: relative;
         }
+        /* Hairline rules above + below the masthead, tinted with a pink dot
+           in the middle — echoes the DAO site's section markers without
+           copying their cube graphic. */
+        .masthead::before,
+        .masthead::after {
+            content: "";
+            display: block;
+            margin: 0 auto;
+            width: min(620px, 80%);
+            height: 1px;
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                var(--deep-plum) 18%,
+                var(--deep-plum) 82%,
+                transparent 100%
+            );
+            position: relative;
+        }
+        .masthead::before { margin-bottom: 28px; }
+        .masthead::after  { margin-top: 32px; }
         .masthead .title {
             font-family: "Chap", "Apercu Pro", sans-serif;
             font-weight: 400;
-            font-size: 56px;
-            letter-spacing: 0.06em;
+            font-size: clamp(48px, 8vw, 72px);
+            letter-spacing: 0.08em;
             color: var(--dark-purple);
             margin: 0;
-            line-height: 1;
+            line-height: 0.95;
             text-transform: uppercase;
+        }
+        /* The // separator nods to the DAO site's QUBIE://REPORT block */
+        .masthead .title-slashes {
+            color: var(--pink);
+            font-weight: 700;
+            margin: 0 0.04em;
         }
         .masthead .subtitle {
             font-style: italic;
-            font-size: 12px;
+            font-size: 13px;
             color: var(--soft-text);
-            margin: 14px 0 10px;
-            letter-spacing: 0.05em;
+            margin: 18px 0 18px;
+            letter-spacing: 0.08em;
         }
         .masthead .dateline {
             font-size: 11px;
-            letter-spacing: 0.2em;
+            letter-spacing: 0.28em;
             text-transform: uppercase;
             color: var(--dark-purple);
             font-weight: 700;
+            display: inline-block;
+            padding: 6px 14px;
+            border: 1px solid var(--deep-plum);
+            background: var(--cream-warm);
         }
         .masthead .schedule {
             font-size: 11px;
             font-style: italic;
             color: var(--soft-text);
-            margin-top: 8px;
-            letter-spacing: 0.02em;
+            margin-top: 14px;
+            letter-spacing: 0.04em;
         }
 
         /* ---------- Recent Stories (chronological, 2-col per side) ---------- */
@@ -360,12 +398,12 @@
             text-transform: uppercase;
             font-style: normal;
         }
-        .badge-paper    { background: var(--dark-purple);  color: var(--cream); }
-        .badge-preprint { background: var(--light-purple); color: var(--cream); }
-        .badge-news     { background: var(--pink);         color: var(--near-black); }
-        .badge-forums   { background: transparent;         color: var(--dark-purple); border: 1px solid var(--dark-purple); }
-        .badge-social   { background: transparent;         color: var(--light-purple); border: 1px solid var(--light-purple); }
-        .badge-video    { background: var(--cream);        color: var(--dark-purple); border: 1px solid var(--dark-purple); }
+        .badge-paper    { background: var(--gold);         color: var(--near-black); }
+        .badge-preprint { background: var(--cyan);         color: var(--near-black); }
+        .badge-news     { background: var(--coral);        color: var(--cream); }
+        .badge-forums   { background: var(--pale-pink);    color: var(--dark-purple); border: 1px solid var(--dark-purple); }
+        .badge-social   { background: var(--pink);         color: var(--near-black); }
+        .badge-video    { background: var(--dark-purple);  color: var(--cream); }
 
         /* ---------- Status / empty ---------- */
         .status {
