@@ -197,6 +197,14 @@
             border-bottom: 1px solid rgba(238, 232, 223, 0.30);
         }
         .save-item .title a:hover { color: var(--pink); border-bottom-color: var(--pink); }
+        /* Clamp every saved-item title to 4 lines with an ellipsis */
+        .save-item .title {
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
         .save-item .meta {
             font-size: 11px;
             color: rgba(238, 232, 223, 0.55);

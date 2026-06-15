@@ -130,6 +130,12 @@
                 font-weight: 700;
                 margin: 0;
                 color: #1A1416;
+                /* Clamp to 4 lines with ellipsis */
+                display: -webkit-box;
+                -webkit-line-clamp: 4;
+                line-clamp: 4;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
             }
             .featured-card h3 a {
                 color: inherit;

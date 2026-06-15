@@ -282,6 +282,14 @@
             text-decoration: none;
         }
         .chatter-item .headline a:hover { color: var(--pink); }
+        /* Clamp every chatter headline to 4 lines with an ellipsis */
+        .chatter-item .headline {
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
         .chatter-item .headline mark.kw-hit {
             background: rgba(213, 125, 178, 0.30);
             color: var(--cream);
@@ -396,7 +404,7 @@
 
 <div id="featured-container"></div>
 <script>window.FEATURED_CATEGORIES = ["forums", "social"];</script>
-<script src="/assets/featured.js?v=3"></script>
+<script src="/assets/featured.js?v=4"></script>
 
 <main class="page-wide">
     <div class="filter-row" id="filters">

@@ -317,6 +317,15 @@
         }
         .archive-item .title a { color: var(--cream); text-decoration: none; }
         .archive-item .title a:hover { color: var(--pink); }
+        /* Clamp every video/archive title to 4 lines with an ellipsis */
+        .video-card h3,
+        .archive-item .title {
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
         .archive-item .meta {
             font-size: 11px;
             color: rgba(238, 232, 223, 0.55);
@@ -395,7 +404,7 @@
 
 <div id="featured-container"></div>
 <script>window.FEATURED_CATEGORIES = ["video"];</script>
-<script src="/assets/featured.js?v=3"></script>
+<script src="/assets/featured.js?v=4"></script>
 
 <main class="page-wide">
     <div class="source-picker-row">
