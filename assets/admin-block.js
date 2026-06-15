@@ -19,25 +19,24 @@
         s.textContent = `
             button.block-btn {
                 display: inline-flex; align-items: center; justify-content: center;
-                width: 22px; height: 22px; cursor: pointer; padding: 0;
-                margin: 0 0 0 4px; vertical-align: middle;
-                border: 1px solid #c55 !important;
+                width: 16px; height: 20px; cursor: pointer; padding: 0;
+                margin: 0 4px 0 0; vertical-align: middle;
+                border: none !important;
                 background: transparent !important;
-                color: #c55; font-weight: 700; font-size: 14px;
-                line-height: 1; border-radius: 50%;
+                color: #d65c5c;
                 box-shadow: none; outline: none;
                 -webkit-appearance: none; appearance: none;
-                transition: background 0.12s, color 0.12s, transform 0.1s;
+                transition: color 0.12s, transform 0.1s;
                 flex-shrink: 0;
             }
+            button.block-btn svg { width: 14px; height: 14px; display: block; overflow: visible; }
             button.block-btn:hover {
-                background: #c55 !important;
-                color: #fff;
-                transform: scale(1.08);
+                color: #ff6568;
+                transform: scale(1.12);
             }
             button.block-btn.busy { opacity: 0.5; pointer-events: none; }
             button.block-btn:focus { outline: none; }
-            button.block-btn:focus-visible { outline: 2px solid #c55; outline-offset: 2px; }
+            button.block-btn:focus-visible { outline: 2px solid #d65c5c; outline-offset: 2px; border-radius: 3px; }
             .qbio-blocking { transition: opacity 0.3s, transform 0.3s; opacity: 0; transform: scale(0.97); }
         `;
         document.head.appendChild(s);
@@ -54,8 +53,15 @@
         btn.title = "Admin: permanently block this article";
         btn.setAttribute("aria-label", "Block article");
         btn.dataset.blockLink = link;
-        btn.textContent = "×"; // ×
-        saveBtn.insertAdjacentElement("afterend", btn);
+        // Thin stroked × — matches the bookmark icon's hairline weight
+        btn.innerHTML =
+            '<svg viewBox="0 0 24 24" aria-hidden="true" style="display:block;overflow:visible;">' +
+            '<path d="M5 5 L19 19 M19 5 L5 19" ' +
+            'stroke="currentColor" stroke-width="1.8" ' +
+            'stroke-linecap="round" fill="none" />' +
+            '</svg>';
+        // Sit to the LEFT of the bookmark
+        saveBtn.insertAdjacentElement("beforebegin", btn);
     }
 
     function injectAll() {
@@ -115,8 +121,8 @@
 
         btn.classList.add("busy");
         try {
-            // Pull the article payload from the save-btn's sibling if registered
-            const saveBtn = btn.previousElementSibling;
+            // Pull the article payload from the save-btn (now the next sibling)
+            const saveBtn = btn.nextElementSibling;
             const payload = { link };
             if (saveBtn && saveBtn.dataset) {
                 if (saveBtn.dataset.title)    payload.title          = saveBtn.dataset.title;
