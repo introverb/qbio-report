@@ -38,3 +38,6 @@ Thumbs.db
 
 # Claude Code local cache (per-machine permission rules, etc.)
 .claude/
+
+# Local SQLite DB — production DB lives on Railway's volume
+qubie.db
