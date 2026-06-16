@@ -97,6 +97,40 @@
                 top: 8px; right: 8px;
                 z-index: 2;
             }
+            /* Thumbnail (videos only — other categories don't carry one) */
+            .featured-thumb {
+                position: relative;
+                aspect-ratio: 16 / 9;
+                margin: -18px -18px 4px;     /* bleed to card edges, sit above the eyebrow */
+                background: var(--near-black);
+                overflow: hidden;
+                border-bottom: 1px solid rgba(238, 232, 223, 0.10);
+                display: block;
+            }
+            .featured-thumb img {
+                width: 100%; height: 100%;
+                object-fit: cover;
+                transition: transform 0.25s;
+            }
+            .featured-card:hover .featured-thumb img { transform: scale(1.03); }
+            .featured-thumb .play-badge {
+                position: absolute;
+                inset: auto 0 0 0;
+                padding: 4px 8px;
+                background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+                color: var(--cream);
+                font-size: 9px;
+                letter-spacing: 0.15em;
+                text-transform: uppercase;
+                font-weight: 700;
+                text-align: right;
+            }
+            .featured-card.has-thumb .featured-eyebrow { padding-right: 0; }
+            .featured-card.has-thumb .save-btn {
+                background: rgba(18, 8, 16, 0.75);
+                backdrop-filter: blur(2px);
+                border-radius: 50%;
+            }
             .featured-eyebrow {
                 display: flex;
                 align-items: center;
@@ -258,9 +292,20 @@
         const score = a.score || 0;
         const fillPct = Math.min(100, Math.round((score / SCORE_MAX) * 100));
         const blurb = a.blurb ? `<p class="featured-blurb">${esc(a.blurb)}</p>` : "";
+        // Videos carry a thumbnail field — show a 16:9 preview at the top of
+        // the card. Other categories render text-only.
+        const thumb = (a.thumbnail || "").trim();
+        const hasThumb = !!thumb;
+        const thumbHtml = hasThumb
+            ? `<a class="featured-thumb" href="${esc(a.link)}" target="_blank" rel="noopener" title="Watch">
+                   <img src="${esc(thumb)}" alt="" loading="lazy">
+                   <div class="play-badge">Watch &rarr;</div>
+               </a>`
+            : "";
         return `
-            <article class="featured-card" style="--featured-accent: ${accent};">
+            <article class="featured-card${hasThumb ? " has-thumb" : ""}" style="--featured-accent: ${accent};">
                 ${bookmarkButtonHtml(a)}
+                ${thumbHtml}
                 <div class="featured-eyebrow">
                     <span class="featured-cat">${esc(catLabel)}</span>
                     <span class="featured-date">${date}</span>
