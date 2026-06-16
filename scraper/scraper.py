@@ -10,6 +10,7 @@ Usage:
     python scraper.py
 """
 
+import html as _html
 import json
 import os
 import re
@@ -279,7 +280,11 @@ def load_keywords(filepath=KEYWORDS_FILE):
 
 
 def clean_html(raw_html):
-    return re.sub(r"<[^>]+>", "", raw_html or "").strip()
+    """Strip HTML tags and decode entities (&amp;, &quot;, &#39;, etc.) so the
+    feed.json stores plain text. Without this, the frontend's esc() would
+    double-escape entities and render literal '&amp;' strings."""
+    s = re.sub(r"<[^>]+>", "", raw_html or "").strip()
+    return _html.unescape(s)
 
 
 def score_article(title, summary, keywords):
