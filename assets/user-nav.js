@@ -1,4 +1,4 @@
-// QUBIE News — populate the right-side nav slot based on auth state.
+// QUBIE Report — populate the right-side nav slot based on auth state.
 // Each page includes a <div class="nav-admin" id="user-nav-slot">…</div>
 // holding a fallback "Log in" link; this script swaps it in based on /api/me.
 (function () {

@@ -1,5 +1,5 @@
 # ==========================================
-# QUBIE NEWS — Keyword List
+# QUBIE REPORT — Keyword List
 # ==========================================
 # One keyword or phrase per line.
 # Lines starting with # are comments (ignored by scraper).

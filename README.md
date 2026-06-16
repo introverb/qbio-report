@@ -1,4 +1,4 @@
-# QUBIE News
+# QUBIE Report
 
 *Hi! I'm Qubie — a fish, a mascot, and the unofficial librarian of the
 [Quantum Biology DAO](https://quantumbiologydao.xyz). This is the repo behind my little
@@ -21,7 +21,7 @@ living-things biology — and the field moves faster than you'd think. Preprints
 drop weekly, forums buzz daily, and papers land in journals across physics,
 biology, chemistry, and a dozen specialties. Keeping up *solo* is a lot.
 
-So I cast a wide net. Every 12 hours, QUBIE News visits **~30 sources** —
+So I cast a wide net. Every 12 hours, QUBIE Report visits **~30 sources** —
 peer-reviewed journals, preprint servers, Reddit, Hacker News, Stack Exchange,
 Bluesky — and scores each new article against a curated list of
 quantum-biology keywords. The most on-topic ones float to the top, get a

@@ -1,5 +1,5 @@
 """
-QUBIE News local server
+QUBIE Report local server
 ========================
 Replaces `python -m http.server` with a Flask app that:
   - Serves the static site (index.html, feed.json, assets, etc.)
@@ -137,7 +137,7 @@ def require_admin(f):
     return decorated
 
 LOG_HEADER = (
-    "# QUBIE News - Source Requests Log\n\n"
+    "# QUBIE Report - Source Requests Log\n\n"
     "_Newest at top. Each entry is formatted for copy-paste straight to Claude._\n\n"
     "<!-- NEW_ENTRIES_BELOW -->\n\n"
 )
@@ -1580,7 +1580,7 @@ _start_scheduler()
 # ============================================================================
 
 if __name__ == "__main__":
-    print(f"QUBIE News server starting on port {PORT}")
+    print(f"QUBIE Report server starting on port {PORT}")
     print(f"  /           - Report")
     print(f"  /sources    - Sources admin")
     print(f"  /keywords   - Keywords admin")

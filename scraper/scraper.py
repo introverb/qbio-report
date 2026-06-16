@@ -1,5 +1,5 @@
 """
-QUBIE NEWS Scraper
+QUBIE REPORT Scraper
 ===================
 Fetches articles from RSS feeds, search APIs, and social/forum platforms,
 scores them by quantum biology keyword relevance, and writes:
@@ -1364,7 +1364,7 @@ DIRECT_QB_TERMS = [
 
 BLURB_SYSTEM_PROMPT = (
     "You are writing one- or two-sentence plain-English summaries of "
-    "scientific articles for QUBIE News, a news aggregator for the "
+    "scientific articles for QUBIE Report, a news aggregator for the "
     "Quantum Biology DAO.\n\n"
     "Your reader is an intelligent media director who is not a physicist "
     "or biochemist. They need to quickly understand (a) what the article "
@@ -1714,7 +1714,7 @@ def write_sources_json(path, unique_count):
 
 def main():
     print("=" * 60)
-    print("QUBIE NEWS Scraper")
+    print("QUBIE REPORT Scraper")
     print("=" * 60)
     print()
 

@@ -1,4 +1,4 @@
-// QUBIE News — "Featured" strip rendered at the top of every feed page.
+// QUBIE Report — "Featured" strip rendered at the top of every feed page.
 //
 // Self-curating: pulls the top FEATURED_LIMIT articles from /feed.json
 // whose score >= FEATURED_THRESHOLD, filtered to the page's categories.

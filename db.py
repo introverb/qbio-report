@@ -1,5 +1,5 @@
 """
-QUBIE News — SQLite database layer
+QUBIE Report — SQLite database layer
 ==================================
 Single file (`qubie.db`) on the persistent volume. Holds:
 

@@ -1,4 +1,4 @@
-// QUBIE News — bookmark/save icon behavior shared across feed pages.
+// QUBIE Report — bookmark/save icon behavior shared across feed pages.
 //
 // Usage on a feed page:
 //   1. Include <script src="/assets/saves.js"></script> in the page.

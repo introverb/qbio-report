@@ -1,4 +1,4 @@
-// QUBIE News — admin-only "Block" button injected next to every save icon.
+// QUBIE Report — admin-only "Block" button injected next to every save icon.
 //
 // On feed pages (/, /chatter, /video) this script:
 //   1. Calls /api/me to check is_admin.
