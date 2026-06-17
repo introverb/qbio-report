@@ -66,7 +66,7 @@
             --surface-card-hover: rgba(250, 244, 232, 1.00);
             --surface-input:      #FAF4E8;
 
-            --text-strong:        var(--near-black);
+            --text-strong:        var(--dark-purple);
             --text:               rgba(37, 16, 29, 0.85);
             --text-muted:         rgba(37, 16, 29, 0.65);
             --text-soft:          rgba(37, 16, 29, 0.55);
@@ -78,6 +78,12 @@
             --border:             rgba(37, 16, 29, 0.18);
             --border-strong:      rgba(37, 16, 29, 0.40);
             --link-underline:     rgba(37, 16, 29, 0.40);
+
+            /* Per Olli: in light mode, swap palette tokens so any element
+               using gold becomes pink, and anything using near-black
+               (deepest plum-black) reads as the slightly-lighter dark-purple. */
+            --gold:               var(--pink);
+            --near-black:         var(--dark-purple);
         }
 
         * { box-sizing: border-box; }
