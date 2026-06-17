@@ -27,9 +27,9 @@
 
     // Per-category accent color for the eyebrow + score bar
     const CAT_ACCENT = {
-        paper:    "#E5C46B",   // gold
-        preprint: "#7DD3D3",   // cyan
-        news:     "#FF6568",   // coral
+        paper:    "#D57DB2",   // gold
+        preprint: "#854B6E",   // cyan
+        news:     "#D57DB2",   // coral
         forums:   "#FFCEEC",   // pale pink
         social:   "#D57DB2",   // pink
         video:    "#FFFCF6",   // cream
@@ -143,7 +143,7 @@
                 text-transform: uppercase;
                 padding-right: 60px;  /* room for save + × buttons */
             }
-            .featured-cat { color: var(--featured-accent, #E5C46B); }
+            .featured-cat { color: var(--featured-accent, #D57DB2); }
             .featured-date { color: rgba(238, 232, 223, 0.42); font-weight: 400; }
             .featured-card h3 {
                 font-family: "Apercu Pro", sans-serif;
@@ -191,14 +191,14 @@
                 position: absolute;
                 top: -1px; bottom: -1px;
                 left: 0;
-                background: var(--featured-accent, #7DD3D3);
+                background: var(--featured-accent, #854B6E);
             }
             .featured-score-num {
                 font-family: "Apercu Pro", monospace;
                 font-size: 9px;
                 font-weight: 700;
                 letter-spacing: 0.2em;
-                color: var(--featured-accent, #7DD3D3);
+                color: var(--featured-accent, #854B6E);
                 white-space: nowrap;
             }
             .featured-keywords {
@@ -286,7 +286,7 @@
 
     function renderCard(a) {
         const cat   = (a.source_category || "").toLowerCase();
-        const accent = CAT_ACCENT[cat] || "#E5C46B";
+        const accent = CAT_ACCENT[cat] || "#D57DB2";
         const catLabel = CAT_LABEL[cat] || (a.source_category || "").toUpperCase();
         const date  = formatDate(a.date_iso);
         const score = a.score || 0;

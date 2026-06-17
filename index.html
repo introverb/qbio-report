@@ -21,30 +21,43 @@
         @font-face { font-family: "Apercu Pro"; src: url("assets/fonts/apercu_bold_italic_pro.otf") format("opentype"); font-weight: 700; font-style: italic; font-display: swap; }
         @font-face { font-family: "Chap"; src: url("assets/fonts/Chap-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
 
-        /* ---------- QBI Palette (aligned with quantumbiologydao.xyz) ---------- */
+        /* ---------- QBI Palette ----------
+           Canonical palette per Olli — ONLY these 8 colors should appear:
+             #25101D  dark-purple   (darkest)
+             #4B243C  deep-plum
+             #854B6E  light-purple
+             #D57DB2  pink          (primary accent)
+             #FFCEEC  pale-pink
+             #EEE8DF  cream-dim
+             #FFFCF6  cream         (lightest content)
+             #FFFFFF  white         (extreme contrast)
+           Deprecated tokens (--cyan, --gold, --coral, --near-black,
+           --cream-warm) are remapped below to a canonical color so
+           existing CSS keeps working. */
         :root {
             --cream:       #FFFCF6;
-            --cream-warm:  #FAF4E8;
+            --cream-warm:  #EEE8DF;  /* remapped: was #FAF4E8 */
             --cream-dim:   #EEE8DF;
             --dark-purple: #25101D;
             --deep-plum:   #4B243C;
             --light-purple:#854B6E;
             --pink:        #D57DB2;
             --pale-pink:   #FFCEEC;
-            --cyan:        #7DD3D3;
-            --gold:        #E5C46B;
-            --coral:       #FF6568;
-            --near-black:  #120810;
+            --white:       #FFFFFF;
+            --cyan:        #854B6E;  /* remapped: was #7DD3D3 → light-purple */
+            --gold:        #D57DB2;  /* remapped: was #E5C46B → pink */
+            --coral:       #D57DB2;  /* remapped: was #FF6568 → pink */
+            --near-black:  #25101D;  /* remapped: was #120810 → dark-purple */
             --soft-text:   #4B243C;
 
             /* Semantic tokens — dark mode (default). Flipped under
                [data-theme="light"] below. Use these everywhere instead of
                literal rgba(238,232,223,X) / rgba(18,8,16,X) so themes work. */
             --surface:            #25101D;                          /* body bg */
-            --surface-elevated:   #120810;                          /* nav, deep cards */
-            --surface-card:       rgba(18, 8, 16, 0.40);            /* card bg */
-            --surface-card-hover: rgba(18, 8, 16, 0.55);            /* card hover */
-            --surface-input:      rgba(18, 8, 16, 0.50);            /* inputs / search bg */
+            --surface-elevated:   #4B243C;                          /* nav (lighter for separation) */
+            --surface-card:       rgba(75, 36, 60, 0.30);           /* card bg — deep-plum tint */
+            --surface-card-hover: rgba(75, 36, 60, 0.55);           /* card hover */
+            --surface-input:      rgba(75, 36, 60, 0.40);           /* inputs / search bg */
 
             --text-strong:        #FFFCF6;                          /* titles, primary */
             --text:               rgba(238, 232, 223, 0.85);        /* body */
@@ -62,9 +75,9 @@
         [data-theme="light"] {
             --surface:            #FFFCF6;                          /* cream */
             --surface-elevated:   #EEE8DF;                          /* cream-dim */
-            --surface-card:       rgba(250, 244, 232, 0.95);
-            --surface-card-hover: rgba(250, 244, 232, 1.00);
-            --surface-input:      #FAF4E8;
+            --surface-card:       rgba(238, 232, 223, 0.65);        /* cream-dim tint */
+            --surface-card-hover: rgba(238, 232, 223, 0.95);
+            --surface-input:      #EEE8DF;
 
             --text-strong:        var(--dark-purple);
             --text:               rgba(37, 16, 29, 0.85);
@@ -79,11 +92,12 @@
             --border-strong:      rgba(37, 16, 29, 0.40);
             --link-underline:     rgba(37, 16, 29, 0.40);
 
-            /* Per Olli: in light mode, swap palette tokens so any element
-               using gold becomes pink, and anything using near-black
-               (deepest plum-black) reads as the slightly-lighter dark-purple. */
+            /* Deprecated tokens still alias to canonical colors in light too. */
             --gold:               var(--pink);
+            --coral:              var(--pink);
+            --cyan:               var(--light-purple);
             --near-black:         var(--dark-purple);
+            --cream-warm:         var(--cream-dim);
         }
 
         * { box-sizing: border-box; }
@@ -202,8 +216,8 @@
             font-weight: 700;
             display: inline-block;
             padding: 6px 14px;
-            border: 1px solid rgba(229, 196, 107, 0.35);
-            background: rgba(229, 196, 107, 0.08);
+            border: 1px solid rgba(213, 125, 178, 0.35);
+            background: rgba(213, 125, 178, 0.10);
             border-radius: 999px;
         }
         .masthead .schedule {
@@ -634,7 +648,7 @@
             text-decoration: none;
             font-weight: 700;
             font-style: normal;
-            border-bottom: 1px solid rgba(229, 196, 107, 0.4);
+            border-bottom: 1px solid rgba(213, 125, 178, 0.4);
             padding-bottom: 1px;
         }
         .search-results .search-item .saved-attr a:hover { color: var(--pink); border-bottom-color: var(--pink); }
